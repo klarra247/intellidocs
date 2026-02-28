@@ -1,0 +1,110 @@
+
+# ─────────────────────────────────────────────────────────────
+# intellidocs-infra.yml
+#
+# 인프라만 먼저 띄울 때 사용 (앱 코드 없이 연결 테스트)
+# 사용법: docker compose -f docker-compose.infra.yml up -d
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: intellidocs-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: intellidocs
+      POSTGRES_USER: intellidocs
+      POSTGRES_PASSWORD: intellidocs123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intellidocs -d intellidocs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - intellidocs-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: intellidocs-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: false
+      xpack.security.http.ssl.enabled: false
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - intellidocs-net
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: intellidocs-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - intellidocs-net
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: intellidocs-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass intellidocs_secret --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "intellidocs_secret", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - intellidocs-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: intellidocs-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: intellidocs
+      RABBITMQ_DEFAULT_PASS: intellidocs_secret
+      RABBITMQ_DEFAULT_VHOST: intellidocs
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - intellidocs-net
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
+  qdrant_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  intellidocs-net:
+    driver: bridge

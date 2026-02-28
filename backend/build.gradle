@@ -1,0 +1,83 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.intellidocs'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    langchain4jVersion = '1.0.0-beta2'
+}
+
+dependencies {
+    // === Spring Boot Core ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // === Security (JWT) ===
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // === Messaging (RabbitMQ) ===
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+    // === Cache (Redis) ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // === Database ===
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // === Elasticsearch ===
+    implementation 'co.elastic.clients:elasticsearch-java:8.17.0'
+
+    // === Qdrant (Vector DB) ===
+    implementation 'io.qdrant:client:1.13.0'
+
+    // === LangChain4j (AI Agent + RAG) ===
+    implementation "dev.langchain4j:langchain4j:${langchain4jVersion}"
+    implementation "dev.langchain4j:langchain4j-spring-boot-starter:${langchain4jVersion}"
+    implementation "dev.langchain4j:langchain4j-anthropic:${langchain4jVersion}"
+    implementation "dev.langchain4j:langchain4j-open-ai:${langchain4jVersion}"
+    implementation "dev.langchain4j:langchain4j-qdrant:${langchain4jVersion}"
+
+    // === Utilities ===
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+    // === Dev ===
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // === Test ===
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.amqp:spring-rabbit-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

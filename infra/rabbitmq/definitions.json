@@ -1,0 +1,71 @@
+{
+  "vhosts": [
+    { "name": "intellidocs" }
+  ],
+  "exchanges": [
+    {
+      "name": "intellidocs.documents",
+      "vhost": "intellidocs",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false
+    },
+    {
+      "name": "intellidocs.dlx",
+      "vhost": "intellidocs",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false
+    }
+  ],
+  "queues": [
+    {
+      "name": "document.parse",
+      "vhost": "intellidocs",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "intellidocs.dlx",
+        "x-dead-letter-routing-key": "document.parse.dead",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "document.parse.dead",
+      "vhost": "intellidocs",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "document.index.callback",
+      "vhost": "intellidocs",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "intellidocs.documents",
+      "vhost": "intellidocs",
+      "destination": "document.parse",
+      "destination_type": "queue",
+      "routing_key": "document.parse"
+    },
+    {
+      "source": "intellidocs.documents",
+      "vhost": "intellidocs",
+      "destination": "document.index.callback",
+      "destination_type": "queue",
+      "routing_key": "document.index.callback"
+    },
+    {
+      "source": "intellidocs.dlx",
+      "vhost": "intellidocs",
+      "destination": "document.parse.dead",
+      "destination_type": "queue",
+      "routing_key": "document.parse.dead"
+    }
+  ]
+}
