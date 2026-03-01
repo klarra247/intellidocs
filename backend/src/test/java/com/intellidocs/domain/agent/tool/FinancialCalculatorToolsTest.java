@@ -1,8 +1,10 @@
 package com.intellidocs.domain.agent.tool;
 
+import com.intellidocs.domain.agent.dto.ToolEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -136,5 +138,18 @@ class FinancialCalculatorToolsTest {
                 "매출"
         );
         assertThat(result).contains("일치하지 않");
+    }
+
+    @Test
+    void calculateChange_emitsToolEvents() {
+        List<ToolEvent> events = new ArrayList<>();
+        FinancialCalculatorTools tools = new FinancialCalculatorTools();
+        tools.setEventCallback(events::add);
+
+        tools.calculateChange(100, 150, "growth_rate");
+
+        assertThat(events).hasSize(2);
+        assertThat(events.get(0).getEventType()).isEqualTo("tool_start");
+        assertThat(events.get(1).getEventType()).isEqualTo("tool_end");
     }
 }

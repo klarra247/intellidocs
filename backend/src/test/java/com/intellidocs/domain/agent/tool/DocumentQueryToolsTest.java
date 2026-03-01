@@ -1,5 +1,6 @@
 package com.intellidocs.domain.agent.tool;
 
+import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.search.dto.SearchRequest;
 import com.intellidocs.domain.search.dto.SearchResponse;
 import com.intellidocs.domain.search.dto.SearchResult;
@@ -11,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -269,5 +271,46 @@ class DocumentQueryToolsTest {
 
         assertThat(result).contains("data.xlsx");
         assertThat(result).contains("Revenue: $1M, Profit: $200K");
+    }
+
+    @Test
+    void searchDocuments_emitsToolEvents() {
+        UUID docId = UUID.randomUUID();
+        SearchResult chunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("report.pdf")
+                .text("Revenue data").pageNumber(3).score(0.9).build();
+
+        when(hybridSearchService.search(any())).thenReturn(
+                SearchResponse.builder().results(List.of(chunk))
+                        .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
+
+        List<ToolEvent> events = new ArrayList<>();
+        documentQueryTools.setEventCallback(events::add);
+
+        documentQueryTools.searchDocuments("revenue", null);
+
+        assertThat(events).hasSize(2);
+        assertThat(events.get(0).getEventType()).isEqualTo("tool_start");
+        assertThat(events.get(0).getTool()).isEqualTo("searchDocuments");
+        assertThat(events.get(1).getEventType()).isEqualTo("tool_end");
+        assertThat(events.get(1).getMessage()).contains("1개");
+    }
+
+    @Test
+    void searchDocuments_instanceCollectedResultsWorks() {
+        UUID docId = UUID.randomUUID();
+        SearchResult chunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("report.pdf")
+                .text("text").pageNumber(1).score(0.9).build();
+
+        when(hybridSearchService.search(any())).thenReturn(
+                SearchResponse.builder().results(List.of(chunk))
+                        .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
+
+        DocumentQueryTools freshTools = new DocumentQueryTools(hybridSearchService);
+        freshTools.searchDocuments("query", null);
+
+        assertThat(freshTools.getInstanceCollectedResults()).hasSize(1);
+        assertThat(freshTools.getInstanceCollectedResults().get(0).getDocumentId()).isEqualTo(docId);
     }
 }

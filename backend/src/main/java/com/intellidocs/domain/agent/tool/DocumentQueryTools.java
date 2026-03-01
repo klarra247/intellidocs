@@ -1,5 +1,6 @@
 package com.intellidocs.domain.agent.tool;
 
+import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.search.dto.SearchRequest;
 import com.intellidocs.domain.search.dto.SearchResponse;
 import com.intellidocs.domain.search.dto.SearchResult;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +35,24 @@ public class DocumentQueryTools {
      */
     private static final ThreadLocal<List<SearchResult>> COLLECTED_RESULTS = ThreadLocal.withInitial(ArrayList::new);
 
+    private Consumer<ToolEvent> eventCallback;
+    private final List<SearchResult> instanceCollectedResults = new ArrayList<>();
+
+    public void setEventCallback(Consumer<ToolEvent> callback) {
+        this.eventCallback = callback;
+    }
+
+    /** Instance-level result access (for streaming - ThreadLocal doesn't work across threads). */
+    public List<SearchResult> getInstanceCollectedResults() {
+        return List.copyOf(instanceCollectedResults);
+    }
+
+    private void emitEvent(ToolEvent event) {
+        if (eventCallback != null) {
+            eventCallback.accept(event);
+        }
+    }
+
     /** Call before agent.chat() to reset collected results. */
     public void clearCollectedResults() {
         COLLECTED_RESULTS.get().clear();
@@ -49,6 +69,7 @@ public class DocumentQueryTools {
             @P(value = "특정 문서 ID 목록, null이면 전체 문서 대상", required = false) List<String> documentIds) {
 
         log.debug("searchDocuments called: query='{}', documentIds={}", query, documentIds);
+        emitEvent(ToolEvent.start("searchDocuments", "문서 검색 중..."));
 
         SearchRequest request = SearchRequest.builder()
                 .query(query)
@@ -59,16 +80,19 @@ public class DocumentQueryTools {
         SearchResponse response = hybridSearchService.search(request);
 
         if (response.getResults() == null || response.getResults().isEmpty()) {
+            emitEvent(ToolEvent.end("searchDocuments", "검색 결과 없음"));
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
         collectResults(response.getResults());
+        emitEvent(ToolEvent.end("searchDocuments", response.getResults().size() + "개 관련 청크 발견"));
         return truncate(formatResults(response.getResults()));
     }
 
     @Tool("특정 문서의 전체 내용을 요약한다. 문서 요약 요청 시 사용")
     public String summarizeDocument(String documentId) {
         log.debug("summarizeDocument called: documentId='{}'", documentId);
+        emitEvent(ToolEvent.start("summarizeDocument", "문서 요약 데이터 수집 중..."));
 
         SearchRequest request = SearchRequest.builder()
                 .query("문서 전체 내용 요약")
@@ -79,16 +103,19 @@ public class DocumentQueryTools {
         SearchResponse response = hybridSearchService.search(request);
 
         if (response.getResults() == null || response.getResults().isEmpty()) {
+            emitEvent(ToolEvent.end("summarizeDocument", "검색 결과 없음"));
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
         collectResults(response.getResults());
+        emitEvent(ToolEvent.end("summarizeDocument", response.getResults().size() + "개 청크 수집 완료"));
         return truncate(formatResults(response.getResults()));
     }
 
     @Tool("두 문서의 특정 항목을 비교 분석한다. 비교 질문 시 사용")
     public String compareDocuments(String docId1, String docId2, String aspect) {
         log.debug("compareDocuments called: docId1='{}', docId2='{}', aspect='{}'", docId1, docId2, aspect);
+        emitEvent(ToolEvent.start("compareDocuments", "두 문서 비교 분석 중..."));
 
         String doc1Results = searchForDocument(docId1, aspect);
         String doc2Results = searchForDocument(docId2, aspect);
@@ -97,6 +124,7 @@ public class DocumentQueryTools {
                 + "=== 문서 1 ===\n" + doc1Results + "\n\n"
                 + "=== 문서 2 ===\n" + doc2Results;
 
+        emitEvent(ToolEvent.end("compareDocuments", "비교 데이터 수집 완료"));
         return truncate(result);
     }
 
@@ -108,6 +136,7 @@ public class DocumentQueryTools {
 
         log.debug("extractAndCompile called: documentIds={}, dataType='{}', outputFormat='{}'",
                 documentIds, dataType, outputFormat);
+        emitEvent(ToolEvent.start("extractAndCompile", "데이터 추출 중..."));
 
         SearchRequest request = SearchRequest.builder()
                 .query(dataType)
@@ -118,10 +147,12 @@ public class DocumentQueryTools {
         SearchResponse response = hybridSearchService.search(request);
 
         if (response.getResults() == null || response.getResults().isEmpty()) {
+            emitEvent(ToolEvent.end("extractAndCompile", "검색 결과 없음"));
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
         collectResults(response.getResults());
+        emitEvent(ToolEvent.end("extractAndCompile", response.getResults().size() + "개 데이터 추출 완료"));
         return truncate(formatResults(response.getResults()));
     }
 
@@ -174,6 +205,7 @@ public class DocumentQueryTools {
 
     private void collectResults(List<SearchResult> results) {
         COLLECTED_RESULTS.get().addAll(results);
+        instanceCollectedResults.addAll(results);
     }
 
     private String truncate(String text) {
