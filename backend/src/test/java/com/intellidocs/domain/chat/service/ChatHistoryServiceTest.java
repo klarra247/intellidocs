@@ -1,5 +1,6 @@
 package com.intellidocs.domain.chat.service;
 
+import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.chat.dto.ChatHistoryResponse;
 import com.intellidocs.domain.chat.entity.ChatMessage;
@@ -102,8 +103,8 @@ class ChatHistoryServiceTest {
         when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> chatHistoryService.getHistory(sessionId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("세션을 찾을 수 없습니다");
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("not found");
     }
 
     @Test

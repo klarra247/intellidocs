@@ -16,10 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -99,8 +96,8 @@ public class AgentService {
 
         // 6. Build sources and confidence from collected search results
         List<SearchResult> collected = documentQueryTools.getCollectedResults();
-        List<SourceInfo> sources = deduplicateSources(collected);
-        double confidence = computeConfidence(collected);
+        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
+        double confidence = SearchResultUtils.computeConfidence(collected);
 
         long elapsed = System.currentTimeMillis() - start;
         log.info("[AgentService] answered in {}ms, confidence={}, sources={}",
@@ -114,36 +111,4 @@ public class AgentService {
                 .build();
     }
 
-    /**
-     * Deduplicate sources by (documentId, pageNumber), preserving relevance order.
-     * Same logic as the original RagService.
-     */
-    private List<SourceInfo> deduplicateSources(List<SearchResult> results) {
-        Map<String, SourceInfo> sourceMap = new LinkedHashMap<>();
-        for (SearchResult r : results) {
-            if (r.getDocumentId() == null) continue;
-            String key = r.getDocumentId() + ":" + r.getPageNumber();
-            sourceMap.putIfAbsent(key, SourceInfo.builder()
-                    .documentId(r.getDocumentId())
-                    .filename(r.getFilename())
-                    .pageNumber(r.getPageNumber())
-                    .sectionTitle(r.getSectionTitle())
-                    .relevanceScore(r.getScore())
-                    .build());
-        }
-        return new ArrayList<>(sourceMap.values());
-    }
-
-    /**
-     * Compute confidence from collected search result RRF scores.
-     * Normalized to [0,1] using the same formula as RagService: min(1.0, avgScore * 60).
-     */
-    private double computeConfidence(List<SearchResult> results) {
-        if (results.isEmpty()) return 0.0;
-        double avgScore = results.stream()
-                .mapToDouble(SearchResult::getScore)
-                .average()
-                .orElse(0.0);
-        return Math.min(1.0, avgScore * 60);
-    }
 }

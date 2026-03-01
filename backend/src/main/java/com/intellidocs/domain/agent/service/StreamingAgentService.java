@@ -3,7 +3,6 @@ package com.intellidocs.domain.agent.service;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.SourceInfo;
-import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
 import com.intellidocs.domain.search.dto.SearchResult;
@@ -47,7 +46,9 @@ public class StreamingAgentService {
     @Value("${app.llm.openai.api-key:}")
     private String openaiKey;
 
-    // Shared memory store across streaming requests (for session continuity)
+    private static final int MAX_SESSIONS = 10_000;
+
+    // Shared memory store for session continuity. Bounded: evicts random entry when full.
     private final Map<Object, ChatMemory> memoryStore = new ConcurrentHashMap<>();
 
     public SseEmitter streamChat(AgentRequest request) {
@@ -78,16 +79,21 @@ public class StreamingAgentService {
         // 5. Build streaming agent
         StreamingIntelliDocsAgent agent = AiServices.builder(StreamingIntelliDocsAgent.class)
                 .streamingChatLanguageModel(streamingChatLanguageModel)
-                .chatMemoryProvider(id -> memoryStore.computeIfAbsent(id,
-                        k -> MessageWindowChatMemory.builder()
-                                .id(k)
-                                .maxMessages(10)
-                                .build()))
+                .chatMemoryProvider(id -> {
+                    if (memoryStore.size() >= MAX_SESSIONS) {
+                        // Evict an arbitrary entry to prevent unbounded growth
+                        memoryStore.keySet().stream().findFirst().ifPresent(memoryStore::remove);
+                    }
+                    return memoryStore.computeIfAbsent(id,
+                            k -> MessageWindowChatMemory.builder()
+                                    .id(k)
+                                    .maxMessages(10)
+                                    .build());
+                })
                 .tools(queryTools, calcTools)
                 .build();
 
         // 6. User message
-        final AgentRequest finalRequest = request;
         String userMessage = request.getQuestion();
         if (request.getDocumentIds() != null && !request.getDocumentIds().isEmpty()) {
             String idList = request.getDocumentIds().stream()
@@ -107,8 +113,8 @@ public class StreamingAgentService {
                 .onCompleteResponse(response -> {
                     try {
                         List<SearchResult> collected = queryTools.getInstanceCollectedResults();
-                        List<SourceInfo> sources = deduplicateSources(collected);
-                        double confidence = computeConfidence(collected);
+                        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
+                        double confidence = SearchResultUtils.computeConfidence(collected);
 
                         sendSseEvent(emitter, "sources", Map.of(
                                 "sources", sources,
@@ -122,11 +128,11 @@ public class StreamingAgentService {
                         try {
                             String fullAnswer = response.aiMessage().text();
                             ChatSession session = chatHistoryService.getOrCreateSession(
-                                    finalRequest.getSessionId());
-                            chatHistoryService.saveUserMessage(session, finalRequest.getQuestion());
+                                    request.getSessionId());
+                            chatHistoryService.saveUserMessage(session, request.getQuestion());
                             ChatMessage assistantMessage = chatHistoryService.saveAssistantMessage(
                                     session, fullAnswer != null ? fullAnswer : "", sources, confidence);
-                            chatHistoryService.updateSessionTitle(session, finalRequest.getQuestion());
+                            chatHistoryService.updateSessionTitle(session, request.getQuestion());
 
                             doneData.put("messageId", assistantMessage.getId().toString());
                             doneData.put("sessionId", session.getId().toString());
@@ -177,28 +183,4 @@ public class StreamingAgentService {
         emitter.complete();
     }
 
-    private List<SourceInfo> deduplicateSources(List<SearchResult> results) {
-        Map<String, SourceInfo> sourceMap = new LinkedHashMap<>();
-        for (SearchResult r : results) {
-            if (r.getDocumentId() == null) continue;
-            String key = r.getDocumentId() + ":" + r.getPageNumber();
-            sourceMap.putIfAbsent(key, SourceInfo.builder()
-                    .documentId(r.getDocumentId())
-                    .filename(r.getFilename())
-                    .pageNumber(r.getPageNumber())
-                    .sectionTitle(r.getSectionTitle())
-                    .relevanceScore(r.getScore())
-                    .build());
-        }
-        return new ArrayList<>(sourceMap.values());
-    }
-
-    private double computeConfidence(List<SearchResult> results) {
-        if (results.isEmpty()) return 0.0;
-        double avgScore = results.stream()
-                .mapToDouble(SearchResult::getScore)
-                .average()
-                .orElse(0.0);
-        return Math.min(1.0, avgScore * 60);
-    }
 }
