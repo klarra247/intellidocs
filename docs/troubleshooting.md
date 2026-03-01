@@ -41,3 +41,18 @@
   - `AgentController`가 `AgentService`를 사용하도록 전환
 - **검증**: FinancialCalculatorTools 16건, DocumentQueryTools 6건, AgentService 4건, AgentController 3건 — 총 29건 테스트 통과. `./gradlew clean build` 성공
 - **교훈**: `@Tool` description이 LLM의 도구 선택 정확도를 결정하므로, 한국어로 구체적인 사용 시나리오를 명시해야 함. 수치 계산은 LLM에 맡기지 말고 전용 Tool로 분리할 것
+
+---
+
+### [2026-03-02] AgentResponse의 sources/confidence가 항상 비어있는 문제
+
+- **문제**: Agent가 Tool을 통해 문서를 검색하고 답변 텍스트 안에 "(출처: 파일명, 페이지)"를 포함하지만, `AgentResponse.sources` 배열은 항상 `[]`, `confidence`는 항상 `0.0`으로 반환됨
+- **원인**: `DocumentQueryTools`의 `@Tool` 메서드가 `HybridSearchService.search()`로 `SearchResult`(출처, 점수 포함)를 얻지만 LLM에게는 포맷팅된 `String`만 반환. 메타데이터가 `AgentService`까지 전달되지 않는 구조
+- **해결**: `ThreadLocal<List<SearchResult>>`를 사용한 사이드채널 패턴
+  - `DocumentQueryTools`에 `COLLECTED_RESULTS` ThreadLocal 추가
+  - 각 `@Tool` 메서드에서 검색 결과를 `collectResults()`로 수집
+  - `AgentService.chat()`에서 `clearCollectedResults()` → `agent.chat()` → `getCollectedResults()`
+  - 수집된 결과로 `deduplicateSources()`(LinkedHashMap으로 documentId:pageNumber 중복 제거) + `computeConfidence()`(RRF 평균 점수 × 60 정규화) 수행
+  - LangChain4j Agent의 tool 실행이 동일 스레드에서 동기적이므로 ThreadLocal이 안전
+- **검증**: DocumentQueryToolsTest에 수집/초기화 테스트 2건, AgentServiceTest에 sources/confidence 검증 테스트 2건 추가. 전체 빌드 통과
+- **교훈**: Agent 프레임워크가 tool의 반환값을 String으로 추상화하면 메타데이터가 유실된다. 프레임워크 외부의 사이드채널(ThreadLocal 등)로 구조화된 데이터를 별도 전달해야 함

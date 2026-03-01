@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,6 +25,23 @@ public class DocumentQueryTools {
     private static final int MAX_TEXT_LENGTH = 8000;
 
     private final HybridSearchService hybridSearchService;
+
+    /**
+     * Collects SearchResults from tool executions on the current thread.
+     * Agent tool calls run synchronously on the calling thread,
+     * so ThreadLocal is safe for capturing results per request.
+     */
+    private static final ThreadLocal<List<SearchResult>> COLLECTED_RESULTS = ThreadLocal.withInitial(ArrayList::new);
+
+    /** Call before agent.chat() to reset collected results. */
+    public void clearCollectedResults() {
+        COLLECTED_RESULTS.get().clear();
+    }
+
+    /** Call after agent.chat() to retrieve all search results from this request. */
+    public List<SearchResult> getCollectedResults() {
+        return List.copyOf(COLLECTED_RESULTS.get());
+    }
 
     @Tool("사용자 문서에서 키워드/의미 기반으로 관련 내용을 검색한다. 일반적인 질문에 사용")
     public String searchDocuments(
@@ -44,6 +62,7 @@ public class DocumentQueryTools {
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
+        collectResults(response.getResults());
         return truncate(formatResults(response.getResults()));
     }
 
@@ -63,6 +82,7 @@ public class DocumentQueryTools {
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
+        collectResults(response.getResults());
         return truncate(formatResults(response.getResults()));
     }
 
@@ -101,6 +121,7 @@ public class DocumentQueryTools {
             return "검색 결과가 없습니다. 다른 키워드로 시도해 주세요.";
         }
 
+        collectResults(response.getResults());
         return truncate(formatResults(response.getResults()));
     }
 
@@ -147,7 +168,12 @@ public class DocumentQueryTools {
             return "검색 결과가 없습니다.";
         }
 
+        collectResults(response.getResults());
         return formatResults(response.getResults());
+    }
+
+    private void collectResults(List<SearchResult> results) {
+        COLLECTED_RESULTS.get().addAll(results);
     }
 
     private String truncate(String text) {

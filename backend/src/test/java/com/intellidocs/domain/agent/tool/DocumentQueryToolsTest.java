@@ -202,6 +202,47 @@ class DocumentQueryToolsTest {
     }
 
     @Test
+    void searchDocuments_collectsResultsForSourceTracking() {
+        UUID docId = UUID.randomUUID();
+        SearchResult chunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("report.pdf")
+                .text("Revenue data").pageNumber(3).sectionTitle("Finance").score(0.012)
+                .build();
+
+        when(hybridSearchService.search(any())).thenReturn(
+                SearchResponse.builder().results(List.of(chunk))
+                        .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
+
+        documentQueryTools.clearCollectedResults();
+        documentQueryTools.searchDocuments("revenue", null);
+
+        List<SearchResult> collected = documentQueryTools.getCollectedResults();
+        assertThat(collected).hasSize(1);
+        assertThat(collected.get(0).getDocumentId()).isEqualTo(docId);
+        assertThat(collected.get(0).getFilename()).isEqualTo("report.pdf");
+        assertThat(collected.get(0).getScore()).isEqualTo(0.012);
+    }
+
+    @Test
+    void clearCollectedResults_resetsCollection() {
+        UUID docId = UUID.randomUUID();
+        SearchResult chunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("a.pdf")
+                .text("text").pageNumber(1).score(0.01).build();
+
+        when(hybridSearchService.search(any())).thenReturn(
+                SearchResponse.builder().results(List.of(chunk))
+                        .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
+
+        documentQueryTools.clearCollectedResults();
+        documentQueryTools.searchDocuments("q", null);
+        assertThat(documentQueryTools.getCollectedResults()).hasSize(1);
+
+        documentQueryTools.clearCollectedResults();
+        assertThat(documentQueryTools.getCollectedResults()).isEmpty();
+    }
+
+    @Test
     void extractAndCompile_returnsFormattedData() {
         UUID docId = UUID.randomUUID();
         SearchResult chunk = SearchResult.builder()

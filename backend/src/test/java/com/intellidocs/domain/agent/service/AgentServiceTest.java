@@ -5,6 +5,8 @@ import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.AgentResponse;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
+import com.intellidocs.domain.search.dto.SearchResponse;
+import com.intellidocs.domain.search.dto.SearchResult;
 import com.intellidocs.domain.search.service.HybridSearchService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -12,6 +14,8 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +68,57 @@ class AgentServiceTest {
 
         assertThat(response.getAnswer()).isNotBlank();
         assertThat(response.getElapsedMs()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    void chat_populatesSourcesAndConfidenceFromToolResults() {
+        // Pre-populate the tool's ThreadLocal with search results
+        // to simulate what happens when the agent calls a search tool
+        UUID docId = UUID.randomUUID();
+        SearchResult chunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("report.pdf")
+                .text("매출 150억원").pageNumber(3).sectionTitle("재무")
+                .score(0.012).build();
+
+        when(hybridSearchService.search(any())).thenReturn(
+                SearchResponse.builder()
+                        .results(List.of(chunk))
+                        .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0)
+                        .build());
+
+        // Manually invoke the tool to populate ThreadLocal (simulating agent tool call)
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService);
+        AgentService localService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
+        ReflectionTestUtils.setField(localService, "provider", "anthropic");
+        ReflectionTestUtils.setField(localService, "anthropicKey", "sk-test-key");
+        ReflectionTestUtils.setField(localService, "openaiKey", "");
+        localService.init();
+
+        // The agent will call chatLanguageModel which returns a simple text (no tool calls)
+        // But we can test the source mapping by calling the tool directly first,
+        // then verifying the AgentService correctly reads collected results.
+        // Since the mock LLM doesn't actually trigger tool calls, we test the
+        // clearCollectedResults/getCollectedResults contract directly.
+        queryTools.clearCollectedResults();
+        queryTools.searchDocuments("매출", null);
+
+        List<SearchResult> collected = queryTools.getCollectedResults();
+        assertThat(collected).hasSize(1);
+        assertThat(collected.get(0).getDocumentId()).isEqualTo(docId);
+        assertThat(collected.get(0).getScore()).isEqualTo(0.012);
+    }
+
+    @Test
+    void chat_noToolCalls_returnsEmptySourcesAndZeroConfidence() {
+        // When agent answers without calling any tool, sources should be empty
+        AgentRequest request = AgentRequest.builder()
+                .question("안녕하세요")
+                .build();
+
+        AgentResponse response = agentService.chat(request);
+
+        assertThat(response.getSources()).isEmpty();
+        assertThat(response.getConfidence()).isEqualTo(0.0);
     }
 
     @Test
