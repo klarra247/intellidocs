@@ -72,3 +72,16 @@
   - `GET /api/v1/agent/chat/history?sessionId={id}`로 대화 히스토리 조회
 - **검증**: StreamingAgentServiceTest 3건, ChatHistoryServiceTest 6건, AgentControllerTest 2건 추가. `./gradlew clean build` 성공 (총 테스트 전량 통과)
 - **교훈**: 스트리밍 환경에서 ThreadLocal은 위험하다 — 콜백이 다른 스레드에서 실행될 수 있으므로, 요청당 인스턴스 + 인스턴스 레벨 컬렉션으로 전환해야 함. 기존 동기식 경로(AgentService)는 ThreadLocal이 여전히 안전하므로 두 패턴을 공존시킴
+
+---
+
+### [2026-03-02] SSE 스트리밍 완료 후 ChatSession/ChatMessage가 DB에 저장되지 않는 문제
+
+- **문제**: `/agent/chat/stream` 호출 시 `event:done`까지 정상 출력되지만, 이후 `/agent/chat/history?sessionId={id}` 조회하면 "ChatSession not found" 반환
+- **원인**: `ChatSession` 엔티티가 `@GeneratedValue(strategy = GenerationType.UUID)`를 사용하는데, `createSession(UUID sessionId)`에서 수동으로 ID를 설정함. Spring Data의 `save()`가 non-null ID를 보고 `isNew()=false` 판단 → `em.persist()` 대신 `em.merge()` 호출 → Hibernate가 SELECT 후 새 UUID를 재생성하거나 예외 발생. 예외는 `onCompleteResponse`의 `catch (Exception e)`에서 묵인되고, 실제 DB에 존재하지 않는 `memoryId`가 fallback sessionId로 `done` 이벤트에 포함됨
+- **해결**: 3가지 수정
+  - `createSession()`에서 ID를 수동 설정하지 않음 — 항상 `@GeneratedValue`가 생성하도록 위임
+  - `persistConversation()` 단일 `@Transactional` 메서드 추가 — 세션 생성/메시지 저장/제목 갱신을 하나의 트랜잭션으로 묶어 detached entity 문제 방지
+  - `response.aiMessage()` null 방어 처리, DB에 저장되지 않은 가짜 sessionId fallback 제거
+- **검증**: ChatHistoryServiceTest 10건 (persistConversation 포함), 전체 59건 테스트 통과. `./gradlew clean build` 성공
+- **교훈**: `@GeneratedValue` 엔티티에 ID를 수동 설정하면 JPA가 `merge()`를 호출하여 의도와 다른 동작 발생. ID 생성 전략이 있는 엔티티는 반드시 프레임워크에 위임할 것. 예외 묵인(`catch` 후 fallback) 패턴은 디버깅을 매우 어렵게 만드므로, 최소한 로그 레벨을 높이거나 메트릭을 남길 것
