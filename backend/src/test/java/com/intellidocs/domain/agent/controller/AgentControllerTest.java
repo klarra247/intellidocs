@@ -5,7 +5,7 @@ import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.SecurityConfig;
 import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.AgentResponse;
-import com.intellidocs.domain.agent.service.RagService;
+import com.intellidocs.domain.agent.service.AgentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,7 +32,7 @@ class AgentControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private RagService ragService;
+    private AgentService agentService;
 
     @Test
     void chat_returnsOk() throws Exception {
@@ -42,7 +42,7 @@ class AgentControllerTest {
                 .confidence(0.75)
                 .elapsedMs(300L)
                 .build();
-        when(ragService.chat(any())).thenReturn(response);
+        when(agentService.chat(any())).thenReturn(response);
 
         AgentRequest request = AgentRequest.builder()
                 .question("What is the revenue growth?")
@@ -72,7 +72,7 @@ class AgentControllerTest {
 
     @Test
     void chat_serviceThrowsBusinessException_returns400() throws Exception {
-        when(ragService.chat(any())).thenThrow(BusinessException.badRequest("LLM API 키가 설정되지 않았습니다."));
+        when(agentService.chat(any())).thenThrow(BusinessException.badRequest("LLM API 키가 설정되지 않았습니다."));
 
         AgentRequest request = AgentRequest.builder()
                 .question("What is the revenue?")
