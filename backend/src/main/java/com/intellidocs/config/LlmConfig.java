@@ -80,6 +80,7 @@ public class LlmConfig {
                     .apiKey(key)
                     .modelName(openaiModel)
                     .temperature(0.3)
+                    .maxTokens(2000)
                     .build();
         }
         String key = anthropicKey.isBlank() ? "placeholder-key" : anthropicKey;
