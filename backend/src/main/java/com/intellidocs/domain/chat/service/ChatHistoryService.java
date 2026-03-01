@@ -29,18 +29,20 @@ public class ChatHistoryService {
     public ChatSession getOrCreateSession(UUID sessionId) {
         if (sessionId != null) {
             return chatSessionRepository.findById(sessionId)
-                    .orElseGet(() -> createSession(sessionId));
+                    .orElseGet(this::createSession);
         }
-        return createSession(null);
+        return createSession();
     }
 
-    private ChatSession createSession(UUID sessionId) {
-        ChatSession.ChatSessionBuilder builder = ChatSession.builder()
-                .userId(TEMP_USER_ID);
-        if (sessionId != null) {
-            builder.id(sessionId);
-        }
-        return chatSessionRepository.save(builder.build());
+    private ChatSession createSession() {
+        // Always let @GeneratedValue handle ID generation.
+        // Manually setting the ID on a @GeneratedValue entity causes
+        // Spring Data to call merge() instead of persist(), which can
+        // fail or generate a different ID.
+        return chatSessionRepository.save(
+                ChatSession.builder()
+                        .userId(TEMP_USER_ID)
+                        .build());
     }
 
     @Transactional
@@ -85,6 +87,25 @@ public class ChatHistoryService {
             chatSessionRepository.save(session);
         }
     }
+
+    /**
+     * Persist an entire conversation turn (user question + assistant answer) in a single transaction.
+     * This avoids detached-entity issues that arise when each save runs in its own transaction.
+     *
+     * @return the persisted ChatSession (managed, with DB-generated ID)
+     */
+    @Transactional
+    public PersistResult persistConversation(UUID sessionId, String question,
+                                              String answer, List<SourceInfo> sources,
+                                              double confidence) {
+        ChatSession session = getOrCreateSession(sessionId);
+        saveUserMessage(session, question);
+        ChatMessage assistantMsg = saveAssistantMessage(session, answer, sources, confidence);
+        updateSessionTitle(session, question);
+        return new PersistResult(session, assistantMsg);
+    }
+
+    public record PersistResult(ChatSession session, ChatMessage assistantMessage) {}
 
     @Transactional(readOnly = true)
     public ChatHistoryResponse getHistory(UUID sessionId) {

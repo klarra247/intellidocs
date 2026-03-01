@@ -49,14 +49,27 @@ class ChatHistoryServiceTest {
     }
 
     @Test
-    void getOrCreateSession_newSession_createsAndSaves() {
+    void getOrCreateSession_newSession_createsWithoutManualId() {
         UUID sessionId = UUID.randomUUID();
         when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.empty());
         when(chatSessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         chatHistoryService.getOrCreateSession(sessionId);
 
+        ArgumentCaptor<ChatSession> captor = ArgumentCaptor.forClass(ChatSession.class);
+        verify(chatSessionRepository).save(captor.capture());
+        // ID must NOT be manually set — @GeneratedValue handles it
+        assertThat(captor.getValue().getId()).isNull();
+    }
+
+    @Test
+    void getOrCreateSession_nullSessionId_createsNew() {
+        when(chatSessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        chatHistoryService.getOrCreateSession(null);
+
         verify(chatSessionRepository).save(any());
+        verify(chatSessionRepository, never()).findById(any());
     }
 
     @Test
@@ -95,6 +108,52 @@ class ChatHistoryServiceTest {
         assertThat(saved.getSourceChunks()).hasSize(1);
         assertThat(saved.getSourceChunks().get(0).getFilename()).isEqualTo("report.pdf");
         assertThat(saved.getConfidence()).isEqualTo(0.72);
+    }
+
+    @Test
+    void persistConversation_savesSessionAndBothMessages() {
+        UUID sessionId = UUID.randomUUID();
+        ChatSession session = ChatSession.builder()
+                .id(sessionId).userId(UUID.randomUUID()).build();
+        when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(chatMessageRepository.save(any())).thenAnswer(inv -> {
+            ChatMessage msg = inv.getArgument(0);
+            // simulate DB assigning ID
+            return ChatMessage.builder()
+                    .id(UUID.randomUUID()).session(msg.getSession())
+                    .role(msg.getRole()).content(msg.getContent())
+                    .sourceChunks(msg.getSourceChunks()).confidence(msg.getConfidence())
+                    .build();
+        });
+
+        ChatHistoryService.PersistResult result = chatHistoryService.persistConversation(
+                sessionId, "매출이 얼마?", "150억원입니다.", List.of(), 0.8);
+
+        assertThat(result.session().getId()).isEqualTo(sessionId);
+        assertThat(result.assistantMessage().getRole()).isEqualTo(ChatMessage.Role.ASSISTANT);
+        assertThat(result.assistantMessage().getContent()).isEqualTo("150억원입니다.");
+        // 2 messages saved: user + assistant
+        verify(chatMessageRepository, times(2)).save(any());
+    }
+
+    @Test
+    void persistConversation_nullSessionId_createsNewSession() {
+        ChatSession newSession = ChatSession.builder()
+                .id(UUID.randomUUID()).userId(UUID.randomUUID()).build();
+        when(chatSessionRepository.save(any())).thenReturn(newSession);
+        when(chatMessageRepository.save(any())).thenAnswer(inv -> {
+            ChatMessage msg = inv.getArgument(0);
+            return ChatMessage.builder()
+                    .id(UUID.randomUUID()).session(msg.getSession())
+                    .role(msg.getRole()).content(msg.getContent()).build();
+        });
+
+        ChatHistoryService.PersistResult result = chatHistoryService.persistConversation(
+                null, "질문", "답변", List.of(), 0.0);
+
+        assertThat(result.session().getId()).isEqualTo(newSession.getId());
+        // save called twice: once for createSession, once for updateSessionTitle
+        verify(chatSessionRepository, atLeastOnce()).save(any());
     }
 
     @Test

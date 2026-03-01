@@ -6,8 +6,6 @@ import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
 import com.intellidocs.domain.search.dto.SearchResult;
-import com.intellidocs.domain.chat.entity.ChatMessage;
-import com.intellidocs.domain.chat.entity.ChatSession;
 import com.intellidocs.domain.chat.service.ChatHistoryService;
 import com.intellidocs.domain.search.service.HybridSearchService;
 import dev.langchain4j.memory.ChatMemory;
@@ -124,22 +122,23 @@ public class StreamingAgentService {
                         Map<String, Object> doneData = new HashMap<>();
                         doneData.put("elapsedMs", elapsed);
 
-                        // Save chat history
+                        // Save chat history in a single transaction
                         try {
-                            String fullAnswer = response.aiMessage().text();
-                            ChatSession session = chatHistoryService.getOrCreateSession(
-                                    request.getSessionId());
-                            chatHistoryService.saveUserMessage(session, request.getQuestion());
-                            ChatMessage assistantMessage = chatHistoryService.saveAssistantMessage(
-                                    session, fullAnswer != null ? fullAnswer : "", sources, confidence);
-                            chatHistoryService.updateSessionTitle(session, request.getQuestion());
+                            String fullAnswer = response.aiMessage() != null
+                                    ? response.aiMessage().text() : "";
+                            if (fullAnswer == null) fullAnswer = "";
 
-                            doneData.put("messageId", assistantMessage.getId().toString());
-                            doneData.put("sessionId", session.getId().toString());
+                            ChatHistoryService.PersistResult result =
+                                    chatHistoryService.persistConversation(
+                                            request.getSessionId(),
+                                            request.getQuestion(),
+                                            fullAnswer, sources, confidence);
+
+                            doneData.put("messageId", result.assistantMessage().getId().toString());
+                            doneData.put("sessionId", result.session().getId().toString());
                         } catch (Exception e) {
                             log.error("[StreamingAgentService] Failed to save chat history", e);
-                            // History save failure should not break the streaming response
-                            doneData.put("sessionId", memoryId.toString());
+                            // Don't put a fake sessionId that doesn't exist in DB
                         }
 
                         sendSseEvent(emitter, "done", doneData);
