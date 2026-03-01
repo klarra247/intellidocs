@@ -38,6 +38,10 @@ public class LlmConfig {
     public ChatLanguageModel chatLanguageModel() {
         if ("openai".equalsIgnoreCase(provider)) {
             String key = openaiKey.isBlank() ? "placeholder-key" : openaiKey;
+            if (openaiKey.isBlank()) {
+                log.warn("[LLM] OpenAI API key not set — bean created with placeholder. "
+                       + "Set OPENAI_API_KEY before making LLM calls.");
+            }
             log.info("[LLM] Provider=OpenAI, model={}", openaiModel);
             return OpenAiChatModel.builder()
                     .apiKey(key)
@@ -48,6 +52,10 @@ public class LlmConfig {
         }
         // Default: Anthropic
         String key = anthropicKey.isBlank() ? "placeholder-key" : anthropicKey;
+        if (anthropicKey.isBlank()) {
+            log.warn("[LLM] Anthropic API key not set — bean created with placeholder. "
+                   + "Set ANTHROPIC_API_KEY before making LLM calls.");
+        }
         log.info("[LLM] Provider=Anthropic, model={}", anthropicModel);
         return AnthropicChatModel.builder()
                 .apiKey(key)
