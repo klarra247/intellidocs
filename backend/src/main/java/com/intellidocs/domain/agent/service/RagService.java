@@ -116,6 +116,16 @@ public class RagService {
             usedChunks.add(result);
         }
 
+        // Guard: if all chunks had blank text, treat as no-results
+        if (usedChunks.isEmpty()) {
+            return AgentResponse.builder()
+                    .answer("관련 문서를 찾을 수 없습니다. 다른 질문을 시도하거나 문서를 업로드해 주세요.")
+                    .sources(List.of())
+                    .confidence(0.0)
+                    .elapsedMs(System.currentTimeMillis() - start)
+                    .build();
+        }
+
         // 6. Build prompt and call LLM
         // Use FQN to avoid import conflict with com.intellidocs.domain.chat.entity.ChatMessage
         String userPrompt = "=== 문서 컨텍스트 ===\n" + contextBuilder + "\n=== 질문 ===\n" + request.getQuestion();
@@ -130,7 +140,9 @@ public class RagService {
                 .build();
 
         ChatResponse chatResponse = chatLanguageModel.chat(chatRequest);
-        String answer = chatResponse.aiMessage().text();
+        String answer = chatResponse.aiMessage() != null && chatResponse.aiMessage().text() != null
+                ? chatResponse.aiMessage().text()
+                : "응답을 생성하는 중 오류가 발생했습니다.";
 
         // 7. Compute confidence (average RRF score, normalised to [0,1])
         double avgScore = usedChunks.stream()
@@ -152,14 +164,15 @@ public class RagService {
                     .build());
         }
 
+        long elapsedMs = System.currentTimeMillis() - start;
         log.info("[RAG] answered in {}ms, confidence={}, sources={}",
-                System.currentTimeMillis() - start, String.format("%.2f", confidence), sourceMap.size());
+                elapsedMs, String.format("%.2f", confidence), sourceMap.size());
 
         return AgentResponse.builder()
                 .answer(answer)
                 .sources(new ArrayList<>(sourceMap.values()))
                 .confidence(confidence)
-                .elapsedMs(System.currentTimeMillis() - start)
+                .elapsedMs(elapsedMs)
                 .build();
     }
 }

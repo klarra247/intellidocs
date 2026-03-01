@@ -125,6 +125,27 @@ class RagServiceTest {
     }
 
     @Test
+    void chat_allChunksHaveBlankText_returnsNoInfoAnswer() {
+        UUID docId = UUID.randomUUID();
+        SearchResult blankChunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("a.pdf")
+                .text("   ").pageNumber(1).score(0.01).build();
+
+        SearchResponse sr = SearchResponse.builder()
+                .results(List.of(blankChunk)).totalResults(1)
+                .elapsedMs(10L).vectorHits(1).bm25Hits(0).build();
+        when(hybridSearchService.search(any())).thenReturn(sr);
+
+        AgentRequest req = AgentRequest.builder().question("Tell me something.").build();
+        AgentResponse resp = ragService.chat(req);
+
+        assertThat(resp.getAnswer()).contains("관련 문서를 찾을 수 없습니다");
+        assertThat(resp.getSources()).isEmpty();
+        assertThat(resp.getConfidence()).isEqualTo(0.0);
+        verifyNoInteractions(chatLanguageModel);
+    }
+
+    @Test
     void chat_deduplicatesSourcesByDocumentAndPage() {
         UUID docId = UUID.randomUUID();
         SearchResult c1 = SearchResult.builder()
