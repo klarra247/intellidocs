@@ -1,10 +1,11 @@
 package com.intellidocs.domain.agent.dto;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+
 import java.util.UUID;
 
-@Data
+@Getter
 @Builder
 public class SourceInfo {
     private UUID documentId;

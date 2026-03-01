@@ -1,12 +1,21 @@
 package com.intellidocs.domain.agent.dto;
 
-import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 import java.util.UUID;
 
-@Data
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AgentRequest {
     /** User's question */
+    @NotBlank
     private String question;
     /** Optional: restrict search to these documents */
     private List<UUID> documentIds;
