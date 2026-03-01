@@ -30,7 +30,7 @@ import static io.qdrant.client.VectorsFactory.vectors;
 @RequiredArgsConstructor
 public class QdrantIndexService {
 
-    private static final int VECTOR_DIMENSION = 1024;  // voyage-3.5-lite 기본 출력 차원
+    private static final int VECTOR_DIMENSION = 1536;  // text-embedding-3-small 기본 출력 차원
 
     private final QdrantClient qdrantClient;
 

@@ -14,12 +14,12 @@ import java.util.List;
 @Service
 public class EmbeddingService {
 
-    private static final String VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
+    private static final String OPENAI_API_URL = "https://api.openai.com/v1/embeddings";
 
-    @Value("${app.llm.voyage.api-key:}")
+    @Value("${app.llm.openai.api-key:}")
     private String apiKey;
 
-    @Value("${app.llm.voyage.model:voyage-3.5-lite}")
+    @Value("${app.llm.openai.embedding-model:text-embedding-3-small}")
     private String modelName;
 
     private RestClient restClient;
@@ -27,20 +27,20 @@ public class EmbeddingService {
     @PostConstruct
     void init() {
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("[Embedding] Voyage AI API key not configured — embedding will be skipped. "
-                    + "Set VOYAGE_API_KEY env var to enable vector search.");
+            log.warn("[Embedding] OpenAI API key not configured — embedding will be skipped. "
+                    + "Set OPENAI_API_KEY env var to enable vector search.");
             return;
         }
         restClient = RestClient.builder()
-                .baseUrl(VOYAGE_API_URL)
+                .baseUrl(OPENAI_API_URL)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
-        log.info("[Embedding] Voyage AI initialized — model: '{}'", modelName);
+        log.info("[Embedding] OpenAI embedding initialized — model: '{}'", modelName);
     }
 
     /**
-     * Voyage AI REST API를 호출해 텍스트 배치를 임베딩합니다.
+     * OpenAI Embeddings API를 호출해 텍스트 배치를 임베딩합니다.
      * API 키 미설정 또는 호출 실패 시 빈 리스트를 반환합니다.
      */
     public List<float[]> embedBatch(List<String> texts) {
@@ -52,20 +52,20 @@ public class EmbeddingService {
             return List.of();
         }
         try {
-            VoyageRequest req = new VoyageRequest(modelName, texts, "document");
-            VoyageResponse resp = restClient.post()
+            OpenAiEmbedRequest req = new OpenAiEmbedRequest(modelName, texts);
+            OpenAiEmbedResponse resp = restClient.post()
                     .body(req)
                     .retrieve()
-                    .body(VoyageResponse.class);
+                    .body(OpenAiEmbedResponse.class);
 
             if (resp == null || resp.data() == null || resp.data().isEmpty()) {
-                log.error("[Embedding] Empty response from Voyage AI");
+                log.error("[Embedding] Empty response from OpenAI");
                 return List.of();
             }
 
             // index 순서 보장 후 float[] 변환
             return resp.data().stream()
-                    .sorted(Comparator.comparingInt(VoyageEmbedding::index))
+                    .sorted(Comparator.comparingInt(OpenAiEmbedding::index))
                     .map(e -> toFloatArray(e.embedding()))
                     .toList();
 
@@ -85,11 +85,11 @@ public class EmbeddingService {
 
     // ── Request / Response DTOs ────────────────────────────────
 
-    private record VoyageRequest(String model, List<String> input, String input_type) {}
+    private record OpenAiEmbedRequest(String model, List<String> input) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record VoyageResponse(String object, List<VoyageEmbedding> data) {}
+    private record OpenAiEmbedResponse(String object, List<OpenAiEmbedding> data) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record VoyageEmbedding(String object, List<Double> embedding, int index) {}
+    private record OpenAiEmbedding(String object, List<Double> embedding, int index) {}
 }

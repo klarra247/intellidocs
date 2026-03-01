@@ -97,9 +97,7 @@ app:
     openai:
       api-key: ${OPENAI_API_KEY:}
       model: ${OPENAI_MODEL:gpt-4o}
-    voyage:
-      api-key: ${VOYAGE_API_KEY:}
-      model: ${EMBEDDING_MODEL:voyage-3.5-lite}
+      embedding-model: ${EMBEDDING_MODEL:text-embedding-3-small}
 
   # Hybrid Search
   search:
