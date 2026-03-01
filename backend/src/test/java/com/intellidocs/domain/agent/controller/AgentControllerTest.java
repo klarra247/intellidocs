@@ -9,7 +9,7 @@ import com.intellidocs.domain.agent.service.RagService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,7 +31,7 @@ class AgentControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private RagService ragService;
 
     @Test
@@ -58,11 +58,24 @@ class AgentControllerTest {
     }
 
     @Test
-    void chat_badRequest_returns400() throws Exception {
-        when(ragService.chat(any())).thenThrow(BusinessException.badRequest("질문을 입력해 주세요."));
-
+    void chat_blankQuestion_returns400() throws Exception {
         AgentRequest request = AgentRequest.builder()
                 .question("   ")
+                .build();
+
+        mockMvc.perform(post("/api/v1/agent/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void chat_serviceThrowsBusinessException_returns400() throws Exception {
+        when(ragService.chat(any())).thenThrow(BusinessException.badRequest("LLM API 키가 설정되지 않았습니다."));
+
+        AgentRequest request = AgentRequest.builder()
+                .question("What is the revenue?")
                 .build();
 
         mockMvc.perform(post("/api/v1/agent/chat")
