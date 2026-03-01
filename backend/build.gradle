@@ -76,6 +76,10 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.amqp:spring-rabbit-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // 환경 변수 로드
+    developmentOnly 'me.paulschwarz:spring-dotenv:4.0.0'
+
 }
 
 tasks.named('test') {

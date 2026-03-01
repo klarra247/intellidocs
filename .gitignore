@@ -26,3 +26,8 @@ Thumbs.db
 # 로그
 *.log
 logs/
+
+application.yml
+backend/src/main/resources/application.yml
+
+parsing-service/.env.example

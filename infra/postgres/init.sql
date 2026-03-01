@@ -18,6 +18,12 @@ CREATE TABLE users (
 );
 
 -- ─────────────────────────────────────────
+-- 개발용 더미 데이터 (JWT 미구현 Phase 1)
+-- ─────────────────────────────────────────
+INSERT INTO users (id, email, name, plan) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'dev@intellidocs.local', 'Dev User', 'pro');
+
+-- ─────────────────────────────────────────
 -- 워크스페이스 (팀 단위 - V2에서 확장)
 -- ─────────────────────────────────────────
 CREATE TABLE workspaces (
@@ -34,16 +40,16 @@ CREATE TABLE documents (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     workspace_id    UUID REFERENCES workspaces(id),
     user_id         UUID REFERENCES users(id),
-    filename        VARCHAR(500) NOT NULL,
-    original_name   VARCHAR(500) NOT NULL,
-    file_type       VARCHAR(50) NOT NULL,     -- pdf | xlsx | docx | txt
-    file_size       BIGINT,
-    storage_path    VARCHAR(1000),            -- S3 or local path
-    status          VARCHAR(50) DEFAULT 'uploaded',
+    filename            VARCHAR(500) NOT NULL,
+    original_filename   VARCHAR(500) NOT NULL,
+    file_type           VARCHAR(50) NOT NULL,     -- pdf | xlsx | docx | txt
+    file_size           BIGINT,
+    storage_path        VARCHAR(1000),            -- S3 or local path
+    status              VARCHAR(50) DEFAULT 'uploaded',
     -- uploaded | parsing | indexing | indexed | failed
-    error_message   TEXT,
-    page_count      INTEGER,
-    chunk_count     INTEGER,
+    error_message       TEXT,
+    total_pages         INTEGER,
+    total_chunks        INTEGER,
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
 );

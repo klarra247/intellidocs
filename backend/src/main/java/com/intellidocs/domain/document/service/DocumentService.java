@@ -6,11 +6,15 @@ import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.FileType;
 import com.intellidocs.domain.document.repository.DocumentRepository;
+import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
+import com.intellidocs.infrastructure.qdrant.QdrantIndexService;
 import com.intellidocs.infrastructure.rabbitmq.ParsingMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +35,9 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final RabbitTemplate rabbitTemplate;
     private final DocumentSseEmitterService sseEmitterService;
+    private final QdrantIndexService qdrantIndexService;
+    private final ElasticsearchIndexService esIndexService;
+    private final CacheManager cacheManager;
 
     @Value("${app.storage.upload-dir}")
     private String uploadDir;
@@ -90,6 +97,7 @@ public class DocumentService {
                 RabbitMQConfig.PARSE_ROUTING_KEY,
                 parseRequest
         );
+        evictSearchCache();
         log.info("Parse request published for document: {}", document.getId());
 
         return DocumentDto.UploadResponse.builder()
@@ -126,9 +134,38 @@ public class DocumentService {
             log.warn("Failed to delete file: {}", document.getStoragePath(), e);
         }
 
-        // TODO: Qdrant, ES에서도 해당 문서 청크 삭제
+        qdrantIndexService.deleteByDocumentId(documentId);
+        esIndexService.deleteByDocumentId(documentId);
         documentRepository.delete(document);
+        evictSearchCache();
         log.info("Document deleted: {}", documentId);
+    }
+
+    private void evictSearchCache() {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            clearSearchCacheNow();
+                        }
+                    }
+            );
+        } else {
+            clearSearchCacheNow();
+        }
+    }
+
+    private void clearSearchCacheNow() {
+        try {
+            Cache cache = cacheManager.getCache("searchResults");
+            if (cache != null) {
+                cache.clear();
+                log.debug("[Cache] Evicted searchResults cache");
+            }
+        } catch (Exception e) {
+            log.warn("[Cache] Eviction failed (Redis down?): {}", e.getMessage());
+        }
     }
 
     private Path saveFile(MultipartFile file, String filename) {

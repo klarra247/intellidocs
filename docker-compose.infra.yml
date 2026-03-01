@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_DB: intellidocs
       POSTGRES_USER: intellidocs
-      POSTGRES_PASSWORD: intellidocs123
+      POSTGRES_PASSWORD: intellidocs_secret
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -29,7 +29,9 @@ services:
       - intellidocs-net
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    build:
+      context: ./infra/elasticsearch
+      dockerfile: Dockerfile
     container_name: intellidocs-elasticsearch
     ports:
       - "9200:9200"
@@ -50,7 +52,7 @@ services:
       - intellidocs-net
 
   qdrant:
-    image: qdrant/qdrant:v1.9.2
+    image: qdrant/qdrant:v1.13.0
     container_name: intellidocs-qdrant
     ports:
       - "6333:6333"
