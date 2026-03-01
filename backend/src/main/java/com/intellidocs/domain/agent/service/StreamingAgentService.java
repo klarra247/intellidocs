@@ -7,6 +7,9 @@ import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
 import com.intellidocs.domain.search.dto.SearchResult;
+import com.intellidocs.domain.chat.entity.ChatMessage;
+import com.intellidocs.domain.chat.entity.ChatSession;
+import com.intellidocs.domain.chat.service.ChatHistoryService;
 import com.intellidocs.domain.search.service.HybridSearchService;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -33,6 +36,7 @@ public class StreamingAgentService {
 
     private final StreamingChatLanguageModel streamingChatLanguageModel;
     private final HybridSearchService hybridSearchService;
+    private final ChatHistoryService chatHistoryService;
 
     @Value("${app.llm.provider:anthropic}")
     private String provider;
@@ -83,6 +87,7 @@ public class StreamingAgentService {
                 .build();
 
         // 6. User message
+        final AgentRequest finalRequest = request;
         String userMessage = request.getQuestion();
         if (request.getDocumentIds() != null && !request.getDocumentIds().isEmpty()) {
             String idList = request.getDocumentIds().stream()
@@ -111,8 +116,26 @@ public class StreamingAgentService {
 
                         long elapsed = System.currentTimeMillis() - startTime;
                         Map<String, Object> doneData = new HashMap<>();
-                        doneData.put("sessionId", memoryId.toString());
                         doneData.put("elapsedMs", elapsed);
+
+                        // Save chat history
+                        try {
+                            String fullAnswer = response.aiMessage().text();
+                            ChatSession session = chatHistoryService.getOrCreateSession(
+                                    finalRequest.getSessionId());
+                            chatHistoryService.saveUserMessage(session, finalRequest.getQuestion());
+                            ChatMessage assistantMessage = chatHistoryService.saveAssistantMessage(
+                                    session, fullAnswer != null ? fullAnswer : "", sources, confidence);
+                            chatHistoryService.updateSessionTitle(session, finalRequest.getQuestion());
+
+                            doneData.put("messageId", assistantMessage.getId().toString());
+                            doneData.put("sessionId", session.getId().toString());
+                        } catch (Exception e) {
+                            log.error("[StreamingAgentService] Failed to save chat history", e);
+                            // History save failure should not break the streaming response
+                            doneData.put("sessionId", memoryId.toString());
+                        }
+
                         sendSseEvent(emitter, "done", doneData);
 
                         log.info("[StreamingAgentService] completed in {}ms, sources={}, confidence={}",
