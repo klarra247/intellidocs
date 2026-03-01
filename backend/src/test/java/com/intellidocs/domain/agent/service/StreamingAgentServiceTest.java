@@ -1,0 +1,67 @@
+package com.intellidocs.domain.agent.service;
+
+import com.intellidocs.common.exception.BusinessException;
+import com.intellidocs.domain.agent.dto.AgentRequest;
+import com.intellidocs.domain.search.service.HybridSearchService;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@ExtendWith(MockitoExtension.class)
+class StreamingAgentServiceTest {
+
+    @Mock private StreamingChatLanguageModel streamingChatLanguageModel;
+    @Mock private HybridSearchService hybridSearchService;
+
+    private StreamingAgentService streamingAgentService;
+
+    @BeforeEach
+    void setUp() {
+        streamingAgentService = new StreamingAgentService(streamingChatLanguageModel, hybridSearchService);
+        ReflectionTestUtils.setField(streamingAgentService, "provider", "anthropic");
+        ReflectionTestUtils.setField(streamingAgentService, "anthropicKey", "sk-test-key");
+        ReflectionTestUtils.setField(streamingAgentService, "openaiKey", "");
+    }
+
+    @Test
+    void streamChat_blankQuestion_throwsBadRequest() {
+        AgentRequest request = AgentRequest.builder()
+                .question("   ")
+                .build();
+
+        assertThatThrownBy(() -> streamingAgentService.streamChat(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("질문");
+    }
+
+    @Test
+    void streamChat_missingApiKey_throwsBadRequest() {
+        ReflectionTestUtils.setField(streamingAgentService, "anthropicKey", "");
+
+        AgentRequest request = AgentRequest.builder()
+                .question("매출이 얼마인가요?")
+                .build();
+
+        assertThatThrownBy(() -> streamingAgentService.streamChat(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("API 키");
+    }
+
+    @Test
+    void streamChat_validRequest_returnsSseEmitter() {
+        AgentRequest request = AgentRequest.builder()
+                .question("매출이 얼마인가요?")
+                .build();
+
+        SseEmitter emitter = streamingAgentService.streamChat(request);
+        assertThat(emitter).isNotNull();
+    }
+}
