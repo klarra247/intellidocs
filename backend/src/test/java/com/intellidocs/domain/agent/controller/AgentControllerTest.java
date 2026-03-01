@@ -105,7 +105,8 @@ class AgentControllerTest {
         mockMvc.perform(post("/api/v1/agent/chat/stream")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question\":\"매출이 얼마인가요?\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted());
     }
 
     @Test

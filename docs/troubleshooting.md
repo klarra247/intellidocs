@@ -56,3 +56,19 @@
   - LangChain4j Agent의 tool 실행이 동일 스레드에서 동기적이므로 ThreadLocal이 안전
 - **검증**: DocumentQueryToolsTest에 수집/초기화 테스트 2건, AgentServiceTest에 sources/confidence 검증 테스트 2건 추가. 전체 빌드 통과
 - **교훈**: Agent 프레임워크가 tool의 반환값을 String으로 추상화하면 메타데이터가 유실된다. 프레임워크 외부의 사이드채널(ThreadLocal 등)로 구조화된 데이터를 별도 전달해야 함
+
+---
+
+### [2026-03-02] SSE 스트리밍 응답 + 대화 히스토리 구현
+
+- **문제**: Agent 응답이 전체 완성 후 한 번에 전달되어 사용자 체감 대기 시간이 길고, 대화 히스토리가 저장되지 않아 새로고침 시 이전 대화가 사라짐
+- **원인**: `AgentService`가 동기식 `ChatLanguageModel.chat()`을 사용하여 전체 응답 생성 완료까지 블로킹. `ChatSession`/`ChatMessage` 엔티티는 존재하나 Agent 흐름에서 저장 로직 미구현
+- **해결**: LangChain4j `StreamingChatLanguageModel` + Spring `SseEmitter`로 토큰 단위 스트리밍 구현
+  - `StreamingAgentService`: 요청당 신규 Tool 인스턴스 생성 (스트리밍 콜백이 I/O 스레드에서 실행되므로 ThreadLocal 사용 불가)
+  - SSE 이벤트 시퀀스: `tool_start` → `tool_end` → `token`(반복) → `sources` → `done`
+  - `@Tool` 메서드에 `Consumer<ToolEvent>` 콜백 패턴 추가 — tool_start/tool_end 이벤트 발생
+  - `ConcurrentHashMap<Object, ChatMemory>` 공유 메모리 스토어로 세션 간 대화 맥락 유지
+  - `ChatHistoryService`: 스트리밍 완료 후 `onCompleteResponse`에서 user/assistant 메시지 + sources를 DB에 저장
+  - `GET /api/v1/agent/chat/history?sessionId={id}`로 대화 히스토리 조회
+- **검증**: StreamingAgentServiceTest 3건, ChatHistoryServiceTest 6건, AgentControllerTest 2건 추가. `./gradlew clean build` 성공 (총 테스트 전량 통과)
+- **교훈**: 스트리밍 환경에서 ThreadLocal은 위험하다 — 콜백이 다른 스레드에서 실행될 수 있으므로, 요청당 인스턴스 + 인스턴스 레벨 컬렉션으로 전환해야 함. 기존 동기식 경로(AgentService)는 ThreadLocal이 여전히 안전하므로 두 패턴을 공존시킴
