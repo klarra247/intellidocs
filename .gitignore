@@ -29,5 +29,4 @@ logs/
 
 application.yml
 backend/src/main/resources/application.yml
-
 parsing-service/.env.example
