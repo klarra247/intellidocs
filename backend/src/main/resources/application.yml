@@ -90,6 +90,7 @@ app:
   # LLM
   llm:
     provider: ${LLM_PROVIDER:anthropic}  # anthropic or openai
+    max-context-tokens: 8000
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
       model: ${ANTHROPIC_MODEL:claude-sonnet-4-20250514}
