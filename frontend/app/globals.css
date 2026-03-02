@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont,
+      'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes border-dance {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+.animate-check-pop {
+  animation: check-pop 0.3s ease-out forwards;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Upload zone animated border */
+.upload-zone-active {
+  background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb) border-box;
+  background-size: 200% 100%;
+  animation: border-dance 1.5s linear infinite;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* === Chat Markdown Prose === */
+.prose-chat {
+  @apply text-slate-800;
+}
+.prose-chat strong {
+  @apply font-semibold text-slate-900;
+}
+.prose-chat em {
+  @apply italic text-slate-600;
+}
+.prose-chat ul {
+  @apply my-2 ml-4 list-disc space-y-1;
+}
+.prose-chat ol {
+  @apply my-2 ml-4 list-decimal space-y-1;
+}
+.prose-chat li {
+  @apply text-[13px];
+}
+.prose-chat code {
+  @apply rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-medium text-slate-700;
+}
+.prose-chat pre {
+  @apply my-2 overflow-x-auto rounded-lg bg-slate-900 p-3;
+}
+.prose-chat pre code {
+  @apply bg-transparent p-0 text-slate-100;
+}
+.prose-chat blockquote {
+  @apply my-2 border-l-2 border-primary-300 pl-3 text-slate-600;
+}
+.prose-chat h1, .prose-chat h2, .prose-chat h3 {
+  @apply mt-3 mb-1.5 font-semibold text-slate-900;
+}
+.prose-chat h1 { @apply text-[16px]; }
+.prose-chat h2 { @apply text-[15px]; }
+.prose-chat h3 { @apply text-[14px]; }
+.prose-chat a {
+  @apply text-primary-600 underline decoration-primary-300 hover:text-primary-700;
+}
+
+/* Table styling inside chat */
+.prose-chat table {
+  @apply w-full border-collapse;
+}
+.prose-chat th {
+  @apply bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200;
+}
+.prose-chat td {
+  @apply px-3 py-2 text-[12px] text-slate-700 border-b border-slate-100;
+}
+.prose-chat tbody tr:nth-child(even) {
+  @apply bg-slate-50/50;
+}
+.prose-chat tbody tr:hover {
+  @apply bg-primary-50/30;
+}
