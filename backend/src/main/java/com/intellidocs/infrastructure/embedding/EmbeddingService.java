@@ -4,9 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.ClientHttpRequestFactories;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 
@@ -31,7 +34,13 @@ public class EmbeddingService {
                     + "Set OPENAI_API_KEY env var to enable vector search.");
             return;
         }
+        var requestFactory = ClientHttpRequestFactories.get(
+                ClientHttpRequestFactorySettings.DEFAULTS
+                        .withConnectTimeout(Duration.ofSeconds(10))
+                        .withReadTimeout(Duration.ofSeconds(30))
+        );
         restClient = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(OPENAI_API_URL)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", "application/json")

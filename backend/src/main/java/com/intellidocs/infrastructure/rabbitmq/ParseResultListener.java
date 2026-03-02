@@ -3,9 +3,7 @@ package com.intellidocs.infrastructure.rabbitmq;
 import com.intellidocs.config.RabbitMQConfig;
 import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
-import com.intellidocs.domain.document.entity.DocumentChunk;
 import com.intellidocs.domain.document.entity.DocumentStatus;
-import com.intellidocs.domain.document.repository.DocumentChunkRepository;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.document.service.DocumentSseEmitterService;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
@@ -15,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,14 +22,13 @@ import java.util.List;
 public class ParseResultListener {
 
     private final DocumentRepository documentRepository;
-    private final DocumentChunkRepository documentChunkRepository;
     private final DocumentSseEmitterService sseEmitterService;
     private final EmbeddingService embeddingService;
     private final QdrantIndexService qdrantIndexService;
     private final ElasticsearchIndexService esIndexService;
+    private final ParseResultPersistenceService persistenceService;
 
     @RabbitListener(queues = RabbitMQConfig.PARSE_RESULT_QUEUE)
-    @Transactional
     public void handleParseResult(ParsingMessage.ParseResult result) {
         log.info("Received parse result for document: {}, success: {}",
                 result.getDocumentId(), result.isSuccess());
@@ -45,44 +41,26 @@ public class ParseResultListener {
         }
 
         if (!result.isSuccess()) {
-            document.fail(result.getErrorMessage());
-            documentRepository.save(document);
-            sseEmitterService.send(document.getId(),
-                    DocumentDto.StatusEvent.builder()
-                            .documentId(document.getId())
-                            .status(DocumentStatus.FAILED)
-                            .message("파싱 실패: " + result.getErrorMessage())
-                            .progress(0)
-                            .build());
-            sseEmitterService.complete(document.getId());
+            persistenceService.handleFailure(document, result.getErrorMessage());
             return;
         }
 
-        // 1. 인덱싱 단계 시작
-        document.startIndexing();
-        documentRepository.save(document);
-        sseEmitterService.send(document.getId(),
-                DocumentDto.StatusEvent.builder()
-                        .documentId(document.getId())
-                        .status(DocumentStatus.INDEXING)
-                        .message("파싱 완료. 인덱싱을 시작합니다.")
-                        .progress(50)
-                        .build());
+        // Phase 1: DB 트랜잭션 — 청크 저장 + 상태 INDEXING으로 변경 (빠르게 커밋)
+        persistenceService.saveChunksAndStartIndexing(document, result);
 
-        // 2. 청크 메타데이터 DB 저장
-        for (ParsingMessage.ChunkData chunkData : result.getChunks()) {
-            DocumentChunk chunk = DocumentChunk.builder()
-                    .document(document)
-                    .chunkIndex(chunkData.getChunkIndex())
-                    .pageNumber(chunkData.getPageNumber())
-                    .tokenCount(chunkData.getTokenCount())
-                    .sectionTitle(chunkData.getSectionTitle())
-                    .chunkType(DocumentChunk.ChunkType.valueOf(chunkData.getChunkType()))
-                    .build();
-            documentChunkRepository.save(chunk);
-        }
+        // Phase 2: 외부 API 호출 — 트랜잭션 밖 (hang 시 DB 커넥션 점유 방지)
+        indexDocument(document, result);
 
-        // 3. 임베딩 생성 → Qdrant 저장
+        // Phase 3: DB 트랜잭션 — 완료 상태 커밋
+        persistenceService.completeIndexing(document, result);
+    }
+
+    /**
+     * 외부 API 호출(임베딩, Qdrant, ES).
+     * 트랜잭션 밖에서 실행되어 실패/타임아웃 시 DB 커넥션을 점유하지 않음.
+     */
+    private void indexDocument(Document document, ParsingMessage.ParseResult result) {
+        // 임베딩 → Qdrant
         try {
             List<String> texts = result.getChunks().stream()
                     .map(ParsingMessage.ChunkData::getText)
@@ -104,13 +82,16 @@ public class ParseResultListener {
                                 .message("벡터 인덱싱 완료.")
                                 .progress(80)
                                 .build());
+            } else {
+                log.warn("Embedding returned empty for document {} — vector search unavailable",
+                        document.getId());
             }
         } catch (Exception e) {
             log.error("Vector indexing failed for document {} — proceeding without vector search",
                     document.getId(), e);
         }
 
-        // 4. ES 인덱싱
+        // ES 인덱싱
         try {
             esIndexService.indexChunks(
                     document.getId(),
@@ -130,24 +111,5 @@ public class ParseResultListener {
             log.error("ES indexing failed for document {} — proceeding without text search",
                     document.getId(), e);
         }
-
-        // 5. 완료
-        document.completeIndexing(
-                result.getTotalPages(),
-                result.getChunks().size()
-        );
-        documentRepository.save(document);
-
-        sseEmitterService.send(document.getId(),
-                DocumentDto.StatusEvent.builder()
-                        .documentId(document.getId())
-                        .status(DocumentStatus.INDEXED)
-                        .message("인덱싱 완료!")
-                        .progress(100)
-                        .build());
-        sseEmitterService.complete(document.getId());
-
-        log.info("Document indexed successfully: {}, chunks: {}",
-                document.getId(), result.getChunks().size());
     }
 }

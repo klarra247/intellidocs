@@ -47,19 +47,66 @@ def _chunk_text_section(
 def _chunk_table_section(
     section: ParsedSection, start_index: int
 ) -> list[dict]:
-    """One chunk per row for table sections."""
+    """Group table rows into chunks, keeping header with each chunk.
+
+    If the entire table fits within CHUNK_SIZE tokens, it becomes a single chunk.
+    Otherwise rows are grouped with the header row repeated in each chunk so
+    the LLM can interpret column meanings.
+    """
     rows = [r for r in section.text.splitlines() if r.strip()]
-    chunks: list[dict] = []
-    for row in rows:
-        token_count = _count_tokens(row)
-        chunks.append({
-            "chunkIndex": start_index + len(chunks),
-            "text": row,
+    if not rows:
+        return []
+
+    full_text = "\n".join(rows)
+    full_tokens = _count_tokens(full_text)
+
+    # Small table → single chunk
+    if full_tokens <= CHUNK_SIZE:
+        return [{
+            "chunkIndex": start_index,
+            "text": full_text,
             "pageNumber": section.page_number,
             "sectionTitle": section.section_title,
             "chunkType": "TABLE",
-            "tokenCount": token_count,
+            "tokenCount": full_tokens,
+        }]
+
+    # Large table → group data rows with header
+    header = rows[0]
+    header_tokens = _count_tokens(header + "\n")
+    chunks: list[dict] = []
+    current_rows = [header]
+    current_tokens = header_tokens
+
+    for row in rows[1:]:
+        row_tokens = _count_tokens(row + "\n")
+        if current_tokens + row_tokens > CHUNK_SIZE and len(current_rows) > 1:
+            chunk_text = "\n".join(current_rows)
+            chunks.append({
+                "chunkIndex": start_index + len(chunks),
+                "text": chunk_text,
+                "pageNumber": section.page_number,
+                "sectionTitle": section.section_title,
+                "chunkType": "TABLE",
+                "tokenCount": _count_tokens(chunk_text),
+            })
+            current_rows = [header]
+            current_tokens = header_tokens
+        current_rows.append(row)
+        current_tokens += row_tokens
+
+    # Remaining rows
+    if len(current_rows) > 1:
+        chunk_text = "\n".join(current_rows)
+        chunks.append({
+            "chunkIndex": start_index + len(chunks),
+            "text": chunk_text,
+            "pageNumber": section.page_number,
+            "sectionTitle": section.section_title,
+            "chunkType": "TABLE",
+            "tokenCount": _count_tokens(chunk_text),
         })
+
     return chunks
 
 

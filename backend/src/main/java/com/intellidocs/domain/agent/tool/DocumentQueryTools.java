@@ -85,8 +85,19 @@ public class DocumentQueryTools {
         }
 
         collectResults(response.getResults());
+        String formatted = formatResults(response.getResults());
+        log.info("[searchDocuments] query='{}', resultCount={}, formattedLength={}",
+                query, response.getResults().size(), formatted.length());
+        for (int i = 0; i < Math.min(response.getResults().size(), 3); i++) {
+            SearchResult r = response.getResults().get(i);
+            String textPreview = r.getText() != null
+                    ? r.getText().substring(0, Math.min(r.getText().length(), 200))
+                    : "<NULL>";
+            log.info("[searchDocuments] result[{}]: file='{}', page={}, type={}, score={}, text='{}'",
+                    i, r.getFilename(), r.getPageNumber(), r.getChunkType(), r.getScore(), textPreview);
+        }
         emitEvent(ToolEvent.end("searchDocuments", response.getResults().size() + "개 관련 청크 발견"));
-        return truncate(formatResults(response.getResults()));
+        return truncate(formatted);
     }
 
     @Tool("특정 문서의 전체 내용을 요약한다. 문서 요약 요청 시 사용. documentId는 UUID 형식이어야 한다")
@@ -128,7 +139,7 @@ public class DocumentQueryTools {
         return truncate(result);
     }
 
-    @Tool("여러 문서에서 특정 데이터를 추출해 표로 정리한다. 정리/추출 요청 시 사용. documentIds는 searchDocuments 결과의 'docId:' 값을 사용하라")
+    @Tool("여러 문서에서 특정 데이터를 추출해 표로 정리한다. 정리/추출 요청 시 사용. documentIds는 문서의 UUID를 사용하라")
     public String extractAndCompile(
             List<String> documentIds,
             String dataType,
@@ -193,7 +204,7 @@ public class DocumentQueryTools {
                 sb.append(", p.").append(result.getPageNumber());
             }
             if (result.getDocumentId() != null) {
-                sb.append(", docId: ").append(result.getDocumentId());
+                sb.append(" | docId=").append(result.getDocumentId());
             }
             sb.append("]\n");
             if ("TABLE".equalsIgnoreCase(result.getChunkType())) {

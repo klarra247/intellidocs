@@ -114,7 +114,11 @@ class ExcelParser(BaseParser):
                         else:
                             cells.append("")
 
-                if any(cells):
+                # Strip trailing empty cells (empty columns beyond data range)
+                while cells and cells[-1] == "":
+                    cells.pop()
+
+                if cells:
                     rows.append(" | ".join(cells))
 
             if rows:
