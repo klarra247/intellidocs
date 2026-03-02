@@ -2,6 +2,31 @@
 
 ---
 
+### [2026-03-02] 종합 재무 분석 시 LLM이 4관점 중 1개만 답변하는 문제
+
+- **문제**: "최근 3년간 재무 건전성을 분석해줘" 질문 시 성장성 관점만 언급하고 수익성/안정성/효율성은 무시. 답변 454자로 짧음
+- **원인**: `FINANCIAL_FRAMEWORK`가 4관점(수익성, 안정성, 성장성, 효율성)을 나열만 하고 "종합 분석 시 여러 관점을 다뤄라"는 명시적 지시가 없음. LLM이 가장 직접적인 관점 하나만 선택
+- **해결**: `FINANCIAL_FRAMEWORK`에 `"종합 재무 분석이나 재무 건전성 질문 시 위 4개 관점 중 검색 결과에서 데이터를 찾을 수 있는 관점은 모두 다루어라."` 지시 추가
+- **검증**: `./gradlew test` 통과 + E2E 테스트에서 2개 이상 관점 매칭 확인
+- **교훈**: 프롬프트에 프레임워크를 나열하는 것만으로는 LLM이 종합적으로 활용하지 않음. "모두 다루어라" 같은 명시적 행동 지시가 필요
+
+---
+
+### [2026-03-02] E2E 테스트 스크립트가 세션/히스토리 테스트에서 멈추거나 404 반환
+
+- **문제 1**: [8/10] 대화 이어가기 테스트에서 스크립트가 멈추고 종료됨
+- **문제 2**: [10/10] 히스토리 조회 시 404 — `ChatSession not found`
+- **원인 1**: `set -euo pipefail` 설정 + `json_str("sessionId")` 호출 시 동기 응답에 `sessionId` 필드가 없음 → `grep` exit code 1 → `pipefail`로 파이프 실패 → 스크립트 즉시 종료
+- **원인 2**: 동기 `AgentService.chat()`은 `chatHistoryService.persistConversation()`을 호출하지 않음. 스트리밍 `StreamingAgentService`만 히스토리를 persist. 동기 호출에서 생성한 sessionId는 DB에 없어서 404
+- **해결**:
+  - `set -euo pipefail` 제거 (Phase 1/2와 동일 방식 — JSON 파싱 실패는 정상 흐름)
+  - [8/10]을 SSE 스트리밍 엔드포인트(`/chat/stream`)로 전환. `agent_chat_stream()`, `stream_get_answer()`, `stream_get_session_id()` 헬퍼 추가
+  - 스트리밍 done 이벤트에서 서버가 생성한 `sessionId`를 추출하여 [10/10]에서 사용
+- **검증**: 스크립트 구문 검사 통과 (`bash -n`)
+- **교훈**: 테스트 스크립트에서 `set -euo pipefail`은 JSON 파싱 헬퍼와 상충함. 또한 히스토리 관련 테스트는 실제로 persist하는 엔드포인트(스트리밍)를 사용해야 함
+
+---
+
 ### [2026-03-02] LLM이 Tool에 파일명을 UUID 대신 전달하는 문제
 
 - **문제**: `extractAndCompile` 호출 시 LLM이 `documentIds`에 `"테크스타_2024_사업보고서.pdf"` 같은 파일명을 전달 → `UUID.fromString()` 에서 `IllegalArgumentException` 발생
