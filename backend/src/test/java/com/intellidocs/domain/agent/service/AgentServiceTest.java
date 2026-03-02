@@ -59,7 +59,7 @@ class AgentServiceTest {
     }
 
     @Test
-    void chat_returnsAgentResponse() {
+    void chat_returnsAgentResponseWithConfidenceLevel() {
         AgentRequest request = AgentRequest.builder()
                 .question("매출이 얼마인가요?")
                 .build();
@@ -68,6 +68,7 @@ class AgentServiceTest {
 
         assertThat(response.getAnswer()).isNotBlank();
         assertThat(response.getElapsedMs()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getConfidenceLevel()).isNotNull();
     }
 
     @Test
@@ -119,6 +120,7 @@ class AgentServiceTest {
 
         assertThat(response.getSources()).isEmpty();
         assertThat(response.getConfidence()).isEqualTo(0.0);
+        assertThat(response.getConfidenceLevel()).isEqualTo("VERY_LOW");
     }
 
     @Test
@@ -165,5 +167,72 @@ class AgentServiceTest {
         assertThat(response1.getAnswer()).isNotBlank();
         assertThat(response2.getAnswer()).isNotBlank();
         verify(chatLanguageModel, atLeast(2)).chat(any(ChatRequest.class));
+    }
+
+    @Test
+    void chat_llmFailsOnce_retriesAndSucceeds() {
+        // First call throws, second succeeds
+        AiMessage aiMessage = AiMessage.from("재시도 성공");
+        ChatResponse chatResponse = ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .tokenUsage(new TokenUsage(10, 20))
+                .finishReason(FinishReason.STOP)
+                .build();
+        when(chatLanguageModel.chat(any(ChatRequest.class)))
+                .thenThrow(new RuntimeException("temporary failure"))
+                .thenReturn(chatResponse);
+
+        // Rebuild agent with fresh mock
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService);
+        AgentService retryService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
+        ReflectionTestUtils.setField(retryService, "provider", "anthropic");
+        ReflectionTestUtils.setField(retryService, "anthropicKey", "sk-test-key");
+        ReflectionTestUtils.setField(retryService, "openaiKey", "");
+        retryService.init();
+
+        AgentRequest request = AgentRequest.builder()
+                .question("매출이 얼마인가요?")
+                .build();
+
+        AgentResponse response = retryService.chat(request);
+
+        assertThat(response.getAnswer()).isEqualTo("재시도 성공");
+        verify(chatLanguageModel, times(2)).chat(any(ChatRequest.class));
+    }
+
+    @Test
+    void chat_tableInAnswer_populatesTableData() {
+        String tableAnswer = """
+                매출 데이터:
+
+                | 연도 | 매출 |
+                |------|------|
+                | 2023 | 100억 |
+                | 2024 | 150억 |
+                """;
+        AiMessage aiMessage = AiMessage.from(tableAnswer);
+        ChatResponse chatResponse = ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .tokenUsage(new TokenUsage(10, 20))
+                .finishReason(FinishReason.STOP)
+                .build();
+        when(chatLanguageModel.chat(any(ChatRequest.class))).thenReturn(chatResponse);
+
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService);
+        AgentService tableService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
+        ReflectionTestUtils.setField(tableService, "provider", "anthropic");
+        ReflectionTestUtils.setField(tableService, "anthropicKey", "sk-test-key");
+        ReflectionTestUtils.setField(tableService, "openaiKey", "");
+        tableService.init();
+
+        AgentRequest request = AgentRequest.builder()
+                .question("매출 테이블을 보여주세요")
+                .build();
+
+        AgentResponse response = tableService.chat(request);
+
+        assertThat(response.getTableData()).isNotNull();
+        assertThat(response.getTableData()).hasSize(1);
+        assertThat(response.getTableData().get(0).getHeaders()).containsExactly("연도", "매출");
     }
 }

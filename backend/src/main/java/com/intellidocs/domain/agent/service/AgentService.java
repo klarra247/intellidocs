@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AgentService {
 
+    private static final int MAX_QUESTION_LENGTH = 2000;
+
     private final ChatLanguageModel chatLanguageModel;
     private final DocumentQueryTools documentQueryTools;
     private final FinancialCalculatorTools financialCalculatorTools;
@@ -74,8 +76,14 @@ public class AgentService {
                 ? request.getSessionId()
                 : UUID.randomUUID();
 
-        // 4. Build user message (append document IDs if present)
-        String userMessage = request.getQuestion();
+        // 4. Build user message (truncate if too long, append document IDs if present)
+        String question = request.getQuestion();
+        if (question.length() > MAX_QUESTION_LENGTH) {
+            log.warn("[AgentService] Question truncated from {} to {} chars", question.length(), MAX_QUESTION_LENGTH);
+            question = question.substring(0, MAX_QUESTION_LENGTH);
+        }
+
+        String userMessage = question;
         if (request.getDocumentIds() != null && !request.getDocumentIds().isEmpty()) {
             String idList = request.getDocumentIds().stream()
                     .map(UUID::toString)
@@ -83,30 +91,42 @@ public class AgentService {
             userMessage += "\n[검색 대상 문서 ID: " + idList + "]";
         }
 
-        // 5. Call agent (collect search results via ThreadLocal)
+        // 5. Call agent with 1 retry on failure
         documentQueryTools.clearCollectedResults();
 
         String answer;
         try {
             answer = agent.chat(memoryId, userMessage);
         } catch (Exception e) {
-            log.error("[AgentService] Error during agent.chat: {}", e.getMessage(), e);
-            answer = "응답 생성 중 오류가 발생했습니다: " + e.getMessage();
+            log.warn("[AgentService] First attempt failed, retrying: {}", e.getMessage());
+            documentQueryTools.clearCollectedResults();
+            try {
+                answer = agent.chat(memoryId, userMessage);
+            } catch (Exception retryEx) {
+                log.error("[AgentService] Retry also failed: {}", retryEx.getMessage(), retryEx);
+                answer = "응답 생성 중 오류가 발생했습니다: " + retryEx.getMessage();
+            }
         }
 
         // 6. Build sources and confidence from collected search results
         List<SearchResult> collected = documentQueryTools.getCollectedResults();
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
         double confidence = SearchResultUtils.computeConfidence(collected);
+        String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
+
+        // 7. Extract table data (best-effort)
+        List<AgentResponse.TableData> tableData = AnswerPostProcessor.extractTables(answer);
 
         long elapsed = System.currentTimeMillis() - start;
-        log.info("[AgentService] answered in {}ms, confidence={}, sources={}",
-                elapsed, String.format("%.2f", confidence), sources.size());
+        log.info("[AgentService] answered in {}ms, confidence={} ({}), sources={}",
+                elapsed, String.format("%.2f", confidence), confidenceLevel, sources.size());
 
         return AgentResponse.builder()
                 .answer(answer)
                 .sources(sources)
                 .confidence(confidence)
+                .confidenceLevel(confidenceLevel)
+                .tableData(tableData.isEmpty() ? null : tableData)
                 .elapsedMs(elapsed)
                 .build();
     }

@@ -66,7 +66,7 @@ public class DocumentQueryTools {
     @Tool("사용자 문서에서 키워드/의미 기반으로 관련 내용을 검색한다. 일반적인 질문에 사용")
     public String searchDocuments(
             String query,
-            @P(value = "특정 문서 ID 목록, null이면 전체 문서 대상", required = false) List<String> documentIds) {
+            @P(value = "특정 문서 UUID 목록 (예: '550e8400-e29b-41d4-a716-446655440000'). 파일명이 아닌 UUID를 사용해야 한다. null이면 전체 문서 대상", required = false) List<String> documentIds) {
 
         log.debug("searchDocuments called: query='{}', documentIds={}", query, documentIds);
         emitEvent(ToolEvent.start("searchDocuments", "문서 검색 중..."));
@@ -89,7 +89,7 @@ public class DocumentQueryTools {
         return truncate(formatResults(response.getResults()));
     }
 
-    @Tool("특정 문서의 전체 내용을 요약한다. 문서 요약 요청 시 사용")
+    @Tool("특정 문서의 전체 내용을 요약한다. 문서 요약 요청 시 사용. documentId는 UUID 형식이어야 한다")
     public String summarizeDocument(String documentId) {
         log.debug("summarizeDocument called: documentId='{}'", documentId);
         emitEvent(ToolEvent.start("summarizeDocument", "문서 요약 데이터 수집 중..."));
@@ -112,7 +112,7 @@ public class DocumentQueryTools {
         return truncate(formatResults(response.getResults()));
     }
 
-    @Tool("두 문서의 특정 항목을 비교 분석한다. 비교 질문 시 사용")
+    @Tool("두 문서의 특정 항목을 비교 분석한다. 비교 질문 시 사용. docId1, docId2는 UUID 형식이어야 한다")
     public String compareDocuments(String docId1, String docId2, String aspect) {
         log.debug("compareDocuments called: docId1='{}', docId2='{}', aspect='{}'", docId1, docId2, aspect);
         emitEvent(ToolEvent.start("compareDocuments", "두 문서 비교 분석 중..."));
@@ -128,7 +128,7 @@ public class DocumentQueryTools {
         return truncate(result);
     }
 
-    @Tool("여러 문서에서 특정 데이터를 추출해 표로 정리한다. 정리/추출 요청 시 사용")
+    @Tool("여러 문서에서 특정 데이터를 추출해 표로 정리한다. 정리/추출 요청 시 사용. documentIds는 searchDocuments 결과의 'docId:' 값을 사용하라")
     public String extractAndCompile(
             List<String> documentIds,
             String dataType,
@@ -164,8 +164,21 @@ public class DocumentQueryTools {
         }
 
         List<UUID> uuids = documentIds.stream()
+                .filter(id -> {
+                    try {
+                        UUID.fromString(id);
+                        return true;
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid UUID skipped (LLM may have passed a filename): '{}'", id);
+                        return false;
+                    }
+                })
                 .map(UUID::fromString)
                 .collect(Collectors.toList());
+
+        if (uuids.isEmpty()) {
+            return null; // fall back to searching all documents
+        }
 
         return SearchRequest.Filters.builder()
                 .documentIds(uuids)
@@ -177,9 +190,15 @@ public class DocumentQueryTools {
         for (SearchResult result : results) {
             sb.append("[출처: ").append(result.getFilename());
             if (result.getPageNumber() != null) {
-                sb.append(", 페이지 ").append(result.getPageNumber());
+                sb.append(", p.").append(result.getPageNumber());
+            }
+            if (result.getDocumentId() != null) {
+                sb.append(", docId: ").append(result.getDocumentId());
             }
             sb.append("]\n");
+            if ("TABLE".equalsIgnoreCase(result.getChunkType())) {
+                sb.append("[표 데이터 — 아래 수치를 답변 표에 반드시 사용하세요]\n");
+            }
             sb.append(result.getText());
             sb.append("\n\n");
         }

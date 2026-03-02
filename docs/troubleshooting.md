@@ -2,6 +2,37 @@
 
 ---
 
+### [2026-03-02] LLM이 Tool에 파일명을 UUID 대신 전달하는 문제
+
+- **문제**: `extractAndCompile` 호출 시 LLM이 `documentIds`에 `"테크스타_2024_사업보고서.pdf"` 같은 파일명을 전달 → `UUID.fromString()` 에서 `IllegalArgumentException` 발생
+- **원인**: Tool 설명에 "UUID 형식"이라는 안내 없음 + `searchDocuments` 결과에 documentId(UUID)가 노출되지 않아 LLM이 파일명을 ID로 착각
+- **해결**:
+  - Tool `@Tool` 설명에 "documentIds는 UUID 형식, 파일명이 아님" 명시, `extractAndCompile`에는 "UUID를 모르면 먼저 searchDocuments로 검색하라" 안내 추가
+  - `formatResults()`에 `(docId: UUID)` 포함하여 LLM이 후속 도구 호출 시 UUID 참조 가능
+  - `buildFilters()`에서 UUID 파싱 실패 시 해당 항목 skip + 전부 실패 시 `null` 반환 (전체 문서 대상 fallback)
+- **검증**: `./gradlew clean build` 전체 통과 (83 tests)
+- **교훈**: LLM은 도구 설명을 글자 그대로 따르므로, 파라미터 형식/제약 조건을 명확히 기술해야 함. 검색 결과 포맷에 ID를 노출해야 후속 도구 호출이 정확해짐
+
+---
+
+### [2026-03-02] Agent 답변 품질 개선 (프롬프트/Confidence/출처/테이블 추출)
+
+- **문제**: Agent 답변의 재무 분석 깊이 부족, 출처에 중복 페이지 노출, Confidence가 전체 결과 평균이라 노이즈 포함, 마크다운 테이블이 구조화되지 않음
+- **원인**: System Prompt가 간결하여 재무 프레임워크·수치 규칙 부재, `computeConfidence`가 전체 평균 사용, `deduplicateSources`가 (docId, page) 키로 중복 제거하여 같은 문서가 여러 건, 테이블 후처리 없음
+- **해결**:
+  - `AgentPrompts`: SYSTEM_MESSAGE를 ROLE_AND_RULES / NUMERIC_RULES / FINANCIAL_FRAMEWORK / OUTPUT_FORMAT / TOOL_GUIDE 섹션으로 분리
+  - `SearchResultUtils.computeConfidence`: 전체 평균 → top-3 평균으로 변경, `computeConfidenceLevel` (HIGH/MEDIUM/LOW/VERY_LOW) 추가
+  - `SearchResultUtils.deduplicateSources`: documentId 단위 그룹화 + pageRange 문자열 병합 (예: "p.1-3,7")
+  - `SourceInfo.pageRange`, `AgentResponse.confidenceLevel`, `AgentResponse.tableData` 필드 추가
+  - `AgentRequest.question`에 `@Size(max=2000)` 검증 + 서비스 레이어 truncation
+  - `AnswerPostProcessor.extractTables`: 정규식으로 마크다운 테이블 → `TableData(headers, rows)` best-effort 추출
+  - `AgentService`: LLM 호출 1회 재시도, confidenceLevel/tableData 응답에 포함
+  - `StreamingAgentService`: sources SSE에 confidenceLevel 추가, done SSE에 tableData 추가
+- **검증**: `./gradlew clean build` 전체 통과 (기존 + 신규 테스트 포함)
+- **교훈**: Confidence 계산 시 전체 평균은 노이즈에 취약 — top-K 평균이 실질적 신뢰도를 반영. 후처리(테이블 추출)는 best-effort로 설계하여 실패해도 핵심 답변에 영향 없도록
+
+---
+
 ### [2026-03-02] Excel 수식 셀 값이 빈 문자열로 파싱되는 문제
 
 - **문제**: openpyxl `data_only=True`로 Excel 파일을 읽을 때, `=SUM(B2:B10)` 같은 수식 셀이 `None`으로 반환되어 합계 행이 누락됨

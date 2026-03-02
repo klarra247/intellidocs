@@ -13,4 +13,6 @@ public class SourceInfo {
     private Integer pageNumber;
     private String sectionTitle;
     private double relevanceScore;
+    /** Merged page display string, e.g. "p.1-3" or "p.1,3,7" */
+    private String pageRange;
 }

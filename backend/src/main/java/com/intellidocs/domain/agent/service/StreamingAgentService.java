@@ -49,6 +49,8 @@ public class StreamingAgentService {
     // Shared memory store for session continuity. Bounded: evicts random entry when full.
     private final Map<Object, ChatMemory> memoryStore = new ConcurrentHashMap<>();
 
+    private static final int MAX_QUESTION_LENGTH = 2000;
+
     public SseEmitter streamChat(AgentRequest request) {
         // 1. Validate
         if (request.getQuestion() == null || request.getQuestion().isBlank()) {
@@ -91,8 +93,14 @@ public class StreamingAgentService {
                 .tools(queryTools, calcTools)
                 .build();
 
-        // 6. User message
-        String userMessage = request.getQuestion();
+        // 6. User message (truncate if too long)
+        String question = request.getQuestion();
+        if (question.length() > MAX_QUESTION_LENGTH) {
+            log.warn("[StreamingAgentService] Question truncated from {} to {} chars",
+                    question.length(), MAX_QUESTION_LENGTH);
+            question = question.substring(0, MAX_QUESTION_LENGTH);
+        }
+        String userMessage = question;
         if (request.getDocumentIds() != null && !request.getDocumentIds().isEmpty()) {
             String idList = request.getDocumentIds().stream()
                     .map(UUID::toString)
@@ -113,14 +121,29 @@ public class StreamingAgentService {
                         List<SearchResult> collected = queryTools.getInstanceCollectedResults();
                         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
                         double confidence = SearchResultUtils.computeConfidence(collected);
+                        String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
 
                         sendSseEvent(emitter, "sources", Map.of(
                                 "sources", sources,
-                                "confidence", confidence));
+                                "confidence", confidence,
+                                "confidenceLevel", confidenceLevel));
 
                         long elapsed = System.currentTimeMillis() - startTime;
                         Map<String, Object> doneData = new HashMap<>();
                         doneData.put("elapsedMs", elapsed);
+
+                        // Extract table data (best-effort)
+                        try {
+                            String fullAnswerForTables = response.aiMessage() != null
+                                    ? response.aiMessage().text() : "";
+                            if (fullAnswerForTables == null) fullAnswerForTables = "";
+                            var tableData = AnswerPostProcessor.extractTables(fullAnswerForTables);
+                            if (!tableData.isEmpty()) {
+                                doneData.put("tableData", tableData);
+                            }
+                        } catch (Exception e) {
+                            log.debug("[StreamingAgentService] Table extraction skipped: {}", e.getMessage());
+                        }
 
                         // Save chat history in a single transaction
                         try {

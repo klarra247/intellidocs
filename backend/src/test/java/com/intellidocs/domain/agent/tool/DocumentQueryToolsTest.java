@@ -60,7 +60,7 @@ class DocumentQueryToolsTest {
 
         assertThat(result).contains("report.pdf");
         assertThat(result).contains("The revenue grew 20% YoY.");
-        assertThat(result).contains("페이지 3");
+        assertThat(result).contains("p.3");
     }
 
     @Test
@@ -294,6 +294,46 @@ class DocumentQueryToolsTest {
         assertThat(events.get(0).getTool()).isEqualTo("searchDocuments");
         assertThat(events.get(1).getEventType()).isEqualTo("tool_end");
         assertThat(events.get(1).getMessage()).contains("1개");
+    }
+
+    @Test
+    void formatResults_tableChunk_includesTableDataAnnotation() {
+        UUID docId = UUID.randomUUID();
+        SearchResult tableChunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("financial.xlsx")
+                .text("매출액: 150억, 영업이익: 30억").pageNumber(1)
+                .chunkType("TABLE").score(0.95).build();
+
+        SearchResponse response = SearchResponse.builder()
+                .results(List.of(tableChunk))
+                .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build();
+
+        when(hybridSearchService.search(any())).thenReturn(response);
+
+        String result = documentQueryTools.searchDocuments("매출액", null);
+
+        assertThat(result).contains("[표 데이터");
+        assertThat(result).contains("매출액: 150억, 영업이익: 30억");
+    }
+
+    @Test
+    void formatResults_textChunk_doesNotIncludeTableDataAnnotation() {
+        UUID docId = UUID.randomUUID();
+        SearchResult textChunk = SearchResult.builder()
+                .chunkId("c1").documentId(docId).filename("report.pdf")
+                .text("회사의 매출이 성장했습니다.").pageNumber(2)
+                .chunkType("TEXT").score(0.9).build();
+
+        SearchResponse response = SearchResponse.builder()
+                .results(List.of(textChunk))
+                .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build();
+
+        when(hybridSearchService.search(any())).thenReturn(response);
+
+        String result = documentQueryTools.searchDocuments("매출", null);
+
+        assertThat(result).doesNotContain("[표 데이터");
+        assertThat(result).contains("회사의 매출이 성장했습니다.");
     }
 
     @Test
