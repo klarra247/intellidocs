@@ -41,12 +41,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        String externalUrl = System.getenv("EXTERNAL_URL");
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",   // Next.js dev
-                "http://localhost:8080",   // Spring Boot
-                externalUrl != null ? externalUrl : "http://localhost"
-        ));
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
