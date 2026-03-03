@@ -2,6 +2,14 @@
 
 SMB를 위한 Document Intelligence SaaS — 문서를 올리고, 그냥 물어보세요.
 
+## 주요 기능
+
+- **문서 업로드 & 자동 파싱** — PDF, XLSX, DOCX, TXT, MD 지원. 업로드 즉시 비동기 파싱 → SSE로 실시간 진행률 표시
+- **하이브리드 검색** — Elasticsearch BM25 (키워드) + Qdrant 벡터 (의미) 검색을 RRF로 융합
+- **AI 에이전트 채팅** — LangChain4j 기반 RAG Agent가 7개 도구를 활용해 문서 기반 답변 생성, SSE 스트리밍
+- **표 구조 추출** — 테이블 데이터를 마크다운 표로 정리, CSV 다운로드 지원
+- **차트 시각화** — 수치 데이터 기반 자동 차트 생성 (Recharts)
+
 ## 기술 스택
 
 | 레이어 | 기술 |
