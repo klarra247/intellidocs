@@ -65,7 +65,8 @@ REDIS_PASSWORD=<strong-password>
 RABBITMQ_PASSWORD=<strong-password>
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-EXTERNAL_URL=http://<your-ec2-public-ip>
+EXTERNAL_URL=https://intellidocs.org
+DOMAIN=intellidocs.org
 ```
 
 ## 3. 배포
@@ -73,6 +74,19 @@ EXTERNAL_URL=http://<your-ec2-public-ip>
 ```bash
 bash scripts/deploy.sh
 ```
+
+## 3-1. HTTPS 설정 (Let's Encrypt)
+
+배포 후 SSL 인증서 발급:
+
+```bash
+bash scripts/init-ssl.sh intellidocs.org your@email.com
+```
+
+이 스크립트가 자동으로:
+1. Certbot으로 인증서 발급 (HTTP challenge)
+2. Nginx를 HTTPS 모드로 전환
+3. 인증서 자동 갱신 cron 등록 (매일 03시)
 
 배포 완료 후 `http://<EC2-IP>` 접속.
 

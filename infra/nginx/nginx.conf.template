@@ -6,16 +6,33 @@ upstream api {
     server api:8080;
 }
 
+# HTTP -> HTTPS redirect + ACME challenge
 server {
     listen 80;
     server_name _;
-
-    client_max_body_size 50m;
 
     # Let's Encrypt 인증서 발급/갱신용
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    client_max_body_size 50m;
 
     # API requests -> Spring Boot
     location /api/ {
