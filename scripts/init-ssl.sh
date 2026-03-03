@@ -18,7 +18,7 @@ log() { echo -e "${GREEN}[ssl]${NC} $*"; }
 err() { echo -e "${RED}[ssl]${NC} $*" >&2; }
 
 # 1. Nginx가 HTTP 모드로 실행 중인지 확인
-if ! docker compose ps nginx | grep -q "running"; then
+if ! docker compose ps nginx | grep -q "Up"; then
   err "Nginx가 실행 중이 아닙니다. 먼저 'bash scripts/deploy.sh'를 실행하세요."
   exit 1
 fi
