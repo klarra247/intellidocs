@@ -2,6 +2,44 @@
 
 ---
 
+### [2026-03-03] SSE 이벤트가 프론트엔드에 도달하지 않음 — Next.js rewrites 프록시가 SSE 미지원
+- **문제**: 백엔드 파이프라인은 정상 완료(Qdrant/ES 인덱싱 성공)되지만 프론트 프로그레스가 10%에서 멈추고, Next.js 콘솔에 `Failed to proxy ... Error: socket hang up (ECONNRESET)` 출력
+- **원인**: `next.config.js`의 `rewrites`가 프록시하는 `http-proxy`는 일반 request-response용이며, SSE처럼 장시간 열려있는 스트리밍 연결을 제대로 중계하지 못함. 응답을 버퍼링하거나 연결을 끊어서 백엔드가 보낸 SSE 이벤트가 클라이언트까지 전달되지 않음
+- **해결**: `lib/sse.ts`에서 SSE/스트리밍 연결만 `NEXT_PUBLIC_API_URL` (기본값 `http://localhost:8080/api/v1`)을 사용하여 Next.js 프록시를 우회, 백엔드에 직접 연결. 일반 REST API 호출은 기존대로 rewrites 프록시 사용
+- **검증**: `npm run build` 성공
+- **교훈**: Next.js rewrites는 SSE/WebSocket 등 장시간 스트리밍 연결에 적합하지 않음. 스트리밍 엔드포인트는 별도 URL로 직접 연결해야 함
+
+---
+
+### [2026-03-02] 문서 파이프라인 10%에서 멈춤 — 임베딩 API hang + @Transactional 블로킹
+- **문제**: 문서 업로드 후 청크 저장(INSERT/UPDATE)까지는 되지만 이후 로그가 안 넘어가고 프론트 프로그레스가 10%에서 멈춤
+- **원인**: 두 가지 문제의 복합
+  1. `EmbeddingService`의 `RestClient`에 타임아웃 미설정 → OpenAI API가 응답 안 하면 무한 대기
+  2. `ParseResultListener.handleParseResult()`가 `@Transactional`로 전체 메서드를 감싸고 있어, 임베딩 API hang 시 DB 커넥션을 계속 점유하고 RabbitMQ 리스너 스레드도 블로킹
+- **해결**:
+  - `EmbeddingService`: RestClient에 connectTimeout 10초, readTimeout 30초 설정
+  - `ParseResultListener`: `@Transactional` 제거, DB 작업을 별도 `ParseResultPersistenceService`로 분리
+    - Phase 1 (트랜잭션): 청크 저장 + 상태 변경 → 빠르게 커밋
+    - Phase 2 (트랜잭션 없음): 외부 API 호출 (임베딩/Qdrant/ES)
+    - Phase 3 (트랜잭션): 완료 상태 커밋
+- **검증**: `./gradlew build -x test` 성공
+- **교훈**: 외부 API 호출을 DB 트랜잭션 안에 넣지 말 것. RabbitMQ 리스너에서 `@Transactional`은 DB 작업에만 한정해야 함
+
+---
+
+### [2026-03-02] 프론트엔드 SSE 연결 실패 — Invalid UUID string: undefined
+- **문제**: 문서 업로드 후 SSE 상태 구독에서 `Invalid UUID string: undefined` 에러 발생. 업로드 프로그레스는 "실패"로 표시되지만, 문서 카드의 상태 배지는 "파싱 중"으로 계속 멈춤
+- **원인**: 프론트엔드 `Document` 타입이 `id` 필드를 기대하지만, 백엔드 `DocumentDto.UploadResponse`는 `documentId`를 반환. `doc.id`가 `undefined`가 되어 SSE URL이 `/documents/undefined/status`로 요청됨. 추가로 `ListResponse`는 `originalFilename`을 쓰지만 프론트는 `filename`을 기대, `ApiResponse.error`도 문자열이 아닌 `ErrorInfo { code, message }` 객체
+- **해결**:
+  - `lib/types.ts`: `UploadResponse` 타입 분리 (`documentId` 필드), `Document` 타입을 `ListResponse` 구조에 맞춤 (`originalFilename`), `ApiResponse.error`를 `{ code, message } | null`로 수정
+  - `lib/api.ts`: upload이 `UploadResponse`를 반환하도록 변경, 에러 파싱 로직 수정
+  - `stores/documentStore.ts`: `uploadRes.documentId`로 SSE 구독, 업로드 직후 `fetchDocuments()`로 목록 동기화
+  - `DocumentCard.tsx`, `DocumentList.tsx`: `originalFilename` 사용
+- **검증**: `npm run build` 성공
+- **교훈**: 프론트/백 타입 정의 시 실제 백엔드 DTO 클래스의 필드명을 확인할 것. 특히 `id` vs `documentId` 같은 네이밍 불일치 주의
+
+---
+
 ### [2026-03-02] 종합 재무 분석 시 LLM이 4관점 중 1개만 답변하는 문제
 
 - **문제**: "최근 3년간 재무 건전성을 분석해줘" 질문 시 성장성 관점만 언급하고 수익성/안정성/효율성은 무시. 답변 454자로 짧음
