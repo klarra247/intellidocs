@@ -56,6 +56,35 @@ class SearchResultUtilsTest {
         assertThat(confidence).isEqualTo(1.0);
     }
 
+    // --- computeConfidence with calculation boost ---
+
+    @Test
+    void computeConfidence_withCalculationBoost_floorsAtMedium() {
+        // Low search score (0.003 * 60 = 0.18 → VERY_LOW normally)
+        SearchResult r = SearchResult.builder().score(0.003).build();
+        double withoutBoost = SearchResultUtils.computeConfidence(List.of(r), 0);
+        double withBoost = SearchResultUtils.computeConfidence(List.of(r), 1);
+
+        assertThat(withoutBoost).isCloseTo(0.18, org.assertj.core.data.Offset.offset(0.001));
+        // With 1 calc: max(0.18, 0.5) + 0.15 = 0.65
+        assertThat(withBoost).isCloseTo(0.65, org.assertj.core.data.Offset.offset(0.001));
+    }
+
+    @Test
+    void computeConfidence_multipleCalcs_capsAtOne() {
+        SearchResult r = SearchResult.builder().score(0.01).build();
+        double confidence = SearchResultUtils.computeConfidence(List.of(r), 5);
+        // max(0.6, 0.5) + 0.15*5 = 0.6 + 0.75 = 1.35 → capped at 1.0
+        assertThat(confidence).isEqualTo(1.0);
+    }
+
+    @Test
+    void computeConfidence_calcOnlyNoSearch_returnsBoost() {
+        double confidence = SearchResultUtils.computeConfidence(Collections.emptyList(), 1);
+        // max(0.0, 0.5) + 0.15 = 0.65
+        assertThat(confidence).isCloseTo(0.65, org.assertj.core.data.Offset.offset(0.001));
+    }
+
     // --- computeConfidenceLevel ---
 
     @Test

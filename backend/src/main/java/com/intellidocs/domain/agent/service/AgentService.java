@@ -93,6 +93,7 @@ public class AgentService {
 
         // 5. Call agent with 1 retry on failure
         documentQueryTools.clearCollectedResults();
+        financialCalculatorTools.resetCalculationCount();
 
         String answer;
         try {
@@ -111,7 +112,7 @@ public class AgentService {
         // 6. Build sources and confidence from collected search results
         List<SearchResult> collected = documentQueryTools.getCollectedResults();
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
-        double confidence = SearchResultUtils.computeConfidence(collected);
+        double confidence = SearchResultUtils.computeConfidence(collected, financialCalculatorTools.getCalculationCount());
         String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
 
         // 7. Extract table data (best-effort)

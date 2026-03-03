@@ -120,7 +120,7 @@ public class StreamingAgentService {
                     try {
                         List<SearchResult> collected = queryTools.getInstanceCollectedResults();
                         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
-                        double confidence = SearchResultUtils.computeConfidence(collected);
+                        double confidence = SearchResultUtils.computeConfidence(collected, calcTools.getCalculationCount());
                         String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
 
                         sendSseEvent(emitter, "sources", Map.of(

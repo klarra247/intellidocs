@@ -92,14 +92,38 @@ public final class SearchResultUtils {
      * Normalized to [0,1] using formula: min(1.0, top3Avg * 60).
      */
     public static double computeConfidence(List<SearchResult> results) {
-        if (results.isEmpty()) return 0.0;
-        double top3Avg = results.stream()
-                .mapToDouble(SearchResult::getScore)
-                .sorted()  // ascending
-                .skip(Math.max(0, results.size() - 3))  // take last 3 (highest)
-                .average()
-                .orElse(0.0);
-        return Math.min(1.0, top3Avg * 60);
+        return computeConfidence(results, 0);
+    }
+
+    /**
+     * Compute confidence with a boost when calculation tools were used.
+     * Calculation tools produce deterministic results, so their usage
+     * indicates the answer is mathematically verified.
+     *
+     * @param results           search results collected during tool execution
+     * @param calculationCount  number of calculation tools invoked (0 = no boost)
+     */
+    public static double computeConfidence(List<SearchResult> results, int calculationCount) {
+        if (results.isEmpty() && calculationCount == 0) return 0.0;
+
+        double baseConfidence = 0.0;
+        if (!results.isEmpty()) {
+            double top3Avg = results.stream()
+                    .mapToDouble(SearchResult::getScore)
+                    .sorted()  // ascending
+                    .skip(Math.max(0, results.size() - 3))  // take last 3 (highest)
+                    .average()
+                    .orElse(0.0);
+            baseConfidence = Math.min(1.0, top3Avg * 60);
+        }
+
+        if (calculationCount > 0) {
+            // Boost: calculation tool used → floor at MEDIUM (0.5), then add 0.15 per calc (cap at 1.0)
+            double boost = 0.15 * calculationCount;
+            baseConfidence = Math.min(1.0, Math.max(baseConfidence, 0.5) + boost);
+        }
+
+        return baseConfidence;
     }
 
     /**

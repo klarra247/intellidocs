@@ -12,9 +12,19 @@ import java.util.function.Consumer;
 public class FinancialCalculatorTools {
 
     private Consumer<ToolEvent> eventCallback;
+    private int calculationCount = 0;
 
     public void setEventCallback(Consumer<ToolEvent> callback) {
         this.eventCallback = callback;
+    }
+
+    /** Returns the number of calculation tools invoked since last reset. */
+    public int getCalculationCount() {
+        return calculationCount;
+    }
+
+    public void resetCalculationCount() {
+        this.calculationCount = 0;
     }
 
     private void emitEvent(ToolEvent event) {
@@ -29,6 +39,7 @@ public class FinancialCalculatorTools {
             @P("비교값 (이후 값, 분자 역할)") double compareValue,
             @P("계산 유형: growth_rate, difference, ratio, percentage_point_change") String calcType
     ) {
+        calculationCount++;
         emitEvent(ToolEvent.start("calculateChange", "증감률 계산 중..."));
         String result = switch (calcType) {
             case "growth_rate" -> {
@@ -77,6 +88,7 @@ public class FinancialCalculatorTools {
             @P("분자 값") double numerator,
             @P("분모 값") double denominator
     ) {
+        calculationCount++;
         emitEvent(ToolEvent.start("calculateFinancialRatio", "재무비율 계산 중..."));
         if (denominator == 0) {
             emitEvent(ToolEvent.end("calculateFinancialRatio", "계산 완료"));
@@ -144,6 +156,7 @@ public class FinancialCalculatorTools {
             @P("각 수치에 대응하는 라벨 리스트 (예: 연도)") List<String> labels,
             @P("분석 대상 지표명 (예: 매출액, 영업이익)") String metricName
     ) {
+        calculationCount++;
         emitEvent(ToolEvent.start("analyzeTrend", "추세 분석 중..."));
         if (values.size() != labels.size()) {
             emitEvent(ToolEvent.end("analyzeTrend", "분석 완료"));
