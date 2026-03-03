@@ -144,6 +144,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+      EXTERNAL_URL: ${EXTERNAL_URL:-http://localhost}
     volumes:
       - uploads_data:/data/uploads
     healthcheck:
