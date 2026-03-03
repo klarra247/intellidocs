@@ -1,5 +1,6 @@
 # 환경변수 — 절대 커밋 금지
 .env
+.env.production
 *.env.local
 
 # 빌드 결과물
@@ -30,3 +31,18 @@ logs/
 application.yml
 backend/src/main/resources/application.yml
 parsing-service/.env.example
+
+# Development files
+docs/plans/*.md
+CLAUDE.md
+.claude/
+
+# Test documents
+test-docs/
+tests/fixtures/*.pdf
+tests/fixtures/*.xlsx
+tests/fixtures/*.docx
+
+# Debug scripts (keep infra/verify.sh)
+debug-*.sh
+test-*.sh
