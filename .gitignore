@@ -28,8 +28,7 @@ Thumbs.db
 *.log
 logs/
 
-application.yml
-backend/src/main/resources/application.yml
+application-local.yml
 parsing-service/.env.example
 
 # Development files
