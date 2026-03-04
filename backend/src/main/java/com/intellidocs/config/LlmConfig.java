@@ -92,6 +92,29 @@ public class LlmConfig {
                 .build();
     }
 
+    /**
+     * 불일치 탐지 전용 모델 — 수치 추출 JSON 응답을 위해 maxTokens 4096.
+     */
+    @Bean("discrepancyChatLanguageModel")
+    public ChatLanguageModel discrepancyChatLanguageModel() {
+        if ("openai".equalsIgnoreCase(provider)) {
+            String key = openaiKey.isBlank() ? "placeholder-key" : openaiKey;
+            return OpenAiChatModel.builder()
+                    .apiKey(key)
+                    .modelName(openaiModel)
+                    .temperature(0.1)
+                    .maxTokens(4096)
+                    .build();
+        }
+        String key = anthropicKey.isBlank() ? "placeholder-key" : anthropicKey;
+        return AnthropicChatModel.builder()
+                .apiKey(key)
+                .modelName(anthropicModel)
+                .temperature(0.1)
+                .maxTokens(4096)
+                .build();
+    }
+
     @Bean
     public StreamingChatLanguageModel streamingChatLanguageModel() {
         if ("openai".equalsIgnoreCase(provider)) {

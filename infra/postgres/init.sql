@@ -136,3 +136,21 @@ CREATE TABLE reports (
 );
 
 CREATE INDEX idx_reports_user ON reports(user_id);
+
+-- ─────────────────────────────────────────
+-- 불일치 탐지 결과
+-- ─────────────────────────────────────────
+CREATE TABLE discrepancy_results (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    document_ids    JSONB NOT NULL,
+    target_fields   JSONB,
+    tolerance       DECIMAL(5,4) NOT NULL DEFAULT 0.001,
+    trigger_type    VARCHAR(20) NOT NULL DEFAULT 'MANUAL',
+    status          VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    result_data     JSONB,
+    error_message   TEXT,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_discrepancy_status ON discrepancy_results(status);
+CREATE INDEX idx_discrepancy_created ON discrepancy_results(created_at DESC);
