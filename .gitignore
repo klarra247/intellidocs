@@ -20,6 +20,9 @@
 # Docker 볼륨 (로컬 데이터)
 infra/data/
 
+# 업로드/생성 파일 (런타임 산출물)
+**/uploads/
+
 # OS
 .DS_Store
 Thumbs.db

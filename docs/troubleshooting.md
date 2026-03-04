@@ -2,6 +2,15 @@
 
 ---
 
+### [2026-03-04] @Async self-invocation으로 리포트 생성이 동기 실행됨
+- **문제**: `POST /api/v1/reports/generate` 호출 시 `AsyncRequestTimeoutException` + `NullPointerException` 발생. SSE emitter가 타임아웃되고, 리포트 생성이 비동기로 실행되지 않음
+- **원인**: `ReportService.createReport()`에서 같은 클래스의 `@Async generateAsync()`를 직접 호출하면 Spring AOP 프록시를 우회하여 동기 실행됨. POST 요청이 LLM 호출 완료까지 블록되어 SSE 구독이 불가능
+- **해결**: `@Async` 메서드를 별도 빈 `ReportAsyncExecutor`로 분리. `createReport()` → `asyncExecutor.execute()` (cross-bean call) → `reportService.generateReport()` 구조로 변경. 순환 의존은 `@Lazy`로 해결
+- **검증**: `./gradlew build -x test` 성공
+- **교훈**: Spring `@Async`는 반드시 다른 빈에서 호출해야 프록시를 경유한 비동기 실행이 보장됨. 같은 클래스 내부 호출(`this.method()`)은 프록시를 우회함
+
+---
+
 ### [2026-03-03] SSE 이벤트가 프론트엔드에 도달하지 않음 — Next.js rewrites 프록시가 SSE 미지원
 - **문제**: 백엔드 파이프라인은 정상 완료(Qdrant/ES 인덱싱 성공)되지만 프론트 프로그레스가 10%에서 멈추고, Next.js 콘솔에 `Failed to proxy ... Error: socket hang up (ECONNRESET)` 출력
 - **원인**: `next.config.js`의 `rewrites`가 프록시하는 `http-proxy`는 일반 request-response용이며, SSE처럼 장시간 열려있는 스트리밍 연결을 제대로 중계하지 못함. 응답을 버퍼링하거나 연결을 끊어서 백엔드가 보낸 SSE 이벤트가 클라이언트까지 전달되지 않음
