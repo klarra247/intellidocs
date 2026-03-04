@@ -38,7 +38,7 @@ public class DiscrepancyService {
 
         BigDecimal tolerance = request.getTolerance() != null
                 ? request.getTolerance()
-                : new BigDecimal("0.01");
+                : new BigDecimal("0.001");
 
         DiscrepancyResult result = DiscrepancyResult.builder()
                 .documentIds(request.getDocumentIds())
@@ -116,7 +116,7 @@ public class DiscrepancyService {
             sendProgress(jobId, DiscrepancyStatus.DETECTING, "수치 비교 중...", 80);
             double tolerance = result.getTolerance() != null
                     ? result.getTolerance().doubleValue()
-                    : 0.01;
+                    : 0.001;
             DiscrepancyResultData data = engine.compare(extracted, tolerance);
 
             result.complete(data);

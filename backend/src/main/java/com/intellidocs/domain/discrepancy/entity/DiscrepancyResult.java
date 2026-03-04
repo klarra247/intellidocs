@@ -34,7 +34,7 @@ public class DiscrepancyResult {
 
     @Column(precision = 5, scale = 4, nullable = false)
     @Builder.Default
-    private BigDecimal tolerance = new BigDecimal("0.01");
+    private BigDecimal tolerance = new BigDecimal("0.001");
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
