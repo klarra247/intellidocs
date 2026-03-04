@@ -188,3 +188,12 @@
   - `response.aiMessage()` null 방어 처리, DB에 저장되지 않은 가짜 sessionId fallback 제거
 - **검증**: ChatHistoryServiceTest 10건 (persistConversation 포함), 전체 59건 테스트 통과. `./gradlew clean build` 성공
 - **교훈**: `@GeneratedValue` 엔티티에 ID를 수동 설정하면 JPA가 `merge()`를 호출하여 의도와 다른 동작 발생. ID 생성 전략이 있는 엔티티는 반드시 프레임워크에 위임할 것. 예외 묵인(`catch` 후 fallback) 패턴은 디버깅을 매우 어렵게 만드므로, 최소한 로그 레벨을 높이거나 메트릭을 남길 것
+
+---
+
+### [2026-03-04] @Async + SSE 타이밍: 비동기 작업이 클라이언트 SSE 연결 전에 완료됨
+- **문제**: 불일치 탐지에서 `targetFields`를 지정하면 Stage 1(항목 식별) 스킵 + 검색 캐시 히트로 ~5초 만에 완료. 클라이언트가 POST 응답을 받고 SSE `/status`에 연결하기 전에 모든 이벤트가 발행되고 `complete()`까지 호출되어, SSE 응답이 빈 채로 멈춤
+- **원인**: `SseEmitterService.send()`가 emitter 미등록 시 이벤트를 버림 (`if (emitter == null) return`). 비동기 작업이 빠르게 끝나면 emitter가 존재하지 않는 시점에 모든 이벤트가 소실
+- **해결**: `DiscrepancySseEmitterService`에 이벤트 버퍼링 추가. `send()` — emitter 유무와 관계없이 항상 `CopyOnWriteArrayList` 버퍼에 저장. `createEmitter()` — 클라이언트 연결 시 버퍼된 이벤트 즉시 재생, 이미 완료된 작업이면 complete 호출. `complete()` — emitter 미등록 시 완료 플래그만 저장
+- **검증**: `targetFields` 지정 요청 시 SSE에서 버퍼된 이벤트가 정상 수신됨
+- **교훈**: `@Async` + SSE 패턴에서는 작업 완료 속도와 클라이언트 연결 타이밍을 보장할 수 없음. 이벤트 버퍼링은 필수. `ReportSseEmitterService`, `DocumentSseEmitterService`에도 동일 패턴 적용 검토 필요
