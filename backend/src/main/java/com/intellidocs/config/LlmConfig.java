@@ -68,6 +68,30 @@ public class LlmConfig {
                 .build();
     }
 
+    /**
+     * 리포트 생성 전용 모델 — JSON 구조 응답을 위해 maxTokens를 높게 설정.
+     * 기본 chatLanguageModel(maxTokens=2000)으로는 구조화된 리포트 JSON이 잘림.
+     */
+    @Bean("reportChatLanguageModel")
+    public ChatLanguageModel reportChatLanguageModel() {
+        if ("openai".equalsIgnoreCase(provider)) {
+            String key = openaiKey.isBlank() ? "placeholder-key" : openaiKey;
+            return OpenAiChatModel.builder()
+                    .apiKey(key)
+                    .modelName(openaiModel)
+                    .temperature(0.3)
+                    .maxTokens(8192)
+                    .build();
+        }
+        String key = anthropicKey.isBlank() ? "placeholder-key" : anthropicKey;
+        return AnthropicChatModel.builder()
+                .apiKey(key)
+                .modelName(anthropicModel)
+                .temperature(0.3)
+                .maxTokens(8192)
+                .build();
+    }
+
     @Bean
     public StreamingChatLanguageModel streamingChatLanguageModel() {
         if ("openai".equalsIgnoreCase(provider)) {

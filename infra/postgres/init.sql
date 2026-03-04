@@ -116,3 +116,23 @@ CREATE TABLE parsing_jobs (
     retry_count     INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT NOW()
 );
+
+-- ─────────────────────────────────────────
+-- 분석 리포트
+-- ─────────────────────────────────────────
+CREATE TABLE reports (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID REFERENCES users(id),
+    title           VARCHAR(500) NOT NULL,
+    report_type     VARCHAR(50) NOT NULL,
+    status          VARCHAR(50) DEFAULT 'PENDING',
+    storage_path    VARCHAR(1000),
+    file_size       BIGINT,
+    document_ids    JSONB,
+    report_data     JSONB,
+    error_message   TEXT,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    completed_at    TIMESTAMP
+);
+
+CREATE INDEX idx_reports_user ON reports(user_id);

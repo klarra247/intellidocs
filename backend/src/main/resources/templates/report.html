@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm 2cm;
+            @bottom-center {
+                content: counter(page) " / " counter(pages);
+                font-size: 9px;
+                color: #94a3b8;
+            }
+            @bottom-right {
+                content: "IntelliDocs";
+                font-size: 9px;
+                color: #94a3b8;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'NanumGothic', sans-serif;
+            -fs-font-subset: complete-font;
+        }
+
+        body {
+            font-size: 10pt;
+            line-height: 1.6;
+            color: #1e293b;
+        }
+
+        /* === Title === */
+        .report-title {
+            font-size: 22pt;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 6px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 12px;
+        }
+
+        .report-meta {
+            font-size: 9pt;
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        /* === Summary Box === */
+        .summary-box {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+        }
+
+        .summary-box .label {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .summary-box .content {
+            font-size: 10pt;
+            color: #1e3a5f;
+            line-height: 1.7;
+        }
+
+        /* === Sections === */
+        h2.section-heading {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #1e40af;
+            margin-top: 24px;
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #dbeafe;
+        }
+
+        .section-content {
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .section-content p {
+            margin-bottom: 8px;
+        }
+
+        .section-content ul, .section-content ol {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .section-content li {
+            margin-bottom: 4px;
+        }
+
+        .section-content strong {
+            font-weight: 700;
+        }
+
+        /* === Tables === */
+        .table-block {
+            margin: 14px 0 20px 0;
+        }
+
+        .table-caption {
+            font-size: 9pt;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+
+        th {
+            background-color: #1e40af;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+
+        /* === Sources === */
+        .sources-section {
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .sources-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .source-item {
+            font-size: 9pt;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        /* === Confidence === */
+        .confidence-badge {
+            display: inline-block;
+            font-size: 8pt;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Title -->
+<div class="report-title" th:text="${reportData.title}">리포트 제목</div>
+<div class="report-meta">
+    <span th:text="${reportType}">FINANCIAL_ANALYSIS</span>
+    &nbsp;|&nbsp;
+    <span th:text="${generatedAt}">2026-03-04</span>
+    <span th:if="${confidenceLevel != null}">
+        &nbsp;|&nbsp;
+        <span class="confidence-badge" th:text="'신뢰도: ' + ${confidenceLevel}">신뢰도: HIGH</span>
+    </span>
+</div>
+
+<!-- Summary -->
+<div class="summary-box" th:if="${reportData.summary != null}">
+    <div class="label">요약</div>
+    <div class="content" th:utext="${reportData.summary}">요약 내용</div>
+</div>
+
+<!-- Sections -->
+<div th:each="section : ${reportData.sections}">
+    <h2 class="section-heading" th:text="${section.heading}">섹션 제목</h2>
+    <div class="section-content" th:utext="${section.contentHtml}">섹션 내용</div>
+
+    <!-- Tables within section -->
+    <div th:each="table : ${section.tables}" class="table-block" th:if="${section.tables != null}">
+        <div class="table-caption" th:if="${table.caption != null}" th:text="${table.caption}">표 제목</div>
+        <table>
+            <thead>
+                <tr>
+                    <th th:each="header : ${table.headers}" th:text="${header}">헤더</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${table.rows}">
+                    <td th:each="cell : ${row}" th:text="${cell}">셀</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sources -->
+<div class="sources-section" th:if="${reportData.sources != null and !reportData.sources.empty}">
+    <div class="sources-title">참고 문서</div>
+    <div th:each="source, stat : ${reportData.sources}" class="source-item">
+        <span th:text="${stat.index + 1}">1</span>.
+        <span th:text="${source.filename}">document.pdf</span>
+        <span th:if="${source.pageRange != null}" th:text="' (p.' + ${source.pageRange} + ')'"> (p.1-5)</span>
+    </div>
+</div>
+
+</body>
+</html>
