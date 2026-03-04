@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, MessageSquare, FolderOpen } from 'lucide-react';
+import { FileText, MessageSquare, FolderOpen, FileBarChart } from 'lucide-react';
 
 const navItems = [
   { href: '/workspace', label: '문서 관리', icon: FolderOpen },
   { href: '/workspace/chat', label: 'AI 채팅', icon: MessageSquare },
+  { href: '/workspace/reports', label: '리포트', icon: FileBarChart },
 ];
 
 export default function Sidebar() {

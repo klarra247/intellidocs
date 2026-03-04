@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report } from './types';
 
 const BASE_URL = '/api/v1';
 
@@ -88,4 +88,23 @@ export const chatApi = {
     request<import('./types').ChatHistoryResponse>(
       `/agent/chat/history?sessionId=${sessionId}`,
     ),
+};
+
+// === Reports ===
+export const reportsApi = {
+  generate: (body: ReportGenerateRequest) =>
+    request<ReportGenerateResponse>('/reports/generate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  list: () => request<Report[]>('/reports'),
+
+  delete: (id: string) =>
+    request<void>(`/reports/${id}`, { method: 'DELETE' }),
+
+  downloadUrl: (id: string) => {
+    const sseBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+    return `${sseBase}/reports/${id}/download`;
+  },
 };

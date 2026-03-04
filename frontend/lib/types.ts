@@ -127,3 +127,36 @@ export interface ActiveTool {
   tool: string;
   message: string;
 }
+
+// === Reports ===
+export type ReportType = 'FINANCIAL_ANALYSIS' | 'COMPARISON' | 'SUMMARY';
+export type ReportStatus = 'PENDING' | 'GENERATING' | 'RENDERING' | 'COMPLETED' | 'FAILED';
+
+export interface ReportGenerateRequest {
+  reportType: ReportType;
+  title: string;
+  documentIds?: string[];
+  prompt?: string;
+}
+
+export interface ReportGenerateResponse {
+  reportId: string;
+  status: ReportStatus;
+}
+
+export interface Report {
+  id: string;
+  title: string;
+  reportType: ReportType;
+  status: ReportStatus;
+  fileSize: number | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface ReportStatusEvent {
+  reportId: string;
+  status: ReportStatus;
+  message: string;
+  progress: number;
+}
