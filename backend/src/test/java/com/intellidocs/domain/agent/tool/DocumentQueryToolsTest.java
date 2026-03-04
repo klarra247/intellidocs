@@ -4,6 +4,8 @@ import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.search.dto.SearchRequest;
 import com.intellidocs.domain.search.dto.SearchResponse;
 import com.intellidocs.domain.search.dto.SearchResult;
+import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.search.service.HybridSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,11 +28,17 @@ class DocumentQueryToolsTest {
     @Mock
     private HybridSearchService hybridSearchService;
 
+    @Mock
+    private DiscrepancyService discrepancyService;
+
+    @Mock
+    private DocumentRepository documentRepository;
+
     private DocumentQueryTools documentQueryTools;
 
     @BeforeEach
     void setUp() {
-        documentQueryTools = new DocumentQueryTools(hybridSearchService);
+        documentQueryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
     }
 
     @Test
@@ -347,7 +355,7 @@ class DocumentQueryToolsTest {
                 SearchResponse.builder().results(List.of(chunk))
                         .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
 
-        DocumentQueryTools freshTools = new DocumentQueryTools(hybridSearchService);
+        DocumentQueryTools freshTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
         freshTools.searchDocuments("query", null);
 
         assertThat(freshTools.getInstanceCollectedResults()).hasSize(1);

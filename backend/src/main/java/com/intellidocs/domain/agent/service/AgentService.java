@@ -112,7 +112,8 @@ public class AgentService {
         // 6. Build sources and confidence from collected search results
         List<SearchResult> collected = documentQueryTools.getCollectedResults();
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
-        double confidence = SearchResultUtils.computeConfidence(collected, financialCalculatorTools.getCalculationCount());
+        double confidence = SearchResultUtils.computeConfidence(collected,
+                financialCalculatorTools.getCalculationCount(), documentQueryTools.getDiscrepancyDetectionCount());
         String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
 
         // 7. Extract table data (best-effort)

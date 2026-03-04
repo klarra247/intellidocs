@@ -1,6 +1,11 @@
 package com.intellidocs.domain.agent.tool;
 
 import com.intellidocs.domain.agent.dto.ToolEvent;
+import com.intellidocs.domain.discrepancy.entity.DiscrepancyResultData;
+import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
+import com.intellidocs.domain.document.entity.Document;
+import com.intellidocs.domain.document.entity.DocumentStatus;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.search.dto.SearchRequest;
 import com.intellidocs.domain.search.dto.SearchResponse;
 import com.intellidocs.domain.search.dto.SearchResult;
@@ -27,6 +32,8 @@ public class DocumentQueryTools {
     private static final int MAX_TEXT_LENGTH = 8000;
 
     private final HybridSearchService hybridSearchService;
+    private final DiscrepancyService discrepancyService;
+    private final DocumentRepository documentRepository;
 
     /**
      * Collects SearchResults from tool executions on the current thread.
@@ -37,6 +44,7 @@ public class DocumentQueryTools {
 
     private Consumer<ToolEvent> eventCallback;
     private final List<SearchResult> instanceCollectedResults = new ArrayList<>();
+    private int discrepancyDetectionCount = 0;
 
     public void setEventCallback(Consumer<ToolEvent> callback) {
         this.eventCallback = callback;
@@ -53,9 +61,14 @@ public class DocumentQueryTools {
         }
     }
 
+    public int getDiscrepancyDetectionCount() {
+        return discrepancyDetectionCount;
+    }
+
     /** Call before agent.chat() to reset collected results. */
     public void clearCollectedResults() {
         COLLECTED_RESULTS.get().clear();
+        discrepancyDetectionCount = 0;
     }
 
     /** Call after agent.chat() to retrieve all search results from this request. */
@@ -167,6 +180,57 @@ public class DocumentQueryTools {
         return truncate(formatResults(response.getResults()));
     }
 
+    @Tool("여러 문서에서 동일 항목의 수치 불일치를 탐지한다. " +
+          "같은 항목이 문서마다 다른 수치로 기록된 경우를 찾아 알려준다.")
+    public String detectDiscrepancies(
+            @P(value = "비교할 문서 ID 목록 (UUID). null이면 전체 INDEXED 문서 대상", required = false) List<String> documentIds,
+            @P(value = "검사할 항목 목록. null이면 자동 탐지", required = false) List<String> targetFields) {
+
+        log.debug("detectDiscrepancies called: documentIds={}, targetFields={}", documentIds, targetFields);
+        emitEvent(ToolEvent.start("detectDiscrepancies", "불일치 탐지 중..."));
+
+        try {
+            // documentIds가 없으면 전체 INDEXED 문서 상위 10개
+            List<UUID> uuids;
+            if (documentIds == null || documentIds.isEmpty()) {
+                List<Document> indexed = documentRepository.findByStatusOrderByCreatedAtDesc(DocumentStatus.INDEXED);
+                uuids = indexed.stream()
+                        .limit(10)
+                        .map(Document::getId)
+                        .collect(Collectors.toList());
+            } else {
+                uuids = documentIds.stream()
+                        .filter(id -> {
+                            try { UUID.fromString(id); return true; }
+                            catch (IllegalArgumentException e) {
+                                log.warn("Invalid UUID skipped: '{}'", id);
+                                return false;
+                            }
+                        })
+                        .map(UUID::fromString)
+                        .collect(Collectors.toList());
+            }
+
+            if (uuids.size() < 2) {
+                emitEvent(ToolEvent.end("detectDiscrepancies", "비교 가능한 문서 부족"));
+                return "비교 가능한 INDEXED 문서가 2개 미만입니다.";
+            }
+
+            DiscrepancyResultData data = discrepancyService.detectSync(uuids, targetFields, 0.001);
+            discrepancyDetectionCount++;
+            String formatted = formatDiscrepancyResult(data);
+
+            emitEvent(ToolEvent.end("detectDiscrepancies",
+                    (data.getDiscrepancies() != null ? data.getDiscrepancies().size() : 0) + "건 불일치 발견"));
+            return truncate(formatted);
+
+        } catch (Exception e) {
+            log.error("detectDiscrepancies failed", e);
+            emitEvent(ToolEvent.end("detectDiscrepancies", "탐지 실패"));
+            return "불일치 탐지 중 오류가 발생했습니다: " + e.getMessage();
+        }
+    }
+
     // ── Private helpers ──────────────────────────────────────────
 
     private SearchRequest.Filters buildFilters(List<String> documentIds) {
@@ -231,6 +295,42 @@ public class DocumentQueryTools {
 
         collectResults(response.getResults());
         return formatResults(response.getResults());
+    }
+
+    private String formatDiscrepancyResult(DiscrepancyResultData data) {
+        if (data.getDiscrepancies() == null || data.getDiscrepancies().isEmpty()) {
+            int checked = data.getSummary() != null ? data.getSummary().getTotalFieldsChecked() : 0;
+            return "검사한 항목 " + checked + "개에서 불일치가 발견되지 않았습니다.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("## 불일치 탐지 결과\n\n");
+        sb.append("| 항목 | 기간 | 심각도 | 차이 |\n");
+        sb.append("|------|------|--------|------|\n");
+
+        for (DiscrepancyResultData.Discrepancy d : data.getDiscrepancies()) {
+            sb.append("| ").append(d.getField())
+              .append(" | ").append(d.getPeriod() != null ? d.getPeriod() : "-")
+              .append(" | ").append(d.getSeverity())
+              .append(" | ").append(d.getDifference())
+              .append(" |\n");
+        }
+
+        sb.append("\n### 상세 내역\n\n");
+        for (DiscrepancyResultData.Discrepancy d : data.getDiscrepancies()) {
+            sb.append("**").append(d.getField());
+            if (d.getPeriod() != null) sb.append(" (").append(d.getPeriod()).append(")");
+            sb.append("** — ").append(d.getDifference()).append("\n");
+            for (DiscrepancyResultData.Entry e : d.getEntries()) {
+                sb.append("  - ").append(e.getFilename()).append(": ").append(e.getValue()).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("**검사 항목**: ").append(data.getSummary().getTotalFieldsChecked()).append("개, ");
+        sb.append("**불일치**: ").append(data.getSummary().getDiscrepanciesFound()).append("건\n");
+
+        return sb.toString();
     }
 
     private void collectResults(List<SearchResult> results) {

@@ -160,3 +160,68 @@ export interface ReportStatusEvent {
   message: string;
   progress: number;
 }
+
+// === Discrepancy ===
+export type DiscrepancyStatus = 'PENDING' | 'DETECTING' | 'COMPLETED' | 'FAILED';
+export type TriggerType = 'MANUAL' | 'AUTO' | 'TOOL';
+export type DiscrepancySeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+
+export interface DiscrepancyEntry {
+  documentId: string;
+  filename: string;
+  value: string;
+  numericValue: number;
+  unit: string;
+  page: number | null;
+  chunkIndex: number | null;
+}
+
+export interface Discrepancy {
+  field: string;
+  period: string;
+  entries: DiscrepancyEntry[];
+  difference: string;
+  differencePercent: number;
+  severity: DiscrepancySeverity;
+}
+
+export interface DiscrepancySummary {
+  totalFieldsChecked: number;
+  discrepanciesFound: number;
+  bySeverity: Record<string, number>;
+}
+
+export interface DiscrepancyResultData {
+  discrepancies: Discrepancy[];
+  summary: DiscrepancySummary;
+  checkedFields: string[];
+}
+
+export interface DiscrepancyResult {
+  id: string;
+  documentIds: string[];
+  status: DiscrepancyStatus;
+  triggerType: string;
+  resultData: DiscrepancyResultData | null;
+  tolerance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiscrepancyDetectRequest {
+  documentIds: string[];
+  targetFields?: string[];
+  tolerance?: number;
+}
+
+export interface DiscrepancyDetectResponse {
+  jobId: string;
+  status: string;
+}
+
+export interface DiscrepancyStatusEvent {
+  jobId: string;
+  status: DiscrepancyStatus;
+  message: string;
+  progress: number;
+}

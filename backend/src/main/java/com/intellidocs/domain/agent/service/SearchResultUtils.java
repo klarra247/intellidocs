@@ -104,7 +104,19 @@ public final class SearchResultUtils {
      * @param calculationCount  number of calculation tools invoked (0 = no boost)
      */
     public static double computeConfidence(List<SearchResult> results, int calculationCount) {
-        if (results.isEmpty() && calculationCount == 0) return 0.0;
+        return computeConfidence(results, calculationCount, 0);
+    }
+
+    /**
+     * Compute confidence with boosts for calculation and discrepancy detection tools.
+     *
+     * @param results                    search results collected during tool execution
+     * @param calculationCount           number of calculation tools invoked (0 = no boost)
+     * @param discrepancyDetectionCount  number of discrepancy detection tools invoked (0 = no boost)
+     */
+    public static double computeConfidence(List<SearchResult> results, int calculationCount,
+                                           int discrepancyDetectionCount) {
+        if (results.isEmpty() && calculationCount == 0 && discrepancyDetectionCount == 0) return 0.0;
 
         double baseConfidence = 0.0;
         if (!results.isEmpty()) {
@@ -121,6 +133,11 @@ public final class SearchResultUtils {
             // Boost: calculation tool used → floor at MEDIUM (0.5), then add 0.15 per calc (cap at 1.0)
             double boost = 0.15 * calculationCount;
             baseConfidence = Math.min(1.0, Math.max(baseConfidence, 0.5) + boost);
+        }
+
+        if (discrepancyDetectionCount > 0) {
+            // Discrepancy detection is deterministic DB+engine analysis → floor at HIGH (0.8)
+            baseConfidence = Math.min(1.0, Math.max(baseConfidence, 0.8) + 0.1 * discrepancyDetectionCount);
         }
 
         return baseConfidence;

@@ -64,6 +64,7 @@ public final class AgentPrompts {
             - 문서 요약 → summarizeDocument
             - 두 문서 비교 → compareDocuments
             - 데이터 추출/정리 → extractAndCompile (검색 결과의 docId 값을 documentIds로 전달)
+            - 불일치 확인, 수치 비교, 문서 간 차이 → detectDiscrepancies
             - 증감률/차이 계산 → calculateChange
             - 재무비율 계산 → calculateFinancialRatio
             - 추세 분석 → analyzeTrend

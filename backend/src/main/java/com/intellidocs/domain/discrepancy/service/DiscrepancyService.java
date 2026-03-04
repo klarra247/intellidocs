@@ -136,6 +136,63 @@ public class DiscrepancyService {
         }
     }
 
+    /**
+     * 동기적으로 불일치 탐지를 실행하고 결과를 반환한다.
+     * Agent Tool 컨텍스트에서 사용 (SSE 없음, DB 저장 유지).
+     */
+    @Transactional
+    public DiscrepancyResultData detectSync(List<UUID> documentIds, List<String> targetFields, double tolerance) {
+        return detectSync(documentIds, targetFields, tolerance, TriggerType.TOOL);
+    }
+
+    @Transactional
+    public DiscrepancyResultData detectSync(List<UUID> documentIds, List<String> targetFields,
+                                            double tolerance, TriggerType triggerType) {
+        List<Document> documents = documentRepository.findAllById(documentIds);
+        if (documents.size() < 2) {
+            throw new IllegalStateException("비교 가능한 INDEXED 문서가 2개 미만입니다.");
+        }
+
+        // 항목 식별
+        List<String> fields;
+        if (targetFields != null && !targetFields.isEmpty()) {
+            fields = targetFields;
+        } else {
+            fields = engine.identifyCommonFields(documents);
+        }
+
+        if (fields.isEmpty()) {
+            return DiscrepancyResultData.builder()
+                    .discrepancies(List.of())
+                    .checkedFields(List.of())
+                    .summary(DiscrepancyResultData.Summary.builder()
+                            .totalFieldsChecked(0)
+                            .discrepanciesFound(0)
+                            .build())
+                    .build();
+        }
+
+        // 수치 추출
+        Map<String, List<DiscrepancyDetectionEngine.ExtractedValue>> extracted =
+                engine.extractValues(documents, fields);
+
+        // 비교
+        DiscrepancyResultData data = engine.compare(extracted, tolerance);
+
+        // DB 저장
+        DiscrepancyResult result = DiscrepancyResult.builder()
+                .documentIds(documentIds)
+                .targetFields(targetFields)
+                .tolerance(new BigDecimal(String.valueOf(tolerance)))
+                .triggerType(triggerType)
+                .build();
+        result.startDetecting();
+        result.complete(data);
+        discrepancyResultRepository.save(result);
+
+        return data;
+    }
+
     @Transactional(readOnly = true)
     public DiscrepancyResult getResult(UUID id) {
         return discrepancyResultRepository.findById(id)

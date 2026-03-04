@@ -5,6 +5,8 @@ import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
+import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.search.dto.SearchResult;
 import com.intellidocs.domain.chat.service.ChatHistoryService;
 import com.intellidocs.domain.search.service.HybridSearchService;
@@ -34,6 +36,8 @@ public class StreamingAgentService {
     private final StreamingChatLanguageModel streamingChatLanguageModel;
     private final HybridSearchService hybridSearchService;
     private final ChatHistoryService chatHistoryService;
+    private final DiscrepancyService discrepancyService;
+    private final DocumentRepository documentRepository;
 
     @Value("${app.llm.provider:anthropic}")
     private String provider;
@@ -71,7 +75,7 @@ public class StreamingAgentService {
                 : UUID.randomUUID();
 
         // 4. Per-request tool instances with callbacks
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
         FinancialCalculatorTools calcTools = new FinancialCalculatorTools();
         queryTools.setEventCallback(event -> sendSseEvent(emitter, event.getEventType(), event));
         calcTools.setEventCallback(event -> sendSseEvent(emitter, event.getEventType(), event));
@@ -120,7 +124,8 @@ public class StreamingAgentService {
                     try {
                         List<SearchResult> collected = queryTools.getInstanceCollectedResults();
                         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
-                        double confidence = SearchResultUtils.computeConfidence(collected, calcTools.getCalculationCount());
+                        double confidence = SearchResultUtils.computeConfidence(collected,
+                                calcTools.getCalculationCount(), queryTools.getDiscrepancyDetectionCount());
                         String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
 
                         sendSseEvent(emitter, "sources", Map.of(

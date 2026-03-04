@@ -1,4 +1,4 @@
-import { DocumentStatusEvent, ReportStatusEvent } from './types';
+import { DocumentStatusEvent, ReportStatusEvent, DiscrepancyStatusEvent } from './types';
 
 /**
  * SSE/스트리밍 연결은 Next.js rewrites 프록시를 우회하여 백엔드에 직접 연결.
@@ -181,6 +181,80 @@ export function subscribeReportStatus(
 
       try {
         const data: ReportStatusEvent = JSON.parse(e.data);
+        onEvent(data);
+
+        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+          cleanup();
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    });
+
+    eventSource.onerror = () => {
+      eventSource?.close();
+      eventSource = null;
+
+      if (closed) return;
+
+      if (retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(connect, retryDelay * retryCount);
+      } else {
+        onError?.('SSE 연결에 실패했습니다');
+        cleanup();
+      }
+    };
+  }
+
+  function cleanup() {
+    closed = true;
+    clearTimeout(timeoutId);
+    eventSource?.close();
+    eventSource = null;
+  }
+
+  connect();
+  return cleanup;
+}
+
+/**
+ * SSE client for discrepancy detection status updates.
+ */
+export function subscribeDiscrepancyStatus(
+  jobId: string,
+  onEvent: (event: DiscrepancyStatusEvent) => void,
+  onError?: (error: string) => void,
+  options: SSEOptions = {},
+): () => void {
+  const { maxRetries = 3, retryDelay = 2000, timeout = 120_000 } = options;
+
+  let eventSource: EventSource | null = null;
+  let retryCount = 0;
+  let timeoutId: ReturnType<typeof setTimeout>;
+  let closed = false;
+
+  function connect() {
+    if (closed) return;
+
+    const url = `${SSE_BASE_URL}/discrepancies/${jobId}/status`;
+    eventSource = new EventSource(url);
+
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      onError?.('연결 시간이 초과되었습니다');
+      cleanup();
+    }, timeout);
+
+    eventSource.addEventListener('status', (e: MessageEvent) => {
+      retryCount = 0;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        cleanup();
+      }, timeout);
+
+      try {
+        const data: DiscrepancyStatusEvent = JSON.parse(e.data);
         onEvent(data);
 
         if (data.status === 'COMPLETED' || data.status === 'FAILED') {

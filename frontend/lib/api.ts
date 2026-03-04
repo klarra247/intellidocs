@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult } from './types';
 
 const BASE_URL = '/api/v1';
 
@@ -107,4 +107,21 @@ export const reportsApi = {
     const sseBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
     return `${sseBase}/reports/${id}/download`;
   },
+};
+
+// === Discrepancies ===
+export const discrepancyApi = {
+  detect: (body: DiscrepancyDetectRequest) =>
+    request<DiscrepancyDetectResponse>('/discrepancies/detect', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getResult: (id: string) =>
+    request<DiscrepancyResult>(`/discrepancies/${id}`),
+
+  getRecent: (triggerType?: string) =>
+    request<DiscrepancyResult[]>(
+      `/discrepancies/recent${triggerType ? `?triggerType=${triggerType}` : ''}`,
+    ),
 };

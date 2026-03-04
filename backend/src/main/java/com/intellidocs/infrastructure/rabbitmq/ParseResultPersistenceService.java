@@ -4,11 +4,13 @@ import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentChunk;
 import com.intellidocs.domain.document.entity.DocumentStatus;
+import com.intellidocs.domain.document.event.DocumentIndexedEvent;
 import com.intellidocs.domain.document.repository.DocumentChunkRepository;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.document.service.DocumentSseEmitterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class ParseResultPersistenceService {
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;
     private final DocumentSseEmitterService sseEmitterService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void handleFailure(Document document, String errorMessage) {
@@ -84,5 +87,8 @@ public class ParseResultPersistenceService {
 
         log.info("Document indexed successfully: {}, chunks: {}",
                 managed.getId(), result.getChunks().size());
+
+        eventPublisher.publishEvent(
+                new DocumentIndexedEvent(this, managed.getId(), managed.getUserId()));
     }
 }

@@ -3,6 +3,8 @@ package com.intellidocs.domain.agent.service;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.chat.service.ChatHistoryService;
+import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.search.service.HybridSearchService;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,13 +24,16 @@ class StreamingAgentServiceTest {
     @Mock private StreamingChatLanguageModel streamingChatLanguageModel;
     @Mock private HybridSearchService hybridSearchService;
     @Mock private ChatHistoryService chatHistoryService;
+    @Mock private DiscrepancyService discrepancyService;
+    @Mock private DocumentRepository documentRepository;
 
     private StreamingAgentService streamingAgentService;
 
     @BeforeEach
     void setUp() {
         streamingAgentService = new StreamingAgentService(
-                streamingChatLanguageModel, hybridSearchService, chatHistoryService);
+                streamingChatLanguageModel, hybridSearchService, chatHistoryService,
+                discrepancyService, documentRepository);
         ReflectionTestUtils.setField(streamingAgentService, "provider", "anthropic");
         ReflectionTestUtils.setField(streamingAgentService, "anthropicKey", "sk-test-key");
         ReflectionTestUtils.setField(streamingAgentService, "openaiKey", "");
