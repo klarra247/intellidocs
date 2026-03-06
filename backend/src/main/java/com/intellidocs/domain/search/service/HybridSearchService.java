@@ -171,6 +171,7 @@ public class HybridSearchService {
                             .pageNumber(orig.getPageNumber())
                             .sectionTitle(orig.getSectionTitle())
                             .chunkType(orig.getChunkType())
+                            .chunkIndex(orig.getChunkIndex())
                             .score(e.getValue())
                             .build();
                 })
