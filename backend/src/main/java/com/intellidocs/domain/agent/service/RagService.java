@@ -161,6 +161,7 @@ public class RagService {
                     .pageNumber(chunk.getPageNumber())
                     .sectionTitle(chunk.getSectionTitle())
                     .relevanceScore(chunk.getScore())
+                    .chunkIndex(chunk.getChunkIndex())
                     .build());
         }
 
