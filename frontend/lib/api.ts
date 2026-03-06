@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview } from './types';
 
 const BASE_URL = '/api/v1';
 
@@ -71,6 +71,24 @@ export const documentsApi = {
 
   delete: (id: string) =>
     request<void>(`/documents/${id}`, { method: 'DELETE' }),
+
+  getFileUrl: (id: string) => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+    return `${base}/documents/${id}/file`;
+  },
+
+  getPreview: (id: string) => request<ExcelPreview>(`/documents/${id}/preview`),
+};
+
+// === Chunks ===
+export const chunksApi = {
+  get: (documentId: string, chunkIndex: number) =>
+    request<ChunkResponse>(`/documents/${documentId}/chunks/${chunkIndex}`),
+
+  getBulk: (documentId: string, indices: number[]) =>
+    request<BulkChunkResponse>(
+      `/documents/${documentId}/chunks?indices=${indices.join(',')}`,
+    ),
 };
 
 // === Search ===

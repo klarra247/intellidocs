@@ -84,6 +84,7 @@ export interface ChatSource {
   filename: string;
   pageNumber: number | null;
   sectionTitle: string | null;
+  chunkIndex: number | null;
   relevanceScore: number;
   pageRange: string | null;
 }
@@ -159,6 +160,39 @@ export interface ReportStatusEvent {
   status: ReportStatus;
   message: string;
   progress: number;
+}
+
+// === Chunk Viewer ===
+export interface ChunkResponse {
+  documentId: string;
+  originalFilename: string;
+  chunkIndex: number;
+  text: string | null;
+  pageNumber: number | null;
+  sectionTitle: string | null;
+  chunkType: 'TEXT' | 'TABLE';
+  tokenCount: number;
+  warning: string | null;
+}
+
+export interface BulkChunkResponse {
+  documentId: string;
+  chunks: ChunkResponse[];
+  notFound: number[];
+}
+
+export interface ExcelSheet {
+  sheetName: string;
+  headers: string[];
+  rows: string[][];
+  totalRows: number;
+  totalCols: number;
+  truncatedRows: boolean;
+  truncatedCols: boolean;
+}
+
+export interface ExcelPreview {
+  sheets: ExcelSheet[];
 }
 
 // === Discrepancy ===
