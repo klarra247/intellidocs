@@ -106,11 +106,11 @@ class SearchResultUtilsTest {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(1).sectionTitle("intro").score(0.9).build(),
+                        .pageNumber(1).chunkIndex(0).sectionTitle("intro").score(0.9).build(),
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(2).sectionTitle("body").score(0.7).build(),
+                        .pageNumber(2).chunkIndex(1).sectionTitle("body").score(0.7).build(),
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(3).sectionTitle("end").score(0.5).build()
+                        .pageNumber(3).chunkIndex(2).sectionTitle("end").score(0.5).build()
         );
 
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
@@ -125,11 +125,11 @@ class SearchResultUtilsTest {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(1).score(0.9).build(),
+                        .pageNumber(1).chunkIndex(0).score(0.9).build(),
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(3).score(0.7).build(),
+                        .pageNumber(3).chunkIndex(2).score(0.7).build(),
                 SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(7).score(0.5).build()
+                        .pageNumber(7).chunkIndex(5).score(0.5).build()
         );
 
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
@@ -144,9 +144,9 @@ class SearchResultUtilsTest {
         UUID doc2 = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(doc1).filename("a.pdf")
-                        .pageNumber(1).score(0.9).build(),
+                        .pageNumber(1).chunkIndex(0).score(0.9).build(),
                 SearchResult.builder().documentId(doc2).filename("b.pdf")
-                        .pageNumber(2).score(0.8).build()
+                        .pageNumber(2).chunkIndex(3).score(0.8).build()
         );
 
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
@@ -171,18 +171,38 @@ class SearchResultUtilsTest {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(1).score(0.9).build(),
+                        .pageNumber(1).chunkIndex(0).score(0.9).build(),
                 SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(2).score(0.8).build(),
+                        .pageNumber(2).chunkIndex(1).score(0.8).build(),
                 SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(3).score(0.7).build(),
+                        .pageNumber(3).chunkIndex(2).score(0.7).build(),
                 SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(7).score(0.6).build()
+                        .pageNumber(7).chunkIndex(5).score(0.6).build()
         );
 
         List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
 
         assertThat(sources).hasSize(1);
         assertThat(sources.get(0).getPageRange()).isEqualTo("p.1-3,7");
+    }
+
+    @Test
+    void deduplicateSources_preservesBestChunkIndex() {
+        UUID docId = UUID.randomUUID();
+        List<SearchResult> results = List.of(
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(3).chunkIndex(5).score(0.95).build(),
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(1).chunkIndex(0).score(0.70).build(),
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(2).chunkIndex(2).score(0.60).build()
+        );
+
+        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+
+        assertThat(sources).hasSize(1);
+        // The best (highest score) chunk has chunkIndex=5
+        assertThat(sources.get(0).getChunkIndex()).isEqualTo(5);
+        assertThat(sources.get(0).getRelevanceScore()).isEqualTo(0.95);
     }
 }

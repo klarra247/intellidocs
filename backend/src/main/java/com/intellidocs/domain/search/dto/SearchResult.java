@@ -21,5 +21,6 @@ public class SearchResult {
     private Integer pageNumber;
     private String sectionTitle;
     private String chunkType;
+    private Integer chunkIndex;
     private double score;   // RRF 합산 점수
 }

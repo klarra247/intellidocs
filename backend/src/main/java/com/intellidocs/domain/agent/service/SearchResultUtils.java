@@ -46,6 +46,7 @@ public final class SearchResultUtils {
                     .filename(best.getFilename())
                     .pageNumber(best.getPageNumber())
                     .sectionTitle(best.getSectionTitle())
+                    .chunkIndex(best.getChunkIndex())
                     .relevanceScore(best.getScore())
                     .pageRange(pageRange)
                     .build());

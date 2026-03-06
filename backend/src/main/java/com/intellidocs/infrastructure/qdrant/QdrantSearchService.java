@@ -113,6 +113,7 @@ public class QdrantSearchService {
 
         return SearchResult.builder()
                 .chunkId(chunkId)
+                .chunkIndex((int) chunkIndex)
                 .documentId(documentId != null ? UUID.fromString(documentId) : null)
                 .filename(getStr(payload, "filename"))
                 .text(getStr(payload, "text"))

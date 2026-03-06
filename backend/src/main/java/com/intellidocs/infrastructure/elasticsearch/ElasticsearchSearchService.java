@@ -109,8 +109,12 @@ public class ElasticsearchSearchService {
         String documentId = src != null && src.hasNonNull("document_id")
                 ? src.get("document_id").asText() : null;
 
+        String chunkId = src != null && src.hasNonNull("chunk_id") ? src.get("chunk_id").asText() : hit.id();
+        Integer chunkIndex = parseChunkIndex(src, chunkId);
+
         return SearchResult.builder()
-                .chunkId(src != null && src.hasNonNull("chunk_id") ? src.get("chunk_id").asText() : hit.id())
+                .chunkId(chunkId)
+                .chunkIndex(chunkIndex)
                 .documentId(documentId != null ? UUID.fromString(documentId) : null)
                 .filename(src != null && src.hasNonNull("filename") ? src.get("filename").asText() : null)
                 .text(src != null && src.hasNonNull("text") ? src.get("text").asText() : null)
@@ -119,5 +123,26 @@ public class ElasticsearchSearchService {
                 .chunkType(src != null && src.hasNonNull("chunk_type") ? src.get("chunk_type").asText() : null)
                 .score(hit.score() != null ? hit.score() : 0.0)
                 .build();
+    }
+
+    /**
+     * Extract chunk_index from the ES document field, falling back to parsing from chunkId string.
+     * chunkId format: "docId_chunkIndex" (e.g. "550e8400-e29b-41d4-a716-446655440000_3")
+     */
+    private Integer parseChunkIndex(ObjectNode src, String chunkId) {
+        // Try direct field first
+        if (src != null && src.hasNonNull("chunk_index")) {
+            return src.get("chunk_index").asInt();
+        }
+        // Fallback: parse from chunkId (last segment after underscore)
+        if (chunkId != null && chunkId.contains("_")) {
+            try {
+                String lastSegment = chunkId.substring(chunkId.lastIndexOf('_') + 1);
+                return Integer.parseInt(lastSegment);
+            } catch (NumberFormatException e) {
+                log.warn("[ES Search] Could not parse chunkIndex from chunkId: {}", chunkId);
+            }
+        }
+        return null;
     }
 }
