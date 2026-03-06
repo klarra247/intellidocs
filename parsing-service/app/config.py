@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     parse_routing_key: str = "document.parse"
     result_routing_key: str = "document.parse.result"
 
+    upload_dir: str = "/tmp/intellidocs/uploads"
+
     log_level: str = "INFO"
 
     model_config = {"env_file": ".env"}

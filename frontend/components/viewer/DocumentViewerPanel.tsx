@@ -53,7 +53,7 @@ export default function DocumentViewerPanel() {
 
       {/* Slide panel */}
       <aside
-        className="fixed right-0 top-0 z-40 flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-modal transition-transform duration-300 ease-out lg:w-1/2 animate-in slide-in-from-right"
+        className="fixed right-0 top-0 z-40 flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-modal lg:w-1/2 animate-slide-in-right"
         role="complementary"
         aria-label="Document viewer"
       >
