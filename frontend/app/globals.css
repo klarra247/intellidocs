@@ -113,6 +113,26 @@
   animation: highlight-pulse 1s ease-out;
 }
 
+/* Viewer slide-in panel */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Excel table styling */
+.excel-table th {
+  @apply sticky top-0 z-10 bg-slate-100 text-left text-[11px] font-semibold text-slate-600;
+}
+.excel-table td {
+  @apply text-[12px] text-slate-700;
+}
+.excel-table tr:nth-child(even) td {
+  @apply bg-slate-50/50;
+}
+
 /* Stagger delays */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
