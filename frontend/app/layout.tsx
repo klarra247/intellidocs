@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import DocumentViewerPanel from '@/components/viewer/DocumentViewerPanel';
 
 export const metadata: Metadata = {
   title: 'IntelliDocs',
@@ -20,8 +21,9 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
-            <main className="flex-1 overflow-hidden">
-              <div className="h-full animate-fade-in">{children}</div>
+            <main className="flex flex-1 overflow-hidden">
+              <div className="h-full min-w-0 flex-1 animate-fade-in">{children}</div>
+              <DocumentViewerPanel />
             </main>
           </div>
         </div>

@@ -22,10 +22,11 @@ export default function DocumentViewerPanel() {
   const loading = useViewerStore((s) => s.loading);
   const error = useViewerStore((s) => s.error);
   const documentDetail = useViewerStore((s) => s.documentDetail);
+  const directFileUrl = useViewerStore((s) => s.directFileUrl);
   const chunkText = useViewerStore((s) => s.chunkText);
   const closeViewer = useViewerStore((s) => s.closeViewer);
 
-  const fileType = documentDetail?.fileType ?? null;
+  const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
 
   // Resizable width
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -123,7 +124,7 @@ export default function DocumentViewerPanel() {
             </div>
           )}
 
-          {!loading && !error && documentDetail && (
+          {!loading && !error && (documentDetail || directFileUrl) && (
             <>
               {fileType === 'PDF' && <PdfViewer />}
               {fileType === 'XLSX' && <ExcelViewer />}

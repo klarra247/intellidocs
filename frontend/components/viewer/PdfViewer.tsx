@@ -11,26 +11,44 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 export default function PdfViewer() {
   const documentId = useViewerStore((s) => s.documentId);
+  const directFileUrl = useViewerStore((s) => s.directFileUrl);
   const currentPage = useViewerStore((s) => s.currentPage);
   const scale = useViewerStore((s) => s.scale);
   const setTotalPages = useViewerStore((s) => s.setTotalPages);
+  const setCurrentPage = useViewerStore((s) => s.setCurrentPage);
 
   const [pdfError, setPdfError] = useState(false);
+  const [pageWarning, setPageWarning] = useState<string | null>(null);
 
   const fileUrl = useMemo(
-    () => (documentId ? documentsApi.getFileUrl(documentId) : null),
-    [documentId],
+    () => directFileUrl ?? (documentId ? documentsApi.getFileUrl(documentId) : null),
+    [directFileUrl, documentId],
   );
 
   if (!fileUrl) return null;
 
   return (
-    <div className="flex h-full w-full items-start justify-center overflow-auto bg-slate-50 p-4">
+    <div className="flex h-full w-full flex-col items-center overflow-auto bg-slate-50">
+      {pageWarning && (
+        <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
+          <span>{pageWarning}</span>
+          <button onClick={() => setPageWarning(null)} className="ml-auto font-medium text-amber-600 hover:text-amber-800">✕</button>
+        </div>
+      )}
+      <div className="flex flex-1 items-start justify-center p-4">
       <Document
         file={fileUrl}
         onLoadSuccess={({ numPages }) => {
           setTotalPages(numPages);
           setPdfError(false);
+          // Clamp if currentPage exceeds actual pages
+          const cur = useViewerStore.getState().currentPage;
+          if (cur > numPages) {
+            setCurrentPage(numPages);
+            setPageWarning(`요청된 페이지(${cur})가 전체 ${numPages}페이지를 초과하여 마지막 페이지로 이동했습니다.`);
+          } else {
+            setPageWarning(null);
+          }
         }}
         onLoadError={() => setPdfError(true)}
         loading={
@@ -63,6 +81,7 @@ export default function PdfViewer() {
           />
         )}
       </Document>
+      </div>
     </div>
   );
 }

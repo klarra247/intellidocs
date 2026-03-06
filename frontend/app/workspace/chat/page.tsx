@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import ChatContainer from '@/components/chat/ChatContainer';
 import DocumentSelector from '@/components/chat/DocumentSelector';
-import DocumentViewerPanel from '@/components/viewer/DocumentViewerPanel';
 
 export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -27,8 +26,6 @@ export default function ChatPage() {
         />
       </div>
 
-      {/* Document Viewer Panel — flex item, pushes chat */}
-      <DocumentViewerPanel />
     </div>
   );
 }

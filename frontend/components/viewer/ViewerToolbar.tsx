@@ -26,8 +26,11 @@ export default function ViewerToolbar() {
   const setActiveSheet = useViewerStore((s) => s.setActiveSheet);
   const previewData = useViewerStore((s) => s.previewData);
 
-  const fileType = documentDetail?.fileType ?? null;
-  const filename = documentDetail?.originalFilename ?? '';
+  const viewerTitle = useViewerStore((s) => s.viewerTitle);
+  const directFileUrl = useViewerStore((s) => s.directFileUrl);
+
+  const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
+  const filename = viewerTitle ?? documentDetail?.originalFilename ?? '';
 
   // --- PDF controls ---
   const handlePrevPage = useCallback(() => {

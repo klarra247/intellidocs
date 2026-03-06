@@ -8,24 +8,42 @@ interface SourceBadgeProps {
   source: ChatSource;
 }
 
+function truncateFilename(name: string, max = 25): string {
+  if (name.length <= max) return name;
+  return name.slice(0, max) + '...';
+}
+
 export default function SourceBadge({ source }: SourceBadgeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const isActive = useViewerStore(
+    (s) =>
+      s.isOpen &&
+      s.documentId === source.documentId &&
+      s.highlight?.chunkIndex === source.chunkIndex,
+  );
 
   const hasChunkIndex = source.chunkIndex != null;
 
   const handleClick = () => {
     if (!hasChunkIndex) return;
-    const { openViewer } = useViewerStore.getState();
-    openViewer(source.documentId, {
+    const { openViewer, isOpen, documentId, highlight, navigateToHighlight } =
+      useViewerStore.getState();
+    const newHighlight = {
       chunkIndex: source.chunkIndex!,
       pageNumber: source.pageNumber,
       sectionTitle: source.sectionTitle,
-    });
+    };
+    // Same document already open → just navigate to highlight
+    if (isOpen && documentId === source.documentId) {
+      navigateToHighlight(newHighlight);
+    } else {
+      openViewer(source.documentId, newHighlight);
+    }
   };
 
   const label = source.pageRange
-    ? `📄 ${source.filename}, ${source.pageRange}`
-    : `📄 ${source.filename}`;
+    ? `📄 ${truncateFilename(source.filename)}, ${source.pageRange}`
+    : `📄 ${truncateFilename(source.filename)}`;
 
   return (
     <span className="relative inline-block">
@@ -33,9 +51,11 @@ export default function SourceBadge({ source }: SourceBadgeProps) {
         onClick={handleClick}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className={`inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-medium text-primary-700 transition-all hover:bg-primary-100 hover:shadow-sm ${
-          hasChunkIndex ? 'cursor-pointer' : 'cursor-default opacity-70'
-        }`}
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+          isActive
+            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-400 ring-offset-1'
+            : 'bg-primary-50 text-primary-700 hover:bg-primary-100 hover:shadow-sm'
+        } ${hasChunkIndex ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
       >
         {label}
       </span>

@@ -2,7 +2,7 @@ import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRe
 
 const BASE_URL = '/api/v1';
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,

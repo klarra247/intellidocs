@@ -11,6 +11,14 @@ export default function ExcelViewer() {
   const sheet = previewData.sheets[activeSheet];
   if (!sheet) return null;
 
+  if (sheet.rows.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-[13px] text-slate-400">이 시트에 데이터가 없습니다</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full overflow-auto">
       <table className="excel-table w-full border-collapse text-[12px]">

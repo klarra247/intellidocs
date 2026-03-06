@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { documentsApi, chunksApi } from '@/lib/api';
+import { documentsApi, chunksApi, ApiError } from '@/lib/api';
 import { DocumentDetail, ChunkResponse, ExcelPreview } from '@/lib/types';
 
 export interface HighlightInfo {
@@ -14,6 +14,10 @@ interface ViewerState {
   documentId: string | null;
   documentDetail: DocumentDetail | null;
   highlight: HighlightInfo | null;
+
+  // Direct URL mode (for reports, etc.)
+  directFileUrl: string | null;
+  viewerTitle: string | null;
 
   // Chunk preview text (for ChunkPreview in PDF/XLSX)
   chunkText: string | null;
@@ -39,6 +43,7 @@ interface ViewerState {
 
   // Actions
   openViewer: (documentId: string, highlight?: HighlightInfo) => Promise<void>;
+  openViewerWithUrl: (title: string, fileUrl: string) => void;
   closeViewer: () => void;
   navigateToHighlight: (highlight: HighlightInfo) => Promise<void>;
   setCurrentPage: (page: number) => void;
@@ -56,6 +61,8 @@ const initialState = {
   documentId: null,
   documentDetail: null,
   highlight: null,
+  directFileUrl: null,
+  viewerTitle: null,
   chunkText: null,
   chunkLoading: false,
   currentPage: 1,
@@ -128,8 +135,17 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
 
       set({ loading: false });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      set({ error: _friendlyError(e), loading: false });
     }
+  },
+
+  openViewerWithUrl: (title, fileUrl) => {
+    set({
+      ...initialState,
+      isOpen: true,
+      directFileUrl: fileUrl,
+      viewerTitle: title,
+    });
   },
 
   closeViewer: () => {
@@ -233,10 +249,29 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
         });
       }
     } catch (e) {
-      set({ error: (e as Error).message, chunksLoading: false });
+      set({ error: _friendlyError(e), chunksLoading: false });
     }
   },
 }));
+
+/** Map API errors to user-friendly Korean messages */
+function _friendlyError(e: unknown): string {
+  if (e instanceof ApiError) {
+    switch (e.status) {
+      case 404:
+        return '문서를 찾을 수 없습니다. 삭제되었을 수 있습니다.';
+      case 409:
+        return '문서 처리가 아직 완료되지 않았습니다.';
+      case 502:
+      case 503:
+        return '서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.';
+    }
+  }
+  if (e instanceof TypeError && (e as Error).message === 'Failed to fetch') {
+    return '네트워크 연결을 확인해주세요.';
+  }
+  return (e as Error).message || '알 수 없는 오류가 발생했습니다.';
+}
 
 /** Internal helper: load a range of chunks centered on centerIndex */
 async function _loadChunkRange(
@@ -262,6 +297,6 @@ async function _loadChunkRange(
       chunksLoading: false,
     });
   } catch (e) {
-    set({ error: (e as Error).message, chunksLoading: false });
+    set({ error: _friendlyError(e), chunksLoading: false });
   }
 }

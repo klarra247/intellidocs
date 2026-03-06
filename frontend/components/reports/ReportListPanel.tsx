@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import {
   Download,
+  Eye,
   FileBarChart,
   GitCompare,
   FileText,
@@ -13,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { useReportStore } from '@/stores/reportStore';
+import { useViewerStore } from '@/stores/viewerStore';
 import { reportsApi } from '@/lib/api';
 import { Report, ReportType, ReportStatus } from '@/lib/types';
 
@@ -212,13 +214,28 @@ function ReportCard({ report }: { report: Report }) {
 
         <div className="shrink-0 flex items-center gap-1.5">
           {report.status === 'COMPLETED' && (
-            <button
-              onClick={() => window.open(reportsApi.downloadUrl(report.id), '_blank')}
-              className="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5 text-[12px] font-medium text-primary-700 transition-colors hover:bg-primary-100"
-            >
-              <Download className="h-3.5 w-3.5" />
-              다운로드
-            </button>
+            <>
+              <button
+                onClick={() =>
+                  useViewerStore.getState().openViewerWithUrl(
+                    report.title,
+                    reportsApi.downloadUrl(report.id),
+                  )
+                }
+                className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                title="뷰어로 보기"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                보기
+              </button>
+              <button
+                onClick={() => window.open(reportsApi.downloadUrl(report.id), '_blank')}
+                className="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5 text-[12px] font-medium text-primary-700 transition-colors hover:bg-primary-100"
+              >
+                <Download className="h-3.5 w-3.5" />
+                다운로드
+              </button>
+            </>
           )}
 
           {isFailed && (
