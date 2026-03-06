@@ -9,7 +9,7 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Document Selector Panel */}
       <div
         className={`flex-shrink-0 border-r border-slate-200/80 bg-white transition-all duration-200 ${
@@ -19,7 +19,7 @@ export default function ChatPage() {
         <DocumentSelector />
       </div>
 
-      {/* Chat Area */}
+      {/* Chat Area — shrinks when viewer is open */}
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatContainer
           sidebarOpen={sidebarOpen}
@@ -27,7 +27,7 @@ export default function ChatPage() {
         />
       </div>
 
-      {/* Document Viewer Panel */}
+      {/* Document Viewer Panel — flex item, pushes chat */}
       <DocumentViewerPanel />
     </div>
   );

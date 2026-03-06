@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useViewerStore } from '@/stores/viewerStore';
 import ViewerToolbar from './ViewerToolbar';
@@ -13,6 +13,10 @@ const ChunkTextViewer = dynamic(() => import('./ChunkTextViewer'), { ssr: false 
 /** File types rendered by ChunkTextViewer */
 const TEXT_BASED_TYPES = new Set(['TXT', 'MD', 'DOCX']);
 
+const MIN_WIDTH = 360;
+const DEFAULT_WIDTH = 520;
+const MAX_WIDTH_RATIO = 0.7; // 화면의 최대 70%
+
 export default function DocumentViewerPanel() {
   const isOpen = useViewerStore((s) => s.isOpen);
   const loading = useViewerStore((s) => s.loading);
@@ -23,37 +27,74 @@ export default function DocumentViewerPanel() {
 
   const fileType = documentDetail?.fileType ?? null;
 
+  // Resizable width
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const isResizing = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
   // ESC key closes the panel
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeViewer();
-      }
+      if (e.key === 'Escape') closeViewer();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, closeViewer]);
 
-  // Don't render anything when closed
+  // Drag resize handler
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const startX = e.clientX;
+    const startWidth = width;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      const delta = startX - e.clientX; // drag left = increase width
+      const maxWidth = window.innerWidth * MAX_WIDTH_RATIO;
+      const newWidth = Math.min(maxWidth, Math.max(MIN_WIDTH, startWidth + delta));
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [width]);
+
   if (!isOpen) return null;
 
   const showChunkPreview =
     chunkText !== null && fileType !== null && !TEXT_BASED_TYPES.has(fileType);
 
   return (
-    <>
-      {/* Backdrop for mobile */}
+    <div
+      ref={panelRef}
+      className="relative flex h-full flex-shrink-0 animate-slide-in-right"
+      style={{ width }}
+    >
+      {/* Drag handle */}
       <div
-        className="fixed inset-0 z-30 bg-black/20 lg:hidden"
-        onClick={closeViewer}
+        onMouseDown={handleMouseDown}
+        className="absolute left-0 top-0 z-50 h-full w-1 cursor-col-resize hover:bg-primary-400/50 active:bg-primary-500/50"
+        title="드래그하여 너비 조절"
       />
 
-      {/* Slide panel */}
+      {/* Panel content */}
       <aside
-        className="fixed right-0 top-0 z-40 flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-modal lg:w-1/2 animate-slide-in-right"
+        className="flex h-full w-full flex-col border-l border-slate-200 bg-white"
         role="complementary"
         aria-label="Document viewer"
       >
@@ -96,6 +137,6 @@ export default function DocumentViewerPanel() {
         {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists) */}
         {showChunkPreview && <ChunkPreview />}
       </aside>
-    </>
+    </div>
   );
 }
