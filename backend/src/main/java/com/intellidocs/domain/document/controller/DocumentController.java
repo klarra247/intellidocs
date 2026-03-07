@@ -1,5 +1,6 @@
 package com.intellidocs.domain.document.controller;
 
+import com.intellidocs.common.SecurityContextHelper;
 import com.intellidocs.common.dto.ApiResponse;
 import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.service.DocumentService;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,9 +25,6 @@ public class DocumentController {
     private final DocumentService documentService;
     private final DocumentSseEmitterService sseEmitterService;
 
-    // TODO: JWT에서 userId 추출하도록 변경 (Phase 1에서는 임시 헤더 사용)
-    private static final UUID TEMP_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-
     /**
      * 문서 업로드
      */
@@ -33,7 +32,8 @@ public class DocumentController {
     public ResponseEntity<ApiResponse<DocumentDto.UploadResponse>> upload(
             @RequestParam("file") MultipartFile file) {
 
-        DocumentDto.UploadResponse response = documentService.upload(file, TEMP_USER_ID);
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        DocumentDto.UploadResponse response = documentService.upload(file, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
@@ -42,7 +42,8 @@ public class DocumentController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<DocumentDto.ListResponse>>> getDocuments() {
-        return ResponseEntity.ok(ApiResponse.ok(documentService.getDocuments(TEMP_USER_ID)));
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        return ResponseEntity.ok(ApiResponse.ok(documentService.getDocuments(userId)));
     }
 
     /**
@@ -61,6 +62,22 @@ public class DocumentController {
     public ResponseEntity<ApiResponse<Void>> deleteDocument(@PathVariable UUID id) {
         documentService.deleteDocument(id);
         return ResponseEntity.ok(ApiResponse.ok());
+    }
+
+    /**
+     * 문서 원본 파일 스트리밍
+     */
+    @GetMapping("/{id}/file")
+    public ResponseEntity<StreamingResponseBody> getFile(@PathVariable UUID id) {
+        return documentService.streamFile(id);
+    }
+
+    /**
+     * Excel 문서 미리보기 (JSON)
+     */
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<ApiResponse<Object>> getPreview(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(documentService.getPreview(id)));
     }
 
     /**

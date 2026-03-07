@@ -4,9 +4,11 @@ import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.RabbitMQConfig;
 import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
+import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.entity.FileType;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
+import com.intellidocs.infrastructure.parsing.ParsingServiceClient;
 import com.intellidocs.infrastructure.qdrant.QdrantIndexService;
 import com.intellidocs.infrastructure.rabbitmq.ParsingMessage;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +17,18 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +47,7 @@ public class DocumentService {
     private final QdrantIndexService qdrantIndexService;
     private final ElasticsearchIndexService esIndexService;
     private final CacheManager cacheManager;
+    private final ParsingServiceClient parsingServiceClient;
 
     @Value("${app.storage.upload-dir}")
     private String uploadDir;
@@ -139,6 +149,54 @@ public class DocumentService {
         documentRepository.delete(document);
         evictSearchCache();
         log.info("Document deleted: {}", documentId);
+    }
+
+    // TODO: JWT 구현 시 소유자 검증 추가
+
+    @Transactional(readOnly = true)
+    public ResponseEntity<StreamingResponseBody> streamFile(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> BusinessException.notFound("Document", documentId));
+
+        if (document.getStatus() != DocumentStatus.INDEXED) {
+            throw BusinessException.documentNotReady(documentId);
+        }
+
+        Path filePath = Paths.get(document.getStoragePath());
+        if (!Files.exists(filePath)) {
+            throw BusinessException.fileMissing(documentId);
+        }
+
+        StreamingResponseBody body = outputStream -> {
+            try (InputStream is = Files.newInputStream(filePath)) {
+                is.transferTo(outputStream);
+            }
+        };
+
+        String encodedFilename = URLEncoder.encode(document.getOriginalFilename(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, document.getFileType().getMimeType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFilename)
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(document.getFileSize()))
+                .body(body);
+    }
+
+    @Transactional(readOnly = true)
+    public Object getPreview(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> BusinessException.notFound("Document", documentId));
+
+        if (document.getStatus() != DocumentStatus.INDEXED) {
+            throw BusinessException.documentNotReady(documentId);
+        }
+
+        if (document.getFileType() != FileType.XLSX) {
+            throw BusinessException.unsupportedPreviewType(document.getFileType().name());
+        }
+
+        return parsingServiceClient.getExcelPreview(document.getStoragePath());
     }
 
     private void evictSearchCache() {

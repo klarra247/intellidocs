@@ -15,43 +15,38 @@ public final class SearchResultUtils {
     private SearchResultUtils() {}
 
     /**
-     * Deduplicate sources by documentId, merging page numbers into a pageRange string.
-     * Preserves relevance order (highest-scoring document first).
+     * Convert search results to individual SourceInfo entries (one per chunk).
+     * Frontend handles grouping by documentId for display.
+     * Deduplicates by chunkIndex to avoid showing the same chunk twice.
      */
-    public static List<SourceInfo> deduplicateSources(List<SearchResult> results) {
-        // Group by documentId, preserving insertion order
-        Map<UUID, List<SearchResult>> byDocument = new LinkedHashMap<>();
+    public static List<SourceInfo> toSources(List<SearchResult> results) {
+        // Deduplicate by chunkIndex (same chunk may appear in both vector & BM25 results)
+        Map<Integer, SearchResult> byChunk = new LinkedHashMap<>();
         for (SearchResult r : results) {
             if (r.getDocumentId() == null) continue;
-            byDocument.computeIfAbsent(r.getDocumentId(), k -> new ArrayList<>()).add(r);
+            byChunk.merge(r.getChunkIndex(), r,
+                    (existing, incoming) -> existing.getScore() >= incoming.getScore() ? existing : incoming);
         }
 
-        List<SourceInfo> sources = new ArrayList<>();
-        for (Map.Entry<UUID, List<SearchResult>> entry : byDocument.entrySet()) {
-            List<SearchResult> docResults = entry.getValue();
-            SearchResult best = docResults.get(0); // first = highest relevance (insertion order)
+        return byChunk.values().stream()
+                .map(r -> SourceInfo.builder()
+                        .documentId(r.getDocumentId())
+                        .filename(r.getFilename())
+                        .pageNumber(r.getPageNumber())
+                        .sectionTitle(r.getSectionTitle())
+                        .chunkIndex(r.getChunkIndex())
+                        .relevanceScore(r.getScore())
+                        .pageRange(null)
+                        .build())
+                .toList();
+    }
 
-            // Collect unique page numbers, sorted
-            TreeSet<Integer> pages = new TreeSet<>();
-            for (SearchResult r : docResults) {
-                if (r.getPageNumber() != null) {
-                    pages.add(r.getPageNumber());
-                }
-            }
-
-            String pageRange = buildPageRange(pages);
-
-            sources.add(SourceInfo.builder()
-                    .documentId(best.getDocumentId())
-                    .filename(best.getFilename())
-                    .pageNumber(best.getPageNumber())
-                    .sectionTitle(best.getSectionTitle())
-                    .chunkIndex(best.getChunkIndex())
-                    .relevanceScore(best.getScore())
-                    .pageRange(pageRange)
-                    .build());
-        }
-        return sources;
+    /**
+     * @deprecated Use {@link #toSources(List)} instead. Kept for backward compatibility.
+     */
+    @Deprecated
+    public static List<SourceInfo> deduplicateSources(List<SearchResult> results) {
+        return toSources(results);
     }
 
     /**

@@ -56,5 +56,7 @@ public class ChatMessage {
         private Integer pageNumber;
         private String sectionTitle;
         private String snippetText;
+        private Integer chunkIndex;
+        private Double relevanceScore;
     }
 }

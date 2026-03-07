@@ -1,5 +1,6 @@
 package com.intellidocs.domain.report.controller;
 
+import com.intellidocs.common.SecurityContextHelper;
 import com.intellidocs.common.dto.ApiResponse;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.report.dto.ReportDto;
@@ -43,7 +44,8 @@ public class ReportController {
     public ResponseEntity<ApiResponse<ReportDto.GenerateResponse>> generate(
             @Valid @RequestBody ReportDto.GenerateRequest request) {
 
-        ReportDto.GenerateResponse response = reportService.createReport(request);
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        ReportDto.GenerateResponse response = reportService.createReport(request, userId);
         asyncExecutor.execute(response.getReportId(), request);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(response));
     }
@@ -96,6 +98,7 @@ public class ReportController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<ReportDto.ListResponse>>> list() {
-        return ResponseEntity.ok(ApiResponse.ok(reportService.getReports()));
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        return ResponseEntity.ok(ApiResponse.ok(reportService.getReports(userId)));
     }
 }

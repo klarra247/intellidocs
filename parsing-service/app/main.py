@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.consumer import RabbitMQConsumer, start_consumer_thread
+from app.routers.preview import router as preview_router
 
 logging.basicConfig(
     level=settings.log_level.upper(),
@@ -33,6 +34,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+app.include_router(preview_router)
 
 
 @app.get("/health")

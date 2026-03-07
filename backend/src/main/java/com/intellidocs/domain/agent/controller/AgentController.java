@@ -1,5 +1,6 @@
 package com.intellidocs.domain.agent.controller;
 
+import com.intellidocs.common.SecurityContextHelper;
 import com.intellidocs.common.dto.ApiResponse;
 import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.AgentResponse;
@@ -43,7 +44,8 @@ public class AgentController {
     public SseEmitter chatStream(@RequestBody @Valid AgentRequest request) {
         log.info("[AgentController] stream question='{}', sessionId={}",
                 request.getQuestion(), request.getSessionId());
-        return streamingAgentService.streamChat(request);
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        return streamingAgentService.streamChat(request, userId);
     }
 
     @GetMapping("/chat/history")

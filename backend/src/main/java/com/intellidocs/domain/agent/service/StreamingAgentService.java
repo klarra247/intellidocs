@@ -55,7 +55,7 @@ public class StreamingAgentService {
 
     private static final int MAX_QUESTION_LENGTH = 2000;
 
-    public SseEmitter streamChat(AgentRequest request) {
+    public SseEmitter streamChat(AgentRequest request, UUID userId) {
         // 1. Validate
         if (request.getQuestion() == null || request.getQuestion().isBlank()) {
             throw BusinessException.badRequest("질문을 입력해 주세요.");
@@ -123,7 +123,7 @@ public class StreamingAgentService {
                 .onCompleteResponse(response -> {
                     try {
                         List<SearchResult> collected = queryTools.getInstanceCollectedResults();
-                        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(collected);
+                        List<SourceInfo> sources = SearchResultUtils.toSources(collected);
                         double confidence = SearchResultUtils.computeConfidence(collected,
                                 calcTools.getCalculationCount(), queryTools.getDiscrepancyDetectionCount());
                         String confidenceLevel = SearchResultUtils.computeConfidenceLevel(confidence);
@@ -160,7 +160,7 @@ public class StreamingAgentService {
                                     chatHistoryService.persistConversation(
                                             request.getSessionId(),
                                             request.getQuestion(),
-                                            fullAnswer, sources, confidence);
+                                            fullAnswer, sources, confidence, userId);
 
                             doneData.put("messageId", result.assistantMessage().getId().toString());
                             doneData.put("sessionId", result.session().getId().toString());

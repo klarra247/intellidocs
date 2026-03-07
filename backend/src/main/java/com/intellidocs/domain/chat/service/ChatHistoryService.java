@@ -23,25 +23,23 @@ public class ChatHistoryService {
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    private static final UUID TEMP_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-
     @Transactional
-    public ChatSession getOrCreateSession(UUID sessionId) {
+    public ChatSession getOrCreateSession(UUID sessionId, UUID userId) {
         if (sessionId != null) {
             return chatSessionRepository.findById(sessionId)
-                    .orElseGet(this::createSession);
+                    .orElseGet(() -> createSession(userId));
         }
-        return createSession();
+        return createSession(userId);
     }
 
-    private ChatSession createSession() {
+    private ChatSession createSession(UUID userId) {
         // Always let @GeneratedValue handle ID generation.
         // Manually setting the ID on a @GeneratedValue entity causes
         // Spring Data to call merge() instead of persist(), which can
         // fail or generate a different ID.
         return chatSessionRepository.save(
                 ChatSession.builder()
-                        .userId(TEMP_USER_ID)
+                        .userId(userId)
                         .build());
     }
 
@@ -64,6 +62,8 @@ public class ChatHistoryService {
                         .filename(s.getFilename())
                         .pageNumber(s.getPageNumber())
                         .sectionTitle(s.getSectionTitle())
+                        .chunkIndex(s.getChunkIndex())
+                        .relevanceScore(s.getRelevanceScore())
                         .build())
                 .toList();
 
@@ -97,8 +97,8 @@ public class ChatHistoryService {
     @Transactional
     public PersistResult persistConversation(UUID sessionId, String question,
                                               String answer, List<SourceInfo> sources,
-                                              double confidence) {
-        ChatSession session = getOrCreateSession(sessionId);
+                                              double confidence, UUID userId) {
+        ChatSession session = getOrCreateSession(sessionId, userId);
         saveUserMessage(session, question);
         ChatMessage assistantMsg = saveAssistantMessage(session, answer, sources, confidence);
         updateSessionTitle(session, question);

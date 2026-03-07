@@ -3,6 +3,7 @@ package com.intellidocs.domain.agent.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.SecurityConfig;
+import com.intellidocs.domain.auth.service.JwtService;
 import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.AgentResponse;
 import com.intellidocs.domain.agent.service.AgentService;
@@ -45,6 +46,9 @@ class AgentControllerTest {
 
     @MockitoBean
     private ChatHistoryService chatHistoryService;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @Test
     void chat_returnsOk() throws Exception {
@@ -100,7 +104,7 @@ class AgentControllerTest {
     @Test
     void chatStream_returnsEventStream() throws Exception {
         SseEmitter emitter = new SseEmitter(300_000L);
-        when(streamingAgentService.streamChat(any())).thenReturn(emitter);
+        when(streamingAgentService.streamChat(any(), any())).thenReturn(emitter);
 
         mockMvc.perform(post("/api/v1/agent/chat/stream")
                         .contentType(MediaType.APPLICATION_JSON)

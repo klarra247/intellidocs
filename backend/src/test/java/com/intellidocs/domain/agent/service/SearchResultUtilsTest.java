@@ -38,7 +38,6 @@ class SearchResultUtilsTest {
 
     @Test
     void computeConfidence_tenResults_usesTop3Average() {
-        // 10 results with scores 0.001 to 0.010
         List<SearchResult> results = new java.util.ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             results.add(SearchResult.builder().score(i * 0.001).build());
@@ -60,7 +59,6 @@ class SearchResultUtilsTest {
 
     @Test
     void computeConfidence_withCalculationBoost_floorsAtMedium() {
-        // Low search score (0.003 * 60 = 0.18 → VERY_LOW normally)
         SearchResult r = SearchResult.builder().score(0.003).build();
         double withoutBoost = SearchResultUtils.computeConfidence(List.of(r), 0);
         double withBoost = SearchResultUtils.computeConfidence(List.of(r), 1);
@@ -99,10 +97,10 @@ class SearchResultUtilsTest {
         assertThat(SearchResultUtils.computeConfidenceLevel(0.0)).isEqualTo("VERY_LOW");
     }
 
-    // --- deduplicateSources ---
+    // --- toSources (individual sources, no deduplication by document) ---
 
     @Test
-    void deduplicateSources_sameDocumentDifferentPages_mergedWithPageRange() {
+    void toSources_sameDocumentDifferentPages_returnsIndividualEntries() {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(docId).filename("report.pdf")
@@ -113,33 +111,18 @@ class SearchResultUtilsTest {
                         .pageNumber(3).chunkIndex(2).sectionTitle("end").score(0.5).build()
         );
 
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+        List<SourceInfo> sources = SearchResultUtils.toSources(results);
 
-        assertThat(sources).hasSize(1);
-        assertThat(sources.get(0).getDocumentId()).isEqualTo(docId);
-        assertThat(sources.get(0).getPageRange()).isEqualTo("p.1-3");
+        // Each chunk becomes its own source (not merged)
+        assertThat(sources).hasSize(3);
+        assertThat(sources.get(0).getChunkIndex()).isEqualTo(0);
+        assertThat(sources.get(0).getPageNumber()).isEqualTo(1);
+        assertThat(sources.get(1).getChunkIndex()).isEqualTo(1);
+        assertThat(sources.get(2).getChunkIndex()).isEqualTo(2);
     }
 
     @Test
-    void deduplicateSources_nonConsecutivePages_usesCommaNotation() {
-        UUID docId = UUID.randomUUID();
-        List<SearchResult> results = List.of(
-                SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(1).chunkIndex(0).score(0.9).build(),
-                SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(3).chunkIndex(2).score(0.7).build(),
-                SearchResult.builder().documentId(docId).filename("report.pdf")
-                        .pageNumber(7).chunkIndex(5).score(0.5).build()
-        );
-
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
-
-        assertThat(sources).hasSize(1);
-        assertThat(sources.get(0).getPageRange()).isEqualTo("p.1,3,7");
-    }
-
-    @Test
-    void deduplicateSources_differentDocuments_separateEntries() {
+    void toSources_differentDocuments_separateEntries() {
         UUID doc1 = UUID.randomUUID();
         UUID doc2 = UUID.randomUUID();
         List<SearchResult> results = List.of(
@@ -149,7 +132,7 @@ class SearchResultUtilsTest {
                         .pageNumber(2).chunkIndex(3).score(0.8).build()
         );
 
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+        List<SourceInfo> sources = SearchResultUtils.toSources(results);
 
         assertThat(sources).hasSize(2);
         assertThat(sources.get(0).getFilename()).isEqualTo("a.pdf");
@@ -157,37 +140,38 @@ class SearchResultUtilsTest {
     }
 
     @Test
-    void deduplicateSources_nullDocumentId_skipped() {
+    void toSources_nullDocumentId_skipped() {
         List<SearchResult> results = List.of(
                 SearchResult.builder().filename("a.pdf").pageNumber(1).score(0.9).build()
         );
 
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+        List<SourceInfo> sources = SearchResultUtils.toSources(results);
         assertThat(sources).isEmpty();
     }
 
     @Test
-    void deduplicateSources_mixedConsecutiveAndNonConsecutive_correctRange() {
+    void toSources_duplicateChunkIndex_keepsHigherScore() {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
-                SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(1).chunkIndex(0).score(0.9).build(),
-                SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(2).chunkIndex(1).score(0.8).build(),
-                SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(3).chunkIndex(2).score(0.7).build(),
-                SearchResult.builder().documentId(docId).filename("r.pdf")
-                        .pageNumber(7).chunkIndex(5).score(0.6).build()
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(3).chunkIndex(5).score(0.95).build(),
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(3).chunkIndex(5).score(0.70).build(),
+                SearchResult.builder().documentId(docId).filename("report.pdf")
+                        .pageNumber(1).chunkIndex(0).score(0.60).build()
         );
 
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+        List<SourceInfo> sources = SearchResultUtils.toSources(results);
 
-        assertThat(sources).hasSize(1);
-        assertThat(sources.get(0).getPageRange()).isEqualTo("p.1-3,7");
+        // chunkIndex 5 appears twice, deduped to higher score
+        assertThat(sources).hasSize(2);
+        assertThat(sources.get(0).getChunkIndex()).isEqualTo(5);
+        assertThat(sources.get(0).getRelevanceScore()).isEqualTo(0.95);
+        assertThat(sources.get(1).getChunkIndex()).isEqualTo(0);
     }
 
     @Test
-    void deduplicateSources_preservesBestChunkIndex() {
+    void toSources_preservesIndividualChunkMetadata() {
         UUID docId = UUID.randomUUID();
         List<SearchResult> results = List.of(
                 SearchResult.builder().documentId(docId).filename("report.pdf")
@@ -198,11 +182,15 @@ class SearchResultUtilsTest {
                         .pageNumber(2).chunkIndex(2).score(0.60).build()
         );
 
-        List<SourceInfo> sources = SearchResultUtils.deduplicateSources(results);
+        List<SourceInfo> sources = SearchResultUtils.toSources(results);
 
-        assertThat(sources).hasSize(1);
-        // The best (highest score) chunk has chunkIndex=5
+        assertThat(sources).hasSize(3);
+        // Each source has its own chunkIndex and score
         assertThat(sources.get(0).getChunkIndex()).isEqualTo(5);
         assertThat(sources.get(0).getRelevanceScore()).isEqualTo(0.95);
+        assertThat(sources.get(1).getChunkIndex()).isEqualTo(0);
+        assertThat(sources.get(2).getChunkIndex()).isEqualTo(2);
+        // pageRange is null (no merging)
+        assertThat(sources.get(0).getPageRange()).isNull();
     }
 }

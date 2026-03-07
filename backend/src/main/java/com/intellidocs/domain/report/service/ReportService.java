@@ -64,14 +64,12 @@ public class ReportService {
         this.discrepancyService = discrepancyService;
     }
 
-    private static final UUID TEMP_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-
     @Transactional
-    public ReportDto.GenerateResponse createReport(ReportDto.GenerateRequest request) {
+    public ReportDto.GenerateResponse createReport(ReportDto.GenerateRequest request, UUID userId) {
         validateRequest(request);
 
         Report report = Report.builder()
-                .userId(TEMP_USER_ID)
+                .userId(userId)
                 .title(request.getTitle())
                 .reportType(request.getReportType())
                 .documentIds(request.getDocumentIds())
@@ -187,8 +185,8 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReportDto.ListResponse> getReports() {
-        return reportRepository.findByUserIdOrderByCreatedAtDesc(TEMP_USER_ID)
+    public List<ReportDto.ListResponse> getReports(UUID userId) {
+        return reportRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(ReportDto.ListResponse::from)
                 .toList();

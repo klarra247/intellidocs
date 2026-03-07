@@ -15,11 +15,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class StreamingAgentServiceTest {
+
+    private static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @Mock private StreamingChatLanguageModel streamingChatLanguageModel;
     @Mock private HybridSearchService hybridSearchService;
@@ -45,7 +49,7 @@ class StreamingAgentServiceTest {
                 .question("   ")
                 .build();
 
-        assertThatThrownBy(() -> streamingAgentService.streamChat(request))
+        assertThatThrownBy(() -> streamingAgentService.streamChat(request, TEST_USER_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("질문");
     }
@@ -58,7 +62,7 @@ class StreamingAgentServiceTest {
                 .question("매출이 얼마인가요?")
                 .build();
 
-        assertThatThrownBy(() -> streamingAgentService.streamChat(request))
+        assertThatThrownBy(() -> streamingAgentService.streamChat(request, TEST_USER_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("API 키");
     }
@@ -69,7 +73,7 @@ class StreamingAgentServiceTest {
                 .question("매출이 얼마인가요?")
                 .build();
 
-        SseEmitter emitter = streamingAgentService.streamChat(request);
+        SseEmitter emitter = streamingAgentService.streamChat(request, TEST_USER_ID);
         assertThat(emitter).isNotNull();
     }
 }
