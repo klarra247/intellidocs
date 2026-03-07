@@ -15,6 +15,10 @@ interface ViewerState {
   documentDetail: DocumentDetail | null;
   highlight: HighlightInfo | null;
 
+  // Source-referenced pages → chunkIndex mapping (set by SourceGroup on open)
+  sourcePages: number[];
+  pageChunkMap: Record<number, number>; // page → chunkIndex
+
   // Direct URL mode (for reports, etc.)
   directFileUrl: string | null;
   viewerTitle: string | null;
@@ -22,6 +26,8 @@ interface ViewerState {
   // Chunk preview text (for ChunkPreview in PDF/XLSX)
   chunkText: string | null;
   chunkLoading: boolean;
+  // Saved primary chunk info — allows restoring when navigating back to original page
+  primaryChunk: { text: string; page: number; chunkIndex: number } | null;
 
   // PDF
   currentPage: number;
@@ -42,10 +48,12 @@ interface ViewerState {
   error: string | null;
 
   // Actions
-  openViewer: (documentId: string, highlight?: HighlightInfo) => Promise<void>;
+  openViewer: (documentId: string, highlight?: HighlightInfo, sourcePages?: number[], pageChunkMap?: Record<number, number>) => Promise<void>;
   openViewerWithUrl: (title: string, fileUrl: string) => void;
   closeViewer: () => void;
+  retryLastOpen: () => Promise<void>;
   navigateToHighlight: (highlight: HighlightInfo) => Promise<void>;
+  navigateToPage: (page: number) => Promise<void>;
   setCurrentPage: (page: number) => void;
   setTotalPages: (total: number) => void;
   setScale: (scale: number) => void;
@@ -61,10 +69,13 @@ const initialState = {
   documentId: null,
   documentDetail: null,
   highlight: null,
+  sourcePages: [] as number[],
+  pageChunkMap: {} as Record<number, number>,
   directFileUrl: null,
   viewerTitle: null,
   chunkText: null,
   chunkLoading: false,
+  primaryChunk: null,
   currentPage: 1,
   totalPages: 0,
   scale: 1.0,
@@ -77,15 +88,24 @@ const initialState = {
   error: null,
 };
 
+let _viewerAbort: AbortController | null = null;
+
 export const useViewerStore = create<ViewerState>((set, get) => ({
   ...initialState,
 
-  openViewer: async (documentId, highlight) => {
+  openViewer: async (documentId, highlight, sourcePages, pageChunkMap) => {
+    // Cancel any in-flight openViewer request
+    _viewerAbort?.abort();
+    const abort = new AbortController();
+    _viewerAbort = abort;
+
     set({
       loading: true,
       isOpen: true,
       documentId,
       highlight: highlight ?? null,
+      sourcePages: sourcePages ?? [],
+      pageChunkMap: pageChunkMap ?? {},
       error: null,
       // Reset previous document state
       documentDetail: null,
@@ -104,6 +124,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     try {
       // 1. Fetch document detail
       const detail = await documentsApi.get(documentId);
+      if (abort.signal.aborted) return;
       set({ documentDetail: detail });
 
       // 2. If highlight exists, load chunk text for ChunkPreview
@@ -111,8 +132,13 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
         set({ chunkLoading: true });
         try {
           const chunk = await chunksApi.get(documentId, highlight.chunkIndex);
-          set({ chunkText: chunk.text, chunkLoading: false });
+          if (abort.signal.aborted) return;
+          const primary = highlight.pageNumber != null && chunk.text
+            ? { text: chunk.text, page: highlight.pageNumber, chunkIndex: highlight.chunkIndex }
+            : null;
+          set({ chunkText: chunk.text, chunkLoading: false, primaryChunk: primary });
         } catch {
+          if (abort.signal.aborted) return;
           set({ chunkText: null, chunkLoading: false });
         }
       }
@@ -124,6 +150,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
         set({ currentPage: highlight?.pageNumber ?? 1 });
       } else if (fileType === 'XLSX') {
         const preview = await documentsApi.getPreview(documentId);
+        if (abort.signal.aborted) return;
         set({ previewData: preview });
       } else if (TEXT_BASED_TYPES.has(fileType)) {
         const totalChunks = detail.totalChunks ?? 0;
@@ -133,8 +160,10 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
         }
       }
 
+      if (abort.signal.aborted) return;
       set({ loading: false });
     } catch (e) {
+      if (abort.signal.aborted) return;
       set({ error: _friendlyError(e), loading: false });
     }
   },
@@ -152,6 +181,12 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     set({ ...initialState });
   },
 
+  retryLastOpen: async () => {
+    const { documentId, highlight, sourcePages, pageChunkMap } = get();
+    if (!documentId) return;
+    await get().openViewer(documentId, highlight ?? undefined, sourcePages, pageChunkMap);
+  },
+
   navigateToHighlight: async (highlight) => {
     const { documentId, documentDetail, loadedRange, currentPage } = get();
     if (!documentId || !documentDetail) return;
@@ -162,7 +197,10 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     set({ chunkLoading: true });
     try {
       const chunk = await chunksApi.get(documentId, highlight.chunkIndex);
-      set({ chunkText: chunk.text, chunkLoading: false });
+      const primary = highlight.pageNumber != null && chunk.text
+        ? { text: chunk.text, page: highlight.pageNumber, chunkIndex: highlight.chunkIndex }
+        : null;
+      set({ chunkText: chunk.text, chunkLoading: false, primaryChunk: primary });
     } catch {
       set({ chunkText: null, chunkLoading: false });
     }
@@ -189,6 +227,44 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       }
     }
     // XLSX: no special navigation needed (sheet/scroll handled by component)
+  },
+
+  navigateToPage: async (page) => {
+    const { documentId, highlight, primaryChunk, pageChunkMap } = get();
+    const knownChunkIndex = pageChunkMap[page];
+
+    // If this page has a known chunk, load its text
+    if (knownChunkIndex != null && documentId) {
+      set({
+        currentPage: page,
+        chunkLoading: true,
+        highlight: highlight
+          ? { ...highlight, pageNumber: page, chunkIndex: knownChunkIndex }
+          : null,
+      });
+      try {
+        const chunk = await chunksApi.get(documentId, knownChunkIndex);
+        set({ chunkText: chunk.text, chunkLoading: false });
+      } catch {
+        set({ chunkText: null, chunkLoading: false });
+      }
+      return;
+    }
+
+    // Restore primary chunk text if returning to its page
+    const isOriginalPage = primaryChunk != null && primaryChunk.page === page;
+    set({
+      currentPage: page,
+      chunkText: isOriginalPage ? primaryChunk.text : null,
+      chunkLoading: false,
+      highlight: highlight
+        ? {
+            ...highlight,
+            pageNumber: page,
+            chunkIndex: isOriginalPage ? primaryChunk.chunkIndex : highlight.chunkIndex,
+          }
+        : null,
+    });
   },
 
   setCurrentPage: (page) => set({ currentPage: page }),

@@ -16,6 +16,7 @@ const TEXT_BASED_TYPES = new Set(['TXT', 'MD', 'DOCX']);
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 520;
 const MAX_WIDTH_RATIO = 0.7; // 화면의 최대 70%
+const MOBILE_BREAKPOINT = 768;
 
 export default function DocumentViewerPanel() {
   const isOpen = useViewerStore((s) => s.isOpen);
@@ -24,14 +25,32 @@ export default function DocumentViewerPanel() {
   const documentDetail = useViewerStore((s) => s.documentDetail);
   const directFileUrl = useViewerStore((s) => s.directFileUrl);
   const chunkText = useViewerStore((s) => s.chunkText);
+  const sourcePages = useViewerStore((s) => s.sourcePages);
   const closeViewer = useViewerStore((s) => s.closeViewer);
+  const retryLastOpen = useViewerStore((s) => s.retryLastOpen);
 
   const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
 
   // Resizable width
   const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [isMobile, setIsMobile] = useState(false);
   const isResizing = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Mobile detection + body scroll lock
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [isOpen, isMobile]);
 
   // ESC key closes the panel
   useEffect(() => {
@@ -45,8 +64,9 @@ export default function DocumentViewerPanel() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, closeViewer]);
 
-  // Drag resize handler
+  // Drag resize handler (desktop only)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return;
     e.preventDefault();
     isResizing.current = true;
     document.body.style.cursor = 'col-resize';
@@ -73,71 +93,107 @@ export default function DocumentViewerPanel() {
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-  }, [width]);
+  }, [width, isMobile]);
+
+  // Swipe-to-close on mobile (swipe right)
+  const touchStartX = useRef(0);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    if (deltaX > 80) closeViewer(); // swipe right > 80px
+  }, [closeViewer]);
 
   if (!isOpen) return null;
 
   const showChunkPreview =
-    chunkText !== null && fileType !== null && !TEXT_BASED_TYPES.has(fileType);
+    (chunkText !== null || sourcePages.length > 1) && fileType !== null && !TEXT_BASED_TYPES.has(fileType);
 
   return (
-    <div
-      ref={panelRef}
-      className="relative flex h-full flex-shrink-0 animate-slide-in-right"
-      style={{ width }}
-    >
-      {/* Drag handle */}
+    <>
+      {/* Mobile backdrop */}
+      {isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 animate-fade-in"
+          onClick={closeViewer}
+        />
+      )}
+
       <div
-        onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 z-50 h-full w-1 cursor-col-resize hover:bg-primary-400/50 active:bg-primary-500/50"
-        title="드래그하여 너비 조절"
-      />
-
-      {/* Panel content */}
-      <aside
-        className="flex h-full w-full flex-col border-l border-slate-200 bg-white"
-        role="complementary"
-        aria-label="Document viewer"
+        ref={panelRef}
+        className={
+          isMobile
+            ? 'fixed inset-0 z-50 flex animate-slide-in-right'
+            : 'relative flex h-full flex-shrink-0 animate-slide-in-right'
+        }
+        style={isMobile ? undefined : { width }}
+        onTouchStart={isMobile ? handleTouchStart : undefined}
+        onTouchEnd={isMobile ? handleTouchEnd : undefined}
       >
-        {/* Toolbar */}
-        <ViewerToolbar />
+        {/* Drag handle (desktop only) */}
+        {!isMobile && (
+          <div
+            onMouseDown={handleMouseDown}
+            className="absolute left-0 top-0 z-50 h-full w-1 cursor-col-resize hover:bg-primary-400/50 active:bg-primary-500/50"
+            title="드래그하여 너비 조절"
+          />
+        )}
 
-        {/* Main content area */}
-        <div className="relative flex-1 overflow-auto">
-          {loading && (
-            <div className="flex h-full items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
-            </div>
-          )}
+        {/* Panel content */}
+        <aside
+          className="flex h-full w-full flex-col border-l border-slate-200 bg-white"
+          role="complementary"
+          aria-label="Document viewer"
+        >
+          {/* Toolbar */}
+          <ViewerToolbar />
 
-          {error && !loading && (
-            <div className="flex h-full items-center justify-center p-6">
-              <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center">
-                <p className="text-[13px] font-medium text-red-700">{error}</p>
-                <button
-                  onClick={closeViewer}
-                  className="mt-2 text-[12px] font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700"
-                >
-                  닫기
-                </button>
+          {/* Main content area */}
+          <div className="relative flex-1 overflow-auto">
+            {loading && (
+              <div className="flex h-full items-center justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
               </div>
-            </div>
-          )}
+            )}
 
-          {!loading && !error && (documentDetail || directFileUrl) && (
-            <>
-              {fileType === 'PDF' && <PdfViewer />}
-              {fileType === 'XLSX' && <ExcelViewer />}
-              {fileType !== null && TEXT_BASED_TYPES.has(fileType) && (
-                <ChunkTextViewer />
-              )}
-            </>
-          )}
-        </div>
+            {error && !loading && (
+              <div className="flex h-full items-center justify-center p-6">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center">
+                  <p className="text-[13px] font-medium text-red-700">{error}</p>
+                  <div className="mt-3 flex items-center justify-center gap-3">
+                    <button
+                      onClick={retryLastOpen}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-red-700 transition-colors"
+                    >
+                      다시 시도
+                    </button>
+                    <button
+                      onClick={closeViewer}
+                      className="text-[12px] font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700"
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists) */}
-        {showChunkPreview && <ChunkPreview />}
-      </aside>
-    </div>
+            {!loading && !error && (documentDetail || directFileUrl) && (
+              <>
+                {fileType === 'PDF' && <PdfViewer />}
+                {fileType === 'XLSX' && <ExcelViewer />}
+                {fileType !== null && TEXT_BASED_TYPES.has(fileType) && (
+                  <ChunkTextViewer />
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists) */}
+          {showChunkPreview && <ChunkPreview />}
+        </aside>
+      </div>
+    </>
   );
 }

@@ -9,11 +9,13 @@ import {
   FileType2,
   File,
   Trash2,
+  Eye,
   Loader2,
   CheckCircle2,
   XCircle,
   Clock,
 } from 'lucide-react';
+import { useViewerStore } from '@/stores/viewerStore';
 
 // File type → icon + color
 const fileTypeConfig: Record<
@@ -99,6 +101,11 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
     }
   };
 
+  const handlePreview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    useViewerStore.getState().openViewer(document.id);
+  };
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPendingDelete(document.id);
@@ -135,14 +142,25 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
           </p>
         </div>
 
-        {/* Delete button */}
-        <button
-          onClick={handleDelete}
-          className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-          title="삭제"
-        >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-        </button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-0.5">
+          {isReady && (
+            <button
+              onClick={handlePreview}
+              className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-primary-50 hover:text-primary-500 group-hover:opacity-100"
+              title="미리보기"
+            >
+              <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+            title="삭제"
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       {/* Bottom row: status + metadata */}

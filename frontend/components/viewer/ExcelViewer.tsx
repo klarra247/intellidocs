@@ -66,12 +66,12 @@ export default function ExcelViewer() {
         <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-center text-[12px] text-slate-500">
           {sheet.truncatedRows && (
             <p>
-              ... 외 {sheet.totalRows - sheet.rows.length}행이 더 있습니다
+              전체 {sheet.totalRows}행 중 {sheet.rows.length}행만 표시됩니다
             </p>
           )}
           {sheet.truncatedCols && (
             <p>
-              ... 외 {sheet.totalCols - sheet.headers.length}열이 더 있습니다
+              전체 {sheet.totalCols}열 중 {sheet.headers.length}열만 표시됩니다
             </p>
           )}
         </div>

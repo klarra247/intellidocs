@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { ChatMessage } from '@/lib/types';
-import SourceBadge from './SourceBadge';
+import SourceBadgeGroup from './SourceBadgeGroup';
 import TableRenderer from './TableRenderer';
 import type { Components } from 'react-markdown';
 
@@ -108,9 +108,7 @@ function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
               isUser ? 'border-primary-500/30' : 'border-slate-100'
             }`}
           >
-            {message.sources.map((source, i) => (
-              <SourceBadge key={`${source.documentId}-${i}`} source={source} />
-            ))}
+            <SourceBadgeGroup sources={message.sources} />
           </div>
         )}
       </div>

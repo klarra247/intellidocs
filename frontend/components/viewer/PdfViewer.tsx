@@ -14,6 +14,8 @@ export default function PdfViewer() {
   const directFileUrl = useViewerStore((s) => s.directFileUrl);
   const currentPage = useViewerStore((s) => s.currentPage);
   const scale = useViewerStore((s) => s.scale);
+  const sourcePages = useViewerStore((s) => s.sourcePages);
+  const chunkText = useViewerStore((s) => s.chunkText);
   const setTotalPages = useViewerStore((s) => s.setTotalPages);
   const setCurrentPage = useViewerStore((s) => s.setCurrentPage);
 
@@ -25,6 +27,11 @@ export default function PdfViewer() {
     [directFileUrl, documentId],
   );
 
+  // Show reference banner when this page is in sourcePages
+  const isReferencedPage = sourcePages.includes(currentPage);
+  // Show banner with chunk text indicator (has original text loaded)
+  const showBanner = isReferencedPage && (chunkText !== null || sourcePages.length > 0);
+
   if (!fileUrl) return null;
 
   return (
@@ -35,13 +42,25 @@ export default function PdfViewer() {
           <button onClick={() => setPageWarning(null)} className="ml-auto font-medium text-amber-600 hover:text-amber-800">✕</button>
         </div>
       )}
+
+      {/* Reference banner */}
+      {showBanner && (
+        <div className="w-full shrink-0 border-b border-primary-200 bg-primary-50 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-1 rounded-full bg-primary-400" />
+            <span className="text-[12px] font-medium text-primary-700">
+              AI가 이 페이지의 내용을 참조했습니다
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 items-start justify-center p-4">
       <Document
         file={fileUrl}
         onLoadSuccess={({ numPages }) => {
           setTotalPages(numPages);
           setPdfError(false);
-          // Clamp if currentPage exceeds actual pages
           const cur = useViewerStore.getState().currentPage;
           if (cur > numPages) {
             setCurrentPage(numPages);

@@ -195,6 +195,38 @@
   @apply text-primary-600 underline decoration-primary-300 hover:text-primary-700;
 }
 
+/* === Chunk Preview Markdown === */
+.chunk-preview-content {
+  @apply text-[12px] leading-relaxed text-slate-700;
+}
+.chunk-preview-content p {
+  @apply mb-1.5 last:mb-0;
+}
+.chunk-preview-content strong {
+  @apply font-semibold text-slate-800;
+}
+.chunk-preview-content table {
+  @apply w-full border-collapse text-[11px];
+}
+.chunk-preview-content th {
+  @apply bg-amber-100/60 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700 border-b border-amber-200/80;
+}
+.chunk-preview-content td {
+  @apply px-2 py-1.5 text-[11px] text-slate-600 border-b border-amber-100/60;
+}
+.chunk-preview-content tbody tr:nth-child(even) {
+  @apply bg-amber-50/30;
+}
+.chunk-preview-content ul {
+  @apply my-1 ml-3 list-disc space-y-0.5;
+}
+.chunk-preview-content ol {
+  @apply my-1 ml-3 list-decimal space-y-0.5;
+}
+.chunk-preview-content code {
+  @apply rounded bg-amber-100/60 px-1 py-0.5 text-[11px] font-medium text-slate-700;
+}
+
 /* Table styling inside chat */
 .prose-chat table {
   @apply w-full border-collapse;

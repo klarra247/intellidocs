@@ -31,8 +31,8 @@ function chunkToSource(chunk: SourceChunk): ChatSource {
     filename: chunk.filename,
     pageNumber: chunk.pageNumber,
     sectionTitle: chunk.sectionTitle,
-    chunkIndex: null,
-    relevanceScore: 0,
+    chunkIndex: chunk.chunkIndex ?? null,
+    relevanceScore: chunk.relevanceScore ?? 0,
     pageRange: chunk.pageNumber ? `p.${chunk.pageNumber}` : null,
   };
 }
