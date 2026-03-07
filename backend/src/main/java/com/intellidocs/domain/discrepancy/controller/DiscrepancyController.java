@@ -7,6 +7,7 @@ import com.intellidocs.domain.discrepancy.entity.TriggerType;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyAsyncExecutor;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
 import com.intellidocs.domain.discrepancy.service.DiscrepancySseEmitterService;
+import com.intellidocs.common.SecurityContextHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,8 @@ public class DiscrepancyController {
     @PostMapping("/detect")
     public ResponseEntity<ApiResponse<DiscrepancyDto.DetectResponse>> detect(
             @Valid @RequestBody DiscrepancyDto.DetectRequest request) {
-        DiscrepancyDto.DetectResponse response = discrepancyService.createJob(request);
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        DiscrepancyDto.DetectResponse response = discrepancyService.createJob(request, userId);
         asyncExecutor.execute(response.getJobId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(response));
     }
@@ -49,7 +51,8 @@ public class DiscrepancyController {
     @GetMapping("/recent")
     public ResponseEntity<ApiResponse<List<DiscrepancyDto.ResultResponse>>> getRecent(
             @RequestParam(required = false) TriggerType triggerType) {
-        List<DiscrepancyDto.ResultResponse> responses = discrepancyService.getRecent(triggerType)
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        List<DiscrepancyDto.ResultResponse> responses = discrepancyService.getRecent(triggerType, userId)
                 .stream()
                 .map(DiscrepancyDto.ResultResponse::from)
                 .toList();

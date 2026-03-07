@@ -31,22 +31,23 @@ public class DiscrepancyAutoDetectListener {
     @EventListener
     public void onDocumentIndexed(DocumentIndexedEvent event) {
         try {
-            // 중복 방지: 최근 5분 이내 AUTO 탐지가 있으면 스킵
+            // 중복 방지: 동일 유저의 최근 5분 이내 AUTO 탐지가 있으면 스킵
+            UUID userId = event.getUserId();
             List<DiscrepancyResult> recentAuto =
-                    discrepancyResultRepository.findTop10ByTriggerTypeOrderByCreatedAtDesc(TriggerType.AUTO);
+                    discrepancyResultRepository.findTop10ByUserIdAndTriggerTypeOrderByCreatedAtDesc(userId, TriggerType.AUTO);
             if (!recentAuto.isEmpty()) {
                 DiscrepancyResult latest = recentAuto.get(0);
                 if (latest.getCreatedAt() != null
                         && latest.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5))) {
-                    log.info("[AutoDetect] Skipping — recent AUTO detection exists ({})", latest.getId());
+                    log.info("[AutoDetect] Skipping — recent AUTO detection exists for user {} ({})", userId, latest.getId());
                     return;
                 }
             }
 
-            // INDEXED 문서 조회 (최대 10개, 최근순)
-            List<Document> indexed = documentRepository.findByStatusOrderByCreatedAtDesc(DocumentStatus.INDEXED);
+            // INDEXED 문서 조회 — 동일 유저 소유 문서만 (최대 10개, 최근순)
+            List<Document> indexed = documentRepository.findByUserIdAndStatus(userId, DocumentStatus.INDEXED);
             if (indexed.size() < 2) {
-                log.info("[AutoDetect] Skipping — fewer than 2 INDEXED documents");
+                log.info("[AutoDetect] Skipping — fewer than 2 INDEXED documents for user {}", userId);
                 return;
             }
 
@@ -55,8 +56,8 @@ public class DiscrepancyAutoDetectListener {
                     .map(Document::getId)
                     .collect(Collectors.toList());
 
-            log.info("[AutoDetect] Starting auto detection for {} documents", docIds.size());
-            discrepancyService.detectSync(docIds, null, 0.001, TriggerType.AUTO);
+            log.info("[AutoDetect] Starting auto detection for {} documents (user: {})", docIds.size(), userId);
+            discrepancyService.detectSync(docIds, null, 0.001, TriggerType.AUTO, userId);
             log.info("[AutoDetect] Auto detection completed for document: {}", event.getDocumentId());
 
         } catch (Exception e) {

@@ -33,7 +33,7 @@ public class DiscrepancyService {
     private final DiscrepancyDetectionEngine engine;
 
     @Transactional
-    public DiscrepancyDto.DetectResponse createJob(DiscrepancyDto.DetectRequest request) {
+    public DiscrepancyDto.DetectResponse createJob(DiscrepancyDto.DetectRequest request, UUID userId) {
         validateRequest(request);
 
         BigDecimal tolerance = request.getTolerance() != null
@@ -41,6 +41,7 @@ public class DiscrepancyService {
                 : new BigDecimal("0.001");
 
         DiscrepancyResult result = DiscrepancyResult.builder()
+                .userId(userId)
                 .documentIds(request.getDocumentIds())
                 .targetFields(request.getTargetFields())
                 .tolerance(tolerance)
@@ -141,13 +142,14 @@ public class DiscrepancyService {
      * Agent Tool 컨텍스트에서 사용 (SSE 없음, DB 저장 유지).
      */
     @Transactional
-    public DiscrepancyResultData detectSync(List<UUID> documentIds, List<String> targetFields, double tolerance) {
-        return detectSync(documentIds, targetFields, tolerance, TriggerType.TOOL);
+    public DiscrepancyResultData detectSync(List<UUID> documentIds, List<String> targetFields,
+                                            double tolerance, UUID userId) {
+        return detectSync(documentIds, targetFields, tolerance, TriggerType.TOOL, userId);
     }
 
     @Transactional
     public DiscrepancyResultData detectSync(List<UUID> documentIds, List<String> targetFields,
-                                            double tolerance, TriggerType triggerType) {
+                                            double tolerance, TriggerType triggerType, UUID userId) {
         List<Document> documents = documentRepository.findAllById(documentIds);
         if (documents.size() < 2) {
             throw new IllegalStateException("비교 가능한 INDEXED 문서가 2개 미만입니다.");
@@ -181,6 +183,7 @@ public class DiscrepancyService {
 
         // DB 저장
         DiscrepancyResult result = DiscrepancyResult.builder()
+                .userId(userId)
                 .documentIds(documentIds)
                 .targetFields(targetFields)
                 .tolerance(new BigDecimal(String.valueOf(tolerance)))
@@ -200,11 +203,11 @@ public class DiscrepancyService {
     }
 
     @Transactional(readOnly = true)
-    public List<DiscrepancyResult> getRecent(TriggerType triggerType) {
+    public List<DiscrepancyResult> getRecent(TriggerType triggerType, UUID userId) {
         if (triggerType != null) {
-            return discrepancyResultRepository.findTop10ByTriggerTypeOrderByCreatedAtDesc(triggerType);
+            return discrepancyResultRepository.findTop10ByUserIdAndTriggerTypeOrderByCreatedAtDesc(userId, triggerType);
         }
-        return discrepancyResultRepository.findTop10ByOrderByCreatedAtDesc();
+        return discrepancyResultRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
     }
 
     private void validateRequest(DiscrepancyDto.DetectRequest request) {

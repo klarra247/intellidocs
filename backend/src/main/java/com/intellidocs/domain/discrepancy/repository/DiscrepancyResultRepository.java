@@ -12,4 +12,6 @@ public interface DiscrepancyResultRepository extends JpaRepository<DiscrepancyRe
     List<DiscrepancyResult> findByStatusOrderByCreatedAtDesc(DiscrepancyStatus status);
     List<DiscrepancyResult> findTop10ByOrderByCreatedAtDesc();
     List<DiscrepancyResult> findTop10ByTriggerTypeOrderByCreatedAtDesc(TriggerType triggerType);
+    List<DiscrepancyResult> findTop10ByUserIdOrderByCreatedAtDesc(UUID userId);
+    List<DiscrepancyResult> findTop10ByUserIdAndTriggerTypeOrderByCreatedAtDesc(UUID userId, TriggerType triggerType);
 }

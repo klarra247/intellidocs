@@ -1,5 +1,6 @@
 package com.intellidocs.domain.agent.tool;
 
+import com.intellidocs.common.SecurityContextHelper;
 import com.intellidocs.domain.agent.dto.ToolEvent;
 import com.intellidocs.domain.discrepancy.entity.DiscrepancyResultData;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
@@ -216,7 +217,8 @@ public class DocumentQueryTools {
                 return "비교 가능한 INDEXED 문서가 2개 미만입니다.";
             }
 
-            DiscrepancyResultData data = discrepancyService.detectSync(uuids, targetFields, 0.001);
+            UUID currentUserId = SecurityContextHelper.getCurrentUserId();
+            DiscrepancyResultData data = discrepancyService.detectSync(uuids, targetFields, 0.001, currentUserId);
             discrepancyDetectionCount++;
             String formatted = formatDiscrepancyResult(data);
 
