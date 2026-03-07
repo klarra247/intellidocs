@@ -9,19 +9,42 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 유저
 -- ─────────────────────────────────────────
 CREATE TABLE users (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email       VARCHAR(255) UNIQUE NOT NULL,
-    name        VARCHAR(255),
-    plan        VARCHAR(50) DEFAULT 'free',   -- free | pro | team
-    created_at  TIMESTAMP DEFAULT NOW(),
-    updated_at  TIMESTAMP DEFAULT NOW()
+    id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email             VARCHAR(255) UNIQUE NOT NULL,
+    name              VARCHAR(255),
+    password_hash     VARCHAR(255),
+    profile_image_url VARCHAR(500),
+    auth_provider     VARCHAR(20) NOT NULL DEFAULT 'LOCAL',
+    provider_id       VARCHAR(255),
+    email_verified    BOOLEAN DEFAULT FALSE,
+    role              VARCHAR(20) NOT NULL DEFAULT 'USER',
+    plan              VARCHAR(50) DEFAULT 'free',   -- free | pro | team
+    last_login_at     TIMESTAMP,
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW(),
+    UNIQUE(auth_provider, provider_id)
 );
 
 -- ─────────────────────────────────────────
 -- 개발용 더미 데이터 (JWT 미구현 Phase 1)
 -- ─────────────────────────────────────────
-INSERT INTO users (id, email, name, plan) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'dev@intellidocs.local', 'Dev User', 'pro');
+INSERT INTO users (id, email, name, password_hash, auth_provider, email_verified, role, plan) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'dev@intellidocs.local', 'Dev User',
+     '$2a$10$dummyhashfordevuser000000000000000000000000', 'LOCAL', TRUE, 'ADMIN', 'pro');
+
+-- ─────────────────────────────────────────
+-- 리프레시 토큰
+-- ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token       VARCHAR(500) NOT NULL UNIQUE,
+    expires_at  TIMESTAMP NOT NULL,
+    revoked     BOOLEAN DEFAULT FALSE,
+    created_at  TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 
 -- ─────────────────────────────────────────
 -- 워크스페이스 (팀 단위 - V2에서 확장)
@@ -142,6 +165,7 @@ CREATE INDEX idx_reports_user ON reports(user_id);
 -- ─────────────────────────────────────────
 CREATE TABLE discrepancy_results (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES users(id),
     document_ids    JSONB NOT NULL,
     target_fields   JSONB,
     tolerance       DECIMAL(5,4) NOT NULL DEFAULT 0.001,
@@ -154,3 +178,4 @@ CREATE TABLE discrepancy_results (
 );
 CREATE INDEX idx_discrepancy_status ON discrepancy_results(status);
 CREATE INDEX idx_discrepancy_created ON discrepancy_results(created_at DESC);
+CREATE INDEX idx_discrepancy_user ON discrepancy_results(user_id);

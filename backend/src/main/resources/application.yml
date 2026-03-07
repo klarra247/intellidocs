@@ -115,6 +115,11 @@ app:
     secret: ${JWT_SECRET:dev-secret-key-change-in-production-min-256-bits-required-here}
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
 
+  # Google OAuth
+  auth:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+
   # File Storage
   storage:
     upload-dir: ${UPLOAD_DIR:/tmp/intellidocs/uploads}
