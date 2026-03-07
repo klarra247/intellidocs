@@ -1,4 +1,5 @@
 import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview } from './types';
+import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
 
@@ -12,18 +13,52 @@ export class ApiError extends Error {
   }
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
+function getAuthHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().accessToken;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function ensureRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = useAuthStore.getState().refreshTokens();
+  }
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
+function redirectToLogin(): never {
+  useAuthStore.getState().clearAuth();
+  if (typeof window !== 'undefined') {
+    window.location.href = '/auth/login';
+  }
+  throw new ApiError(401, 'Session expired');
+}
+
 async function request<T>(
   path: string,
   options?: RequestInit,
+  isRetry = false,
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const res = await fetch(url, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options?.headers,
     },
-    ...options,
   });
+
+  if (res.status === 401 && !isRetry) {
+    const ok = await ensureRefresh();
+    if (!ok) redirectToLogin();
+    return request<T>(path, options, true);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -40,6 +75,22 @@ async function request<T>(
   return body.data as T;
 }
 
+/**
+ * URL에 현재 토큰을 붙여 반환하는 함수를 리턴.
+ * 호출 시점마다 최신 토큰을 가져오므로 stale token 문제 방지.
+ */
+function makeAuthenticatedUrlGetter(buildUrl: (id: string) => string) {
+  return (id: string) => {
+    const baseUrl = buildUrl(id);
+    const token = useAuthStore.getState().accessToken;
+    if (!token) return baseUrl;
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${sep}token=${token}`;
+  };
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+
 // === Documents ===
 export const documentsApi = {
   list: () => request<Document[]>('/documents'),
@@ -50,10 +101,22 @@ export const documentsApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${BASE_URL}/documents/upload`, {
-      method: 'POST',
-      body: formData,
-    });
+    const doUpload = async () => {
+      const res = await fetch(`${BASE_URL}/documents/upload`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData,
+      });
+      return res;
+    };
+
+    let res = await doUpload();
+
+    if (res.status === 401) {
+      const ok = await ensureRefresh();
+      if (!ok) redirectToLogin();
+      res = await doUpload();
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => null);
@@ -72,10 +135,9 @@ export const documentsApi = {
   delete: (id: string) =>
     request<void>(`/documents/${id}`, { method: 'DELETE' }),
 
-  getFileUrl: (id: string) => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
-    return `${base}/documents/${id}/file`;
-  },
+  getFileUrl: makeAuthenticatedUrlGetter(
+    (id) => `${API_URL}/documents/${id}/file`,
+  ),
 
   getPreview: (id: string) => request<ExcelPreview>(`/documents/${id}/preview`),
 };
@@ -121,10 +183,9 @@ export const reportsApi = {
   delete: (id: string) =>
     request<void>(`/reports/${id}`, { method: 'DELETE' }),
 
-  downloadUrl: (id: string) => {
-    const sseBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
-    return `${sseBase}/reports/${id}/download`;
-  },
+  downloadUrl: makeAuthenticatedUrlGetter(
+    (id) => `${API_URL}/reports/${id}/download`,
+  ),
 };
 
 // === Discrepancies ===

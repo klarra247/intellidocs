@@ -1,3 +1,26 @@
+// === Auth ===
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  profileImageUrl: string | null;
+  authProvider: 'LOCAL' | 'GOOGLE';
+  emailVerified: boolean;
+  role: string;
+}
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
+export interface AuthResponse {
+  token: TokenResponse;
+  user: AuthUser;
+}
+
 // === API Response Envelope ===
 // Backend error is ErrorInfo { code, message } object, not a plain string
 export interface ApiResponse<T> {
@@ -96,6 +119,8 @@ export interface SourceChunk {
   pageNumber: number | null;
   sectionTitle: string | null;
   snippetText: string | null;
+  chunkIndex: number | null;
+  relevanceScore: number | null;
 }
 
 // Unified message type for UI

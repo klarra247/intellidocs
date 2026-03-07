@@ -1,4 +1,5 @@
 import { DocumentStatusEvent, ReportStatusEvent, DiscrepancyStatusEvent } from './types';
+import { useAuthStore } from '@/stores/authStore';
 
 /**
  * SSE/스트리밍 연결은 Next.js rewrites 프록시를 우회하여 백엔드에 직접 연결.
@@ -12,6 +13,17 @@ interface SSEOptions {
   maxRetries?: number;
   retryDelay?: number;
   timeout?: number;
+}
+
+function getAuthToken(): string | null {
+  return useAuthStore.getState().accessToken;
+}
+
+function appendToken(url: string): string {
+  const token = getAuthToken();
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${token}`;
 }
 
 /**
@@ -34,7 +46,7 @@ export function subscribeDocumentStatus(
   function connect() {
     if (closed) return;
 
-    const url = `${SSE_BASE_URL}/documents/${documentId}/status`;
+    const url = appendToken(`${SSE_BASE_URL}/documents/${documentId}/status`);
     eventSource = new EventSource(url);
 
     // Reset timeout on each connect
@@ -95,18 +107,36 @@ export function subscribeDocumentStatus(
 
 /**
  * SSE client for chat streaming via POST + ReadableStream.
+ * 401 발생 시 토큰 갱신 후 1회 재시도.
  */
 export async function streamChat(
   body: { question: string; sessionId?: string; documentIds?: string[] },
   onEvent: (eventName: string, data: Record<string, unknown>) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${SSE_BASE_URL}/agent/chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  });
+  const doFetch = () => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    return fetch(`${SSE_BASE_URL}/agent/chat/stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+  };
+
+  let res = await doFetch();
+
+  if (res.status === 401) {
+    const ok = await useAuthStore.getState().refreshTokens();
+    if (!ok) {
+      useAuthStore.getState().clearAuth();
+      throw new Error('Session expired');
+    }
+    res = await doFetch();
+  }
 
   if (!res.ok || !res.body) {
     throw new Error(`Stream request failed: ${res.status}`);
@@ -163,7 +193,7 @@ export function subscribeReportStatus(
   function connect() {
     if (closed) return;
 
-    const url = `${SSE_BASE_URL}/reports/${reportId}/status`;
+    const url = appendToken(`${SSE_BASE_URL}/reports/${reportId}/status`);
     eventSource = new EventSource(url);
 
     clearTimeout(timeoutId);
@@ -237,7 +267,7 @@ export function subscribeDiscrepancyStatus(
   function connect() {
     if (closed) return;
 
-    const url = `${SSE_BASE_URL}/discrepancies/${jobId}/status`;
+    const url = appendToken(`${SSE_BASE_URL}/discrepancies/${jobId}/status`);
     eventSource = new EventSource(url);
 
     clearTimeout(timeoutId);
