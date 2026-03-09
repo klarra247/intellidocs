@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
@@ -131,6 +134,29 @@ public class DocumentService {
         return documentRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(DocumentDto.ListResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentDto.PageResponse getDocumentsPaged(UUID userId, Pageable pageable) {
+        UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+        if (workspaceId != null) {
+            Page<Document> page = documentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId, pageable);
+            return DocumentDto.PageResponse.builder()
+                    .content(page.getContent().stream().map(DocumentDto.ListResponse::from).toList())
+                    .currentPage(page.getNumber())
+                    .totalPages(page.getTotalPages())
+                    .totalElements(page.getTotalElements())
+                    .build();
+        }
+        // fallback: 워크스페이스 미설정 시 전체 반환
+        List<DocumentDto.ListResponse> all = documentRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(DocumentDto.ListResponse::from).toList();
+        return DocumentDto.PageResponse.builder()
+                .content(all)
+                .currentPage(0)
+                .totalPages(1)
+                .totalElements(all.size())
+                .build();
     }
 
     @Transactional(readOnly = true)

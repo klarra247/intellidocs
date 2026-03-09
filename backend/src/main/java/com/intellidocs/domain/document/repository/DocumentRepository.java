@@ -2,6 +2,8 @@ package com.intellidocs.domain.document.repository;
 
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,6 +20,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     List<Document> findByStatusOrderByCreatedAtDesc(DocumentStatus status);
 
     List<Document> findByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
+
+    Page<Document> findByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId, Pageable pageable);
 
     List<Document> findByWorkspaceIdAndStatus(UUID workspaceId, DocumentStatus status);
 }

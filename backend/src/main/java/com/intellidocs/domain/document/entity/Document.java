@@ -52,6 +52,16 @@ public class Document {
     private Integer totalChunks;
     private String errorMessage;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ReviewStatus reviewStatus = ReviewStatus.NONE;
+
+    private UUID reviewRequestedBy;
+    private LocalDateTime reviewRequestedAt;
+    private UUID reviewedBy;
+    private LocalDateTime reviewedAt;
+
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DocumentChunk> chunks = new ArrayList<>();
@@ -81,5 +91,19 @@ public class Document {
     public void fail(String errorMessage) {
         this.status = DocumentStatus.FAILED;
         this.errorMessage = errorMessage;
+    }
+
+    public void requestReview(UUID userId) {
+        this.reviewStatus = ReviewStatus.IN_REVIEW;
+        this.reviewRequestedBy = userId;
+        this.reviewRequestedAt = LocalDateTime.now();
+        this.reviewedBy = null;
+        this.reviewedAt = null;
+    }
+
+    public void applyReview(ReviewStatus status, UUID userId) {
+        this.reviewStatus = status;
+        this.reviewedBy = userId;
+        this.reviewedAt = LocalDateTime.now();
     }
 }

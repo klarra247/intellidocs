@@ -4,6 +4,7 @@ import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.SecurityConfig;
 import com.intellidocs.domain.auth.service.JwtService;
 import com.intellidocs.domain.document.dto.DocumentDto;
+import com.intellidocs.domain.document.service.DocumentReviewService;
 import com.intellidocs.domain.document.service.DocumentService;
 import com.intellidocs.domain.document.service.DocumentSseEmitterService;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
@@ -39,6 +40,9 @@ class DocumentFilePreviewTest {
 
     @MockitoBean
     private DocumentSseEmitterService sseEmitterService;
+
+    @MockitoBean
+    private DocumentReviewService reviewService;
 
     @MockitoBean
     private JwtService jwtService;

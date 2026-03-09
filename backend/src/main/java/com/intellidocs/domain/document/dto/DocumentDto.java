@@ -3,12 +3,23 @@ package com.intellidocs.domain.document.dto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.entity.FileType;
+import com.intellidocs.domain.document.entity.ReviewStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class DocumentDto {
+
+    @Getter
+    @Builder
+    public static class PageResponse {
+        private List<ListResponse> content;
+        private int currentPage;
+        private int totalPages;
+        private long totalElements;
+    }
 
     @Getter
     @Builder
@@ -31,6 +42,7 @@ public class DocumentDto {
         private Integer totalPages;
         private Integer totalChunks;
         private String errorMessage;
+        private ReviewStatus reviewStatus;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -45,6 +57,7 @@ public class DocumentDto {
                     .totalPages(doc.getTotalPages())
                     .totalChunks(doc.getTotalChunks())
                     .errorMessage(doc.getErrorMessage())
+                    .reviewStatus(doc.getReviewStatus())
                     .createdAt(doc.getCreatedAt())
                     .updatedAt(doc.getUpdatedAt())
                     .build();
@@ -59,6 +72,7 @@ public class DocumentDto {
         private FileType fileType;
         private Long fileSize;
         private DocumentStatus status;
+        private ReviewStatus reviewStatus;
         private UUID uploaderId;
         private LocalDateTime createdAt;
 
@@ -69,6 +83,7 @@ public class DocumentDto {
                     .fileType(doc.getFileType())
                     .fileSize(doc.getFileSize())
                     .status(doc.getStatus())
+                    .reviewStatus(doc.getReviewStatus())
                     .uploaderId(doc.getUserId())
                     .createdAt(doc.getCreatedAt())
                     .build();
