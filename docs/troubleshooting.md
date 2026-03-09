@@ -197,3 +197,21 @@
 - **해결**: `DiscrepancySseEmitterService`에 이벤트 버퍼링 추가. `send()` — emitter 유무와 관계없이 항상 `CopyOnWriteArrayList` 버퍼에 저장. `createEmitter()` — 클라이언트 연결 시 버퍼된 이벤트 즉시 재생, 이미 완료된 작업이면 complete 호출. `complete()` — emitter 미등록 시 완료 플래그만 저장
 - **검증**: `targetFields` 지정 요청 시 SSE에서 버퍼된 이벤트가 정상 수신됨
 - **교훈**: `@Async` + SSE 패턴에서는 작업 완료 속도와 클라이언트 연결 타이밍을 보장할 수 없음. 이벤트 버퍼링은 필수. `ReportSseEmitterService`, `DocumentSseEmitterService`에도 동일 패턴 적용 검토 필요
+
+---
+
+### [2026-03-09] 코드 리뷰 기반 인프라/보안 개선 5건
+
+- **문제 1 (CORS)**: `SecurityConfig`에서 `allowedOriginPatterns(List.of("*"))` + `allowCredentials(true)`로 설정되어, 모든 오리진에서 인증 쿠키/토큰 포함 요청 가능
+- **문제 2 (검색 타임아웃)**: `HybridSearchService`의 `CompletableFuture.supplyAsync()`가 기본 ForkJoinPool을 사용하고 `.join()`에 타임아웃이 없어, Qdrant/ES 장애 시 무한 대기
+- **문제 3 (@Async 스레드 풀)**: `@EnableAsync`만 선언하고 `AsyncConfigurer` 미구현으로 기본 `SimpleAsyncTaskExecutor` 사용. 요청마다 새 스레드 생성, 스레드 수 제한 없음
+- **문제 4 (멱등성)**: `ParseResultListener`가 이미 INDEXED된 문서에 대해 재인덱싱 시도. Qdrant에 중복 벡터 적재 가능
+- **문제 5 (메모리)**: `docker-compose.yml`에 postgres, redis, rabbitmq, parser, api, frontend, nginx 서비스의 메모리 제한 미설정. OOM 시 다른 컨테이너까지 영향
+- **해결**:
+  - CORS: `app.cors.allowed-origins` 설정 추가, `setAllowedOrigins()`로 변경. `CORS_ALLOWED_ORIGINS` 환경변수로 제어
+  - 검색: `SearchExecutorConfig`로 전용 스레드 풀(core=2, max=4, queue=20) 생성, `.orTimeout(5, SECONDS)` + `.exceptionally()` graceful degradation
+  - @Async: `AsyncConfig implements AsyncConfigurer` 추가, 바운드 풀(core=2, max=4, queue=20), `CallerRunsPolicy`, `AsyncUncaughtExceptionHandler` 로깅
+  - 멱등성: document.status == INDEXED이면 early return + Qdrant `deleteByDocumentId()` 선행 호출로 중복 벡터 방지
+  - Docker: 서비스별 메모리 제한 (postgres 512m, redis 300m, rabbitmq 512m, parser 512m, api 768m, frontend 256m, nginx 64m). 총 ~4.4GB, t3.large 8GB 기준 OS 여유 확보
+- **검증**: `./gradlew build` 통과
+- **교훈**: 프로덕션 배포 전 반드시 점검: CORS 와일드카드, 무바운드 스레드 풀, 타임아웃 미설정, 멱등성 미보장, 컨테이너 메모리 무제한. 특히 t3.large처럼 메모리가 제한된 환경에서는 Docker 메모리 제한이 필수
