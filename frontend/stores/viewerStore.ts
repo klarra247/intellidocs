@@ -8,12 +8,15 @@ export interface HighlightInfo {
   sectionTitle: string | null;
 }
 
+export type ViewerTab = 'document' | 'comments';
+
 interface ViewerState {
   // Panel state
   isOpen: boolean;
   documentId: string | null;
   documentDetail: DocumentDetail | null;
   highlight: HighlightInfo | null;
+  activeTab: ViewerTab;
 
   // Source-referenced pages → chunkIndex mapping (set by SourceGroup on open)
   sourcePages: number[];
@@ -58,6 +61,7 @@ interface ViewerState {
   setTotalPages: (total: number) => void;
   setScale: (scale: number) => void;
   setActiveSheet: (index: number) => void;
+  setActiveTab: (tab: ViewerTab) => void;
   loadMoreChunks: (direction: 'before' | 'after') => Promise<void>;
 }
 
@@ -69,6 +73,7 @@ const initialState = {
   documentId: null,
   documentDetail: null,
   highlight: null,
+  activeTab: 'document' as ViewerTab,
   sourcePages: [] as number[],
   pageChunkMap: {} as Record<number, number>,
   directFileUrl: null,
@@ -104,6 +109,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       isOpen: true,
       documentId,
       highlight: highlight ?? null,
+      activeTab: 'document',
       sourcePages: sourcePages ?? [],
       pageChunkMap: pageChunkMap ?? {},
       error: null,
@@ -179,6 +185,12 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
 
   closeViewer: () => {
     set({ ...initialState });
+    try {
+      const { useDocumentCommentStore } = require('@/stores/documentCommentStore');
+      useDocumentCommentStore.getState().closePanel();
+    } catch {
+      // comment store not available
+    }
   },
 
   retryLastOpen: async () => {
@@ -271,6 +283,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   setTotalPages: (total) => set({ totalPages: total }),
   setScale: (scale) => set({ scale }),
   setActiveSheet: (index) => set({ activeSheet: index }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
 
   loadMoreChunks: async (direction) => {
     const { documentId, documentDetail, loadedRange, visibleChunks, chunksLoading } = get();

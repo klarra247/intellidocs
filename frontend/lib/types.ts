@@ -29,6 +29,9 @@ export interface ApiResponse<T> {
   error: { code: string; message: string } | null;
 }
 
+// === Review ===
+export type ReviewStatus = 'NONE' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+
 // === Document ===
 export type DocumentStatus =
   | 'UPLOADING'
@@ -55,6 +58,7 @@ export interface Document {
   fileType: FileType;
   fileSize: number;
   status: DocumentStatus;
+  reviewStatus: ReviewStatus;
   uploaderId: string | null;
   createdAt: string;
 }
@@ -67,6 +71,7 @@ export interface DocumentDetail {
   fileType: FileType;
   fileSize: number;
   status: DocumentStatus;
+  reviewStatus: ReviewStatus;
   totalPages: number | null;
   totalChunks: number | null;
   errorMessage: string | null;
@@ -124,13 +129,24 @@ export interface SourceChunk {
   relevanceScore: number | null;
 }
 
+// Selected document scope for USER messages
+export interface SelectedDocument {
+  id: string;
+  filename: string;
+}
+
 // Unified message type for UI
 export interface ChatMessage {
   id: string;
   role: 'USER' | 'ASSISTANT';
   content: string;
   sources: ChatSource[];
+  selectedDocuments?: SelectedDocument[];
   confidence?: number;
+  isPinned?: boolean;
+  pinnedBy?: string;
+  pinnedAt?: string;
+  commentCount?: number;
   createdAt: string;
 }
 
@@ -144,9 +160,70 @@ export interface ChatHistoryResponse {
     role: string;
     content: string;
     sourceChunks: SourceChunk[] | null;
+    selectedDocuments: SelectedDocument[] | null;
     confidence: number | null;
+    isPinned: boolean;
+    pinnedBy: string | null;
+    pinnedAt: string | null;
+    commentCount: number;
     createdAt: string;
   }[];
+}
+
+// === Chat Collaboration ===
+
+export interface SessionSummary {
+  id: string;
+  title: string;
+  creatorId: string;
+  creatorName: string;
+  isShared: boolean;
+  isOwner: boolean;
+  messageCount: number;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface ShareResponse {
+  isShared: boolean;
+  sharedAt: string | null;
+}
+
+export interface ReadStatusResponse {
+  sessionId: string;
+  lastReadMessageId: string;
+  lastReadAt: string;
+}
+
+export interface PinResponse {
+  messageId: string;
+  isPinned: boolean;
+  pinnedBy: string;
+  pinnedAt: string;
+}
+
+export interface PinnedMessageResponse {
+  id: string;
+  role: string;
+  content: string;
+  sourceChunks: SourceChunk[] | null;
+  confidence: number | null;
+  isPinned: boolean;
+  pinnedBy: string;
+  pinnedAt: string;
+  createdAt: string;
+}
+
+export interface CommentResponse {
+  id: string;
+  userId: string;
+  userName: string;
+  userProfileImage: string | null;
+  content: string;
+  isOwner: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Active tool indicator
@@ -338,4 +415,41 @@ export interface PendingInvitation {
   inviterEmail: string;
   role: WorkspaceMemberRole;
   expiresAt: string;
+}
+
+// === Document Comments ===
+export interface DocumentCommentResponse {
+  id: string;
+  documentId: string;
+  userId: string;
+  userName: string;
+  userProfileImage: string | null;
+  chunkIndex: number | null;
+  pageNumber: number | null;
+  content: string;
+  resolved: boolean;
+  resolvedBy: string | null;
+  resolvedByName: string | null;
+  resolvedAt: string | null;
+  isOwner: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentCommentListResponse {
+  comments: DocumentCommentResponse[];
+  totalCount: number;
+  unresolvedCount: number;
+}
+
+// === Document Review ===
+export interface ReviewResponse {
+  documentId: string;
+  reviewStatus: ReviewStatus;
+  reviewRequestedBy: string | null;
+  reviewRequestedByName: string | null;
+  reviewRequestedAt: string | null;
+  reviewedBy: string | null;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
 }

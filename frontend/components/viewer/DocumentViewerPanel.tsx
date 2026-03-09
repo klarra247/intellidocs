@@ -6,9 +6,12 @@ import { useViewerStore } from '@/stores/viewerStore';
 import ViewerToolbar from './ViewerToolbar';
 import ChunkPreview from './ChunkPreview';
 
+import { useDocumentCommentStore } from '@/stores/documentCommentStore';
+
 const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 const ExcelViewer = dynamic(() => import('./ExcelViewer'), { ssr: false });
 const ChunkTextViewer = dynamic(() => import('./ChunkTextViewer'), { ssr: false });
+const DocumentCommentTab = dynamic(() => import('./DocumentCommentTab'), { ssr: false });
 
 /** File types rendered by ChunkTextViewer */
 const TEXT_BASED_TYPES = new Set(['TXT', 'MD', 'DOCX']);
@@ -28,6 +31,10 @@ export default function DocumentViewerPanel() {
   const sourcePages = useViewerStore((s) => s.sourcePages);
   const closeViewer = useViewerStore((s) => s.closeViewer);
   const retryLastOpen = useViewerStore((s) => s.retryLastOpen);
+  const activeTab = useViewerStore((s) => s.activeTab);
+  const setActiveTab = useViewerStore((s) => s.setActiveTab);
+  const documentId = useViewerStore((s) => s.documentId);
+  const unresolvedCount = useDocumentCommentStore((s) => s.unresolvedCount);
 
   const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
 
@@ -149,49 +156,93 @@ export default function DocumentViewerPanel() {
           {/* Toolbar */}
           <ViewerToolbar />
 
-          {/* Main content area */}
-          <div className="relative flex-1 overflow-auto">
-            {loading && (
-              <div className="flex h-full items-center justify-center">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
-              </div>
-            )}
+          {/* Tab bar (not for direct URL mode) */}
+          {!directFileUrl && documentDetail && (
+            <div className="flex border-b border-slate-200 bg-white">
+              <button
+                onClick={() => setActiveTab('document')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium transition-colors ${
+                  activeTab === 'document'
+                    ? 'border-b-2 border-primary-600 text-primary-700'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {'\uD83D\uDCC4'} 문서
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('comments');
+                  if (documentId) {
+                    useDocumentCommentStore.getState().openPanel(documentId);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium transition-colors ${
+                  activeTab === 'comments'
+                    ? 'border-b-2 border-primary-600 text-primary-700'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {'\uD83D\uDCAC'} 코멘트
+                {unresolvedCount > 0 && (
+                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                    {unresolvedCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
 
-            {error && !loading && (
-              <div className="flex h-full items-center justify-center p-6">
-                <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center">
-                  <p className="text-[13px] font-medium text-red-700">{error}</p>
-                  <div className="mt-3 flex items-center justify-center gap-3">
-                    <button
-                      onClick={retryLastOpen}
-                      className="rounded-lg bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-red-700 transition-colors"
-                    >
-                      다시 시도
-                    </button>
-                    <button
-                      onClick={closeViewer}
-                      className="text-[12px] font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700"
-                    >
-                      닫기
-                    </button>
+          {/* Main content area */}
+          {activeTab === 'document' && (
+            <div className="relative flex-1 overflow-auto">
+              {loading && (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
+                </div>
+              )}
+
+              {error && !loading && (
+                <div className="flex h-full items-center justify-center p-6">
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center">
+                    <p className="text-[13px] font-medium text-red-700">{error}</p>
+                    <div className="mt-3 flex items-center justify-center gap-3">
+                      <button
+                        onClick={retryLastOpen}
+                        className="rounded-lg bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-red-700 transition-colors"
+                      >
+                        다시 시도
+                      </button>
+                      <button
+                        onClick={closeViewer}
+                        className="text-[12px] font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700"
+                      >
+                        닫기
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {!loading && !error && (documentDetail || directFileUrl) && (
-              <>
-                {fileType === 'PDF' && <PdfViewer />}
-                {fileType === 'XLSX' && <ExcelViewer />}
-                {fileType !== null && TEXT_BASED_TYPES.has(fileType) && (
-                  <ChunkTextViewer />
-                )}
-              </>
-            )}
-          </div>
+              {!loading && !error && (documentDetail || directFileUrl) && (
+                <>
+                  {fileType === 'PDF' && <PdfViewer />}
+                  {fileType === 'XLSX' && <ExcelViewer />}
+                  {fileType !== null && TEXT_BASED_TYPES.has(fileType) && (
+                    <ChunkTextViewer />
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
-          {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists) */}
-          {showChunkPreview && <ChunkPreview />}
+          {activeTab === 'comments' && !directFileUrl && (
+            <div className="relative flex-1 overflow-hidden">
+              <DocumentCommentTab />
+            </div>
+          )}
+
+          {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists and on document tab) */}
+          {activeTab === 'document' && showChunkPreview && <ChunkPreview />}
         </aside>
       </div>
     </>

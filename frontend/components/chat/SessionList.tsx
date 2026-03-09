@@ -1,0 +1,100 @@
+'use client';
+
+import { useEffect } from 'react';
+import { Plus, Loader2, MessageSquare } from 'lucide-react';
+import { useChatStore } from '@/stores/chatStore';
+import SessionItem from './SessionItem';
+
+export default function SessionList() {
+  const {
+    sessions,
+    sessionsLoading,
+    sessionId,
+    loadSessions,
+    selectSession,
+    shareSession,
+    unshareSession,
+    clearChat,
+  } = useChatStore();
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  const mySessions = sessions.filter((s) => s.isOwner);
+  const sharedSessions = sessions.filter((s) => !s.isOwner);
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2.5">
+        <span className="text-[13px] font-semibold text-slate-700">채팅 세션</span>
+        <button
+          onClick={clearChat}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
+          title="새 채팅"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Session list */}
+      <div className="flex-1 overflow-y-auto px-2 py-2">
+        {sessionsLoading && sessions.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <MessageSquare className="mb-2 h-6 w-6 text-slate-300" />
+            <p className="text-[12px] text-slate-400">채팅 세션이 없습니다</p>
+          </div>
+        ) : (
+          <>
+            {/* My sessions */}
+            {mySessions.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                  내 채팅
+                </p>
+                <div className="space-y-0.5">
+                  {mySessions.map((s) => (
+                    <SessionItem
+                      key={s.id}
+                      session={s}
+                      isActive={sessionId === s.id}
+                      onClick={() => selectSession(s.id)}
+                      onShare={() => shareSession(s.id)}
+                      onUnshare={() => unshareSession(s.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Shared sessions */}
+            {sharedSessions.length > 0 && (
+              <div>
+                <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                  공유된 채팅
+                </p>
+                <div className="space-y-0.5">
+                  {sharedSessions.map((s) => (
+                    <SessionItem
+                      key={s.id}
+                      session={s}
+                      isActive={sessionId === s.id}
+                      onClick={() => selectSession(s.id)}
+                      onShare={() => shareSession(s.id)}
+                      onUnshare={() => unshareSession(s.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

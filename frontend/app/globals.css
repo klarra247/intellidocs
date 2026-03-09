@@ -122,6 +122,15 @@
   animation: slide-in-right 0.3s ease-out;
 }
 
+/* Comment panel slide-in from right */
+@keyframes slide-in-left {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-left {
+  animation: slide-in-left 0.2s ease-out;
+}
+
 /* Excel table styling */
 .excel-table th {
   @apply sticky top-0 z-10 bg-slate-100 text-left text-[11px] font-semibold text-slate-600;

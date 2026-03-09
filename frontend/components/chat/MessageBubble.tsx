@@ -3,10 +3,11 @@
 import { memo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
+import { Copy, Check, ShieldCheck, ShieldAlert, ShieldQuestion, Paperclip } from 'lucide-react';
 import { ChatMessage } from '@/lib/types';
 import SourceBadgeGroup from './SourceBadgeGroup';
 import TableRenderer from './TableRenderer';
+import MessageActions from './MessageActions';
 import type { Components } from 'react-markdown';
 
 const markdownComponents: Components = {
@@ -33,11 +34,16 @@ function getConfidenceTier(confidence: number) {
 interface MessageBubbleProps {
   message: ChatMessage;
   isStreaming?: boolean;
+  isSessionOwner?: boolean;
+  isReadOnly?: boolean;
+  onPin?: () => void;
+  onComment?: () => void;
 }
 
-function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
+function MessageBubbleInner({ message, isStreaming, isSessionOwner = true, onPin, onComment }: MessageBubbleProps) {
   const isUser = message.role === 'USER';
   const [copied, setCopied] = useState(false);
+  const [docsExpanded, setDocsExpanded] = useState(false);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -49,15 +55,22 @@ function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
     ? getConfidenceTier(message.confidence)
     : null;
 
+  const isPinned = message.isPinned;
+
   return (
     <div
+      data-message-id={message.id}
       className={`group flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}
     >
       <div
         className={`relative max-w-[85%] rounded-2xl px-4 py-3 ${
           isUser
             ? 'bg-primary-600 text-white shadow-sm'
-            : 'border border-slate-200 bg-white text-slate-800 shadow-card'
+            : `border bg-white text-slate-800 shadow-card ${
+                isPinned
+                  ? 'border-l-2 border-l-amber-400 border-slate-200'
+                  : 'border-slate-200'
+              }`
         }`}
       >
         {/* Copy button — AI messages only, on hover */}
@@ -73,6 +86,30 @@ function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
               <Copy className="h-3 w-3" />
             )}
           </button>
+        )}
+
+        {/* Selected documents tag — USER messages only */}
+        {isUser && message.selectedDocuments && message.selectedDocuments.length > 0 && (
+          <div className="mb-1.5 text-[11px] text-primary-100/80">
+            <button
+              type="button"
+              onClick={() => setDocsExpanded((v) => !v)}
+              className="flex items-center gap-1 hover:text-white transition-colors"
+            >
+              <Paperclip className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">
+                {message.selectedDocuments[0].filename}
+                {message.selectedDocuments.length > 1 && ` 외 ${message.selectedDocuments.length - 1}개`}
+              </span>
+            </button>
+            {docsExpanded && message.selectedDocuments.length > 1 && (
+              <ul className="mt-1 ml-4 space-y-0.5">
+                {message.selectedDocuments.map((d) => (
+                  <li key={d.id} className="truncate">{d.filename}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {isUser ? (
@@ -111,6 +148,18 @@ function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
             <SourceBadgeGroup sources={message.sources} />
           </div>
         )}
+
+        {/* Message actions (pin, comment) — AI messages only */}
+        {!isUser && !isStreaming && onPin && onComment && (
+          <div className="absolute -right-1 top-8 translate-x-full">
+            <MessageActions
+              message={message}
+              isOwner={isSessionOwner}
+              onPin={onPin}
+              onComment={onComment}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -118,7 +167,10 @@ function MessageBubbleInner({ message, isStreaming }: MessageBubbleProps) {
 
 const MessageBubble = memo(MessageBubbleInner, (prev, next) => {
   if (prev.isStreaming || next.isStreaming) return false;
-  return prev.message.id === next.message.id;
+  return prev.message.id === next.message.id
+    && prev.message.isPinned === next.message.isPinned
+    && prev.message.commentCount === next.message.commentCount
+    && (prev.message.selectedDocuments?.length ?? 0) === (next.message.selectedDocuments?.length ?? 0);
 });
 
 export default MessageBubble;

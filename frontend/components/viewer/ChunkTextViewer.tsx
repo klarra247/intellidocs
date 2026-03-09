@@ -3,7 +3,9 @@
 import { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MessageSquarePlus } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
+import { useDocumentCommentStore } from '@/stores/documentCommentStore';
 import { ChunkResponse } from '@/lib/types';
 
 export default function ChunkTextViewer() {
@@ -78,12 +80,24 @@ function ChunkCard({ chunk, isHighlighted }: ChunkCardProps) {
     }
   }, [isHighlighted]);
 
+  const handleAddComment = () => {
+    useDocumentCommentStore.getState().setPendingLocation(
+      chunk.chunkIndex,
+      chunk.pageNumber ?? undefined,
+    );
+    useViewerStore.getState().setActiveTab('comments');
+    const documentId = useViewerStore.getState().documentId;
+    if (documentId) {
+      useDocumentCommentStore.getState().openPanel(documentId);
+    }
+  };
+
   const typeIcon = chunk.chunkType === 'TABLE' ? '\u{1F4CA}' : '\u{1F4C4}';
 
   return (
     <div
       ref={isHighlighted ? highlightRef : undefined}
-      className={`rounded-lg border p-4 transition-colors ${
+      className={`group/chunk relative rounded-lg border p-4 transition-colors ${
         isHighlighted
           ? 'animate-highlight-pulse border-yellow-400 bg-yellow-200/60 ring-2 ring-yellow-400'
           : 'border-slate-200 bg-white shadow-card'
@@ -117,6 +131,16 @@ function ChunkCard({ chunk, isHighlighted }: ChunkCardProps) {
           {chunk.text ?? ''}
         </ReactMarkdown>
       </div>
+
+      {/* Add comment button (shown on hover) */}
+      <button
+        onClick={handleAddComment}
+        className="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-500 opacity-0 shadow-sm border border-slate-200 transition-all hover:bg-primary-50 hover:text-primary-600 group-hover/chunk:opacity-100"
+        title="이 위치에 코멘트 추가"
+      >
+        <MessageSquarePlus className="h-3 w-3" />
+        코멘트
+      </button>
     </div>
   );
 }

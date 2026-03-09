@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Document, DocumentStatus } from '@/lib/types';
-import { documentsApi } from '@/lib/api';
+import { Document, DocumentStatus, ReviewStatus } from '@/lib/types';
+import { documentsApi, documentReviewApi } from '@/lib/api';
 import { subscribeDocumentStatus } from '@/lib/sse';
 
 export interface UploadingFile {
@@ -25,6 +25,8 @@ interface DocumentState {
   deleteDocument: (id: string) => Promise<void>;
   setPendingDelete: (id: string | null) => void;
   clearError: () => void;
+  requestReview: (documentId: string) => Promise<void>;
+  submitReview: (documentId: string, status: ReviewStatus) => Promise<void>;
 }
 
 // Track SSE cleanups outside of state to avoid re-renders
@@ -195,5 +197,50 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  requestReview: async (documentId: string) => {
+    try {
+      const result = await documentReviewApi.requestReview(documentId);
+      set((state) => ({
+        documents: state.documents.map((d) =>
+          d.id === documentId ? { ...d, reviewStatus: result.reviewStatus } : d,
+        ),
+      }));
+      // Also update viewerStore documentDetail
+      try {
+        const { useViewerStore } = require('@/stores/viewerStore');
+        const vs = useViewerStore.getState();
+        if (vs.documentId === documentId && vs.documentDetail) {
+          useViewerStore.setState({
+            documentDetail: { ...vs.documentDetail, reviewStatus: result.reviewStatus },
+          });
+        }
+      } catch { /* viewer store not available */ }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
+  },
+
+  submitReview: async (documentId: string, status: ReviewStatus) => {
+    try {
+      const result = await documentReviewApi.submitReview(documentId, status);
+      set((state) => ({
+        documents: state.documents.map((d) =>
+          d.id === documentId ? { ...d, reviewStatus: result.reviewStatus } : d,
+        ),
+      }));
+      try {
+        const { useViewerStore } = require('@/stores/viewerStore');
+        const vs = useViewerStore.getState();
+        if (vs.documentId === documentId && vs.documentDetail) {
+          useViewerStore.setState({
+            documentDetail: { ...vs.documentDetail, reviewStatus: result.reviewStatus },
+          });
+        }
+      } catch { /* viewer store not available */ }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 }));

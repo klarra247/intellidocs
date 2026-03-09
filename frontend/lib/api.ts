@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
@@ -117,7 +117,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1
 
 // === Documents ===
 export const documentsApi = {
-  list: () => request<Document[]>('/documents'),
+  list: async (): Promise<Document[]> => {
+    const page = await request<{ content: Document[]; totalElements: number }>('/documents');
+    return page.content;
+  },
 
   get: (id: string) => request<DocumentDetail>(`/documents/${id}`),
 
@@ -192,6 +195,55 @@ export const chatApi = {
     request<import('./types').ChatHistoryResponse>(
       `/agent/chat/history?sessionId=${sessionId}`,
     ),
+};
+
+// === Chat Sessions ===
+export const sessionsApi = {
+  list: () => request<SessionSummary[]>('/chat/sessions'),
+
+  share: (id: string) =>
+    request<ShareResponse>(`/chat/sessions/${id}/share`, { method: 'POST' }),
+
+  unshare: (id: string) =>
+    request<ShareResponse>(`/chat/sessions/${id}/unshare`, { method: 'POST' }),
+
+  updateReadStatus: (id: string, messageId: string) =>
+    request<ReadStatusResponse>(`/chat/sessions/${id}/read`, {
+      method: 'PATCH',
+      body: JSON.stringify({ lastReadMessageId: messageId }),
+    }),
+
+  getPinnedMessages: (id: string) =>
+    request<PinnedMessageResponse[]>(`/chat/sessions/${id}/pinned`),
+};
+
+// === Chat Messages ===
+export const messagesApi = {
+  pin: (id: string) =>
+    request<PinResponse>(`/chat/messages/${id}/pin`, { method: 'PATCH' }),
+
+  unpin: (id: string) =>
+    request<PinResponse>(`/chat/messages/${id}/unpin`, { method: 'PATCH' }),
+
+  getComments: (id: string) =>
+    request<CommentResponse[]>(`/chat/messages/${id}/comments`),
+
+  createComment: (id: string, content: string) =>
+    request<CommentResponse>(`/chat/messages/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  updateComment: (msgId: string, commentId: string, content: string) =>
+    request<CommentResponse>(`/chat/messages/${msgId}/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    }),
+
+  deleteComment: (msgId: string, commentId: string) =>
+    request<void>(`/chat/messages/${msgId}/comments/${commentId}`, {
+      method: 'DELETE',
+    }),
 };
 
 // === Reports ===
@@ -275,6 +327,56 @@ export const workspacesApi = {
 
   cancelInvitation: (wsId: string, invitationId: string) =>
     request<void>(`/workspaces/${wsId}/invitations/${invitationId}`, { method: 'DELETE' }),
+};
+
+// === Document Comments ===
+export const documentCommentsApi = {
+  list: (docId: string, resolved?: boolean) =>
+    request<DocumentCommentListResponse>(
+      `/documents/${docId}/comments${resolved != null ? `?resolved=${resolved}` : ''}`,
+    ),
+
+  create: (docId: string, body: { content: string; chunkIndex?: number; pageNumber?: number }) =>
+    request<DocumentCommentResponse>(`/documents/${docId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  update: (docId: string, commentId: string, content: string) =>
+    request<DocumentCommentResponse>(`/documents/${docId}/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    }),
+
+  delete: (docId: string, commentId: string) =>
+    request<void>(`/documents/${docId}/comments/${commentId}`, {
+      method: 'DELETE',
+    }),
+
+  resolve: (docId: string, commentId: string) =>
+    request<DocumentCommentResponse>(`/documents/${docId}/comments/${commentId}/resolve`, {
+      method: 'PATCH',
+    }),
+
+  unresolve: (docId: string, commentId: string) =>
+    request<DocumentCommentResponse>(`/documents/${docId}/comments/${commentId}/unresolve`, {
+      method: 'PATCH',
+    }),
+};
+
+// === Document Review ===
+export const documentReviewApi = {
+  requestReview: (docId: string) =>
+    request<ReviewResponse>(`/documents/${docId}/review-request`, { method: 'POST' }),
+
+  submitReview: (docId: string, status: ReviewStatus) =>
+    request<ReviewResponse>(`/documents/${docId}/review`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  getStatus: (docId: string) =>
+    request<ReviewResponse>(`/documents/${docId}/review`),
 };
 
 // === Invitations ===

@@ -18,6 +18,7 @@ import {
 import { useViewerStore } from '@/stores/viewerStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useAuthStore } from '@/stores/authStore';
+import ReviewStatusBadge from '@/components/viewer/ReviewStatusBadge';
 
 // File type → icon + color
 const fileTypeConfig: Record<
@@ -173,17 +174,20 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
         </div>
       </div>
 
-      {/* Bottom row: status + metadata */}
+      {/* Bottom row: status + review badge + metadata */}
       <div className="mt-3 flex items-center justify-between">
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${stConfig.bg} ${stConfig.text}`}
-        >
-          <StatusIcon
-            className={`h-3 w-3 ${isProcessing ? 'animate-spin' : ''}`}
-            strokeWidth={2}
-          />
-          {stConfig.label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${stConfig.bg} ${stConfig.text}`}
+          >
+            <StatusIcon
+              className={`h-3 w-3 ${isProcessing ? 'animate-spin' : ''}`}
+              strokeWidth={2}
+            />
+            {stConfig.label}
+          </span>
+          <ReviewStatusBadge status={document.reviewStatus} size="sm" />
+        </div>
 
         <span className="text-[11px] text-slate-300">
           {document.createdAt ? formatRelativeDate(document.createdAt) : ''}

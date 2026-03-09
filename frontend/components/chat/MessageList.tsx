@@ -5,10 +5,23 @@ import { MessageSquare, Loader2 } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import MessageBubble from './MessageBubble';
 import ToolIndicator from './ToolIndicator';
+import PinnedMessages from './PinnedMessages';
 
 export default function MessageList() {
-  const { messages, streaming, streamingContent, streamingSources, streamingConfidence, activeTools } =
-    useChatStore();
+  const {
+    messages,
+    streaming,
+    streamingContent,
+    streamingSources,
+    streamingConfidence,
+    activeTools,
+    pinnedMessages,
+    isOwner,
+    isShared,
+    pinMessage,
+    unpinMessage,
+    openCommentPanel,
+  } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -25,6 +38,19 @@ export default function MessageList() {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, streamingContent, activeTools]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const target = el.querySelector(`[data-message-id="${messageId}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('animate-highlight-pulse');
+      setTimeout(() => target.classList.remove('animate-highlight-pulse'), 1500);
+    }
+  }, []);
+
+  const isReadOnly = isShared && !isOwner;
 
   if (messages.length === 0 && !streaming) {
     return (
@@ -50,9 +76,24 @@ export default function MessageList() {
       onScroll={handleScroll}
       className="flex-1 overflow-y-auto"
     >
+      {/* Pinned messages section */}
+      <PinnedMessages
+        pinnedMessages={pinnedMessages}
+        onScrollTo={scrollToMessage}
+      />
+
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+          <MessageBubble
+            key={msg.id}
+            message={msg}
+            isSessionOwner={isOwner}
+            isReadOnly={isReadOnly}
+            onPin={() =>
+              msg.isPinned ? unpinMessage(msg.id) : pinMessage(msg.id)
+            }
+            onComment={() => openCommentPanel(msg.id)}
+          />
         ))}
 
         {/* Loading indicator — before any content or tools arrive */}

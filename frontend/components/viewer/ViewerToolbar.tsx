@@ -7,8 +7,15 @@ import {
   ChevronRight,
   ZoomIn,
   ZoomOut,
+  Send,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
+import { useDocumentStore } from '@/stores/documentStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+import ReviewStatusBadge from './ReviewStatusBadge';
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.0;
@@ -28,9 +35,16 @@ export default function ViewerToolbar() {
 
   const viewerTitle = useViewerStore((s) => s.viewerTitle);
   const directFileUrl = useViewerStore((s) => s.directFileUrl);
+  const documentId = useViewerStore((s) => s.documentId);
+
+  const requestReview = useDocumentStore((s) => s.requestReview);
+  const submitReview = useDocumentStore((s) => s.submitReview);
+  const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
+  const isTeam = currentWorkspace?.type === 'TEAM';
 
   const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
   const filename = viewerTitle ?? documentDetail?.originalFilename ?? '';
+  const reviewStatus = documentDetail?.reviewStatus ?? 'NONE';
 
   // --- PDF controls ---
   const handlePrevPage = useCallback(() => {
@@ -152,6 +166,57 @@ export default function ViewerToolbar() {
               {sheet.sheetName}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Review controls (team workspace only) */}
+      {isTeam && documentId && !directFileUrl && (
+        <div className="flex items-center gap-1">
+          <div className="mx-1 h-4 w-px bg-slate-200" />
+          {reviewStatus === 'NONE' && (
+            <button
+              onClick={() => requestReview(documentId)}
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+              title="리뷰 요청"
+            >
+              <Send className="h-3.5 w-3.5" />
+              리뷰 요청
+            </button>
+          )}
+          {reviewStatus === 'IN_REVIEW' && (
+            <>
+              <ReviewStatusBadge status={reviewStatus} />
+              <button
+                onClick={() => submitReview(documentId, 'APPROVED')}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-emerald-600 hover:bg-emerald-50"
+                title="승인"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                승인
+              </button>
+              <button
+                onClick={() => submitReview(documentId, 'REJECTED')}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                title="반려"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                반려
+              </button>
+            </>
+          )}
+          {(reviewStatus === 'APPROVED' || reviewStatus === 'REJECTED') && (
+            <>
+              <ReviewStatusBadge status={reviewStatus} />
+              <button
+                onClick={() => requestReview(documentId)}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                title="다시 리뷰 요청"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                다시 요청
+              </button>
+            </>
+          )}
         </div>
       )}
 

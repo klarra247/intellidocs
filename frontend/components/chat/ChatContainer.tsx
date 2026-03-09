@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Plus, AlertCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Plus, AlertCircle, PanelLeftClose, PanelLeftOpen, Share2 } from 'lucide-react';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
+import ReadOnlyBanner from './ReadOnlyBanner';
+import Toast from '@/components/ui/Toast';
 import { useChatStore } from '@/stores/chatStore';
 
 interface ChatContainerProps {
@@ -12,14 +13,10 @@ interface ChatContainerProps {
 }
 
 export default function ChatContainer({ sidebarOpen, onToggleSidebar }: ChatContainerProps) {
-  const { error, clearChat, stopStreaming, streaming, messages } = useChatStore();
+  const { error, clearChat, streaming, messages, isShared, isOwner, creatorName } =
+    useChatStore();
 
-  // Cleanup SSE on unmount
-  useEffect(() => {
-    return () => {
-      stopStreaming();
-    };
-  }, [stopStreaming]);
+  const isReadOnly = isShared && !isOwner;
 
   return (
     <div className="flex h-full flex-col">
@@ -40,6 +37,12 @@ export default function ChatContainer({ sidebarOpen, onToggleSidebar }: ChatCont
             </button>
           )}
           <span className="text-[13px] font-medium text-slate-700">AI 채팅</span>
+          {isShared && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-600">
+              <Share2 className="h-3 w-3" />
+              공유됨
+            </span>
+          )}
         </div>
         <button
           onClick={clearChat}
@@ -50,6 +53,9 @@ export default function ChatContainer({ sidebarOpen, onToggleSidebar }: ChatCont
           새 채팅
         </button>
       </div>
+
+      {/* Read-only banner for shared sessions */}
+      {isReadOnly && <ReadOnlyBanner creatorName={creatorName} />}
 
       {/* Messages */}
       <MessageList />
@@ -62,8 +68,11 @@ export default function ChatContainer({ sidebarOpen, onToggleSidebar }: ChatCont
         </div>
       )}
 
-      {/* Input */}
-      <ChatInput />
+      {/* Input — hidden for read-only shared sessions */}
+      {!isReadOnly && <ChatInput />}
+
+      {/* Toast notifications */}
+      <Toast />
     </div>
   );
 }
