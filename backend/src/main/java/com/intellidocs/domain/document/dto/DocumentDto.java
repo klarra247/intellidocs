@@ -59,6 +59,7 @@ public class DocumentDto {
         private FileType fileType;
         private Long fileSize;
         private DocumentStatus status;
+        private UUID uploaderId;
         private LocalDateTime createdAt;
 
         public static ListResponse from(Document doc) {
@@ -68,6 +69,7 @@ public class DocumentDto {
                     .fileType(doc.getFileType())
                     .fileSize(doc.getFileSize())
                     .status(doc.getStatus())
+                    .uploaderId(doc.getUserId())
                     .createdAt(doc.getCreatedAt())
                     .build();
         }

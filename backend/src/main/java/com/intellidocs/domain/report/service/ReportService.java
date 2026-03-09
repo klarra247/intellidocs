@@ -1,5 +1,6 @@
 package com.intellidocs.domain.report.service;
 
+import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.service.IntelliDocsAgent;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
@@ -70,6 +71,7 @@ public class ReportService {
 
         Report report = Report.builder()
                 .userId(userId)
+                .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
                 .title(request.getTitle())
                 .reportType(request.getReportType())
                 .documentIds(request.getDocumentIds())
@@ -186,6 +188,13 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public List<ReportDto.ListResponse> getReports(UUID userId) {
+        UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+        if (workspaceId != null) {
+            return reportRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId)
+                    .stream()
+                    .map(ReportDto.ListResponse::from)
+                    .toList();
+        }
         return reportRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(ReportDto.ListResponse::from)

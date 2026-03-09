@@ -75,6 +75,14 @@ public class ElasticsearchSearchService {
             ));
         }
 
+        // workspace_id → term filter
+        if (filters.getWorkspaceId() != null) {
+            boolQ.filter(f -> f.term(t -> t
+                    .field("workspace_id")
+                    .value(filters.getWorkspaceId().toString())
+            ));
+        }
+
         // file_type IN [...] → terms filter
         if (filters.getFileTypes() != null && !filters.getFileTypes().isEmpty()) {
             boolQ.filter(f -> f.terms(t -> t

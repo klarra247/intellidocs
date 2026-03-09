@@ -25,6 +25,8 @@ public class Report {
     @Column(nullable = false)
     private UUID userId;
 
+    private UUID workspaceId;
+
     @Column(nullable = false)
     private String title;
 

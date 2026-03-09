@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface ReportRepository extends JpaRepository<Report, UUID> {
     List<Report> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    List<Report> findByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
 }

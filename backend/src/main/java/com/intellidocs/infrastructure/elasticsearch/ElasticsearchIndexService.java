@@ -72,6 +72,7 @@ public class ElasticsearchIndexService {
                         .properties("section_title", p -> p.text(t -> t))
                         .properties("file_type",     p -> p.keyword(k -> k))
                         .properties("chunk_type",    p -> p.keyword(k -> k))
+                        .properties("workspace_id",  p -> p.keyword(k -> k))
                         .properties("created_at",    p -> p.date(d -> d))
                 )
         );
@@ -89,6 +90,7 @@ public class ElasticsearchIndexService {
                         .properties("section_title", p -> p.text(t -> t))
                         .properties("file_type",     p -> p.keyword(k -> k))
                         .properties("chunk_type",    p -> p.keyword(k -> k))
+                        .properties("workspace_id",  p -> p.keyword(k -> k))
                         .properties("created_at",    p -> p.date(d -> d))
                 )
         );
@@ -103,7 +105,8 @@ public class ElasticsearchIndexService {
             String originalFilename,
             String fileType,
             List<ParsingMessage.ChunkData> chunks,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            UUID workspaceId
     ) {
         if (chunks.isEmpty()) return;
 
@@ -112,7 +115,7 @@ public class ElasticsearchIndexService {
 
             for (ParsingMessage.ChunkData chunk : chunks) {
                 final String esDocId = documentId + "_" + chunk.getChunkIndex();
-                final Map<String, Object> doc = buildDoc(documentId, originalFilename, fileType, chunk, createdAt);
+                final Map<String, Object> doc = buildDoc(documentId, originalFilename, fileType, chunk, createdAt, workspaceId);
                 bulk.operations(op -> op
                         .index(idx -> idx
                                 .index(indexName)
@@ -159,7 +162,8 @@ public class ElasticsearchIndexService {
             String originalFilename,
             String fileType,
             ParsingMessage.ChunkData chunk,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            UUID workspaceId
     ) {
         Map<String, Object> doc = new HashMap<>();
         doc.put("chunk_id",      documentId + "_" + chunk.getChunkIndex());
@@ -171,6 +175,9 @@ public class ElasticsearchIndexService {
         doc.put("file_type",     fileType);
         doc.put("chunk_type",    chunk.getChunkType());
         doc.put("created_at",    createdAt != null ? createdAt.toString() : null);
+        if (workspaceId != null) {
+            doc.put("workspace_id", workspaceId.toString());
+        }
         return doc;
     }
 }

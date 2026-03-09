@@ -24,6 +24,8 @@ public class ChatSession {
     @Column(nullable = false)
     private UUID userId;
 
+    private UUID workspaceId;
+
     private String title;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -27,6 +27,8 @@ public class DiscrepancyResult {
     @Column(nullable = false)
     private UUID userId;
 
+    private UUID workspaceId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private List<UUID> documentIds;

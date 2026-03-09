@@ -91,6 +91,10 @@ public class BusinessException extends RuntimeException {
         );
     }
 
+    public static BusinessException forbidden(String message) {
+        return new BusinessException("FORBIDDEN", message, HttpStatus.FORBIDDEN);
+    }
+
     public static BusinessException conflict(String message) {
         return new BusinessException("CONFLICT", message, HttpStatus.CONFLICT);
     }

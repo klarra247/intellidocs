@@ -6,6 +6,8 @@ import com.intellidocs.domain.auth.service.JwtService;
 import com.intellidocs.domain.document.dto.ChunkDto;
 import com.intellidocs.domain.document.entity.DocumentChunk;
 import com.intellidocs.domain.document.service.ChunkService;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
+import com.intellidocs.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,6 +34,12 @@ class ChunkControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private WorkspaceRepository workspaceRepository;
+
+    @MockitoBean
+    private WorkspaceMemberRepository workspaceMemberRepository;
 
     private static final UUID DOC_ID = UUID.randomUUID();
 

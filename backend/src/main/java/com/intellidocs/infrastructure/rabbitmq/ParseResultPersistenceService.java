@@ -89,6 +89,6 @@ public class ParseResultPersistenceService {
                 managed.getId(), result.getChunks().size());
 
         eventPublisher.publishEvent(
-                new DocumentIndexedEvent(this, managed.getId(), managed.getUserId()));
+                new DocumentIndexedEvent(this, managed.getId(), managed.getUserId(), managed.getWorkspaceId()));
     }
 }

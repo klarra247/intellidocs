@@ -1,5 +1,6 @@
 package com.intellidocs.domain.discrepancy.service;
 
+import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.discrepancy.dto.DiscrepancyDto;
 import com.intellidocs.domain.discrepancy.entity.DiscrepancyResult;
@@ -42,6 +43,7 @@ public class DiscrepancyService {
 
         DiscrepancyResult result = DiscrepancyResult.builder()
                 .userId(userId)
+                .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
                 .documentIds(request.getDocumentIds())
                 .targetFields(request.getTargetFields())
                 .tolerance(tolerance)
@@ -184,6 +186,7 @@ public class DiscrepancyService {
         // DB 저장
         DiscrepancyResult result = DiscrepancyResult.builder()
                 .userId(userId)
+                .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
                 .documentIds(documentIds)
                 .targetFields(targetFields)
                 .tolerance(new BigDecimal(String.valueOf(tolerance)))
@@ -204,6 +207,13 @@ public class DiscrepancyService {
 
     @Transactional(readOnly = true)
     public List<DiscrepancyResult> getRecent(TriggerType triggerType, UUID userId) {
+        UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+        if (workspaceId != null) {
+            if (triggerType != null) {
+                return discrepancyResultRepository.findTop10ByWorkspaceIdAndTriggerTypeOrderByCreatedAtDesc(workspaceId, triggerType);
+            }
+            return discrepancyResultRepository.findTop10ByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+        }
         if (triggerType != null) {
             return discrepancyResultRepository.findTop10ByUserIdAndTriggerTypeOrderByCreatedAtDesc(userId, triggerType);
         }

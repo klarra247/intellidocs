@@ -10,6 +10,8 @@ import com.intellidocs.domain.agent.service.AgentService;
 import com.intellidocs.domain.agent.service.StreamingAgentService;
 import com.intellidocs.domain.chat.dto.ChatHistoryResponse;
 import com.intellidocs.domain.chat.service.ChatHistoryService;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
+import com.intellidocs.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,6 +51,12 @@ class AgentControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private WorkspaceRepository workspaceRepository;
+
+    @MockitoBean
+    private WorkspaceMemberRepository workspaceMemberRepository;
 
     @Test
     void chat_returnsOk() throws Exception {

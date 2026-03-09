@@ -10,10 +10,12 @@ public class DocumentIndexedEvent extends ApplicationEvent {
 
     private final UUID documentId;
     private final UUID userId;
+    private final UUID workspaceId;
 
-    public DocumentIndexedEvent(Object source, UUID documentId, UUID userId) {
+    public DocumentIndexedEvent(Object source, UUID documentId, UUID userId, UUID workspaceId) {
         super(source);
         this.documentId = documentId;
         this.userId = userId;
+        this.workspaceId = workspaceId;
     }
 }

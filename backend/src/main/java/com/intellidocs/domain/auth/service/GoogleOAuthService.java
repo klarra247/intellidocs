@@ -11,6 +11,7 @@ import com.intellidocs.domain.auth.entity.RefreshToken;
 import com.intellidocs.domain.auth.entity.User;
 import com.intellidocs.domain.auth.repository.RefreshTokenRepository;
 import com.intellidocs.domain.auth.repository.UserRepository;
+import com.intellidocs.domain.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class GoogleOAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final WorkspaceService workspaceService;
 
     /**
      * Google ID Token 검증 + 로그인/회원가입
@@ -81,6 +83,7 @@ public class GoogleOAuthService {
                 .emailVerified(true)
                 .build();
         userRepository.save(newUser);
+        workspaceService.createPersonalWorkspace(newUser);
         log.info("New Google user registered: email={}", email);
         return createAuthResponse(newUser);
     }

@@ -32,6 +32,14 @@ INSERT INTO users (id, email, name, password_hash, auth_provider, email_verified
     ('00000000-0000-0000-0000-000000000001', 'dev@intellidocs.local', 'Dev User',
      '$2a$10$dummyhashfordevuser000000000000000000000000', 'LOCAL', TRUE, 'ADMIN', 'pro');
 
+-- 개발용 개인 워크스페이스
+INSERT INTO workspaces (id, name, owner_id, type, max_members) VALUES
+    ('00000000-0000-0000-0000-000000000010', 'Dev User의 워크스페이스',
+     '00000000-0000-0000-0000-000000000001', 'PERSONAL', 1);
+
+INSERT INTO workspace_members (workspace_id, user_id, role) VALUES
+    ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000001', 'OWNER');
+
 -- ─────────────────────────────────────────
 -- 리프레시 토큰
 -- ─────────────────────────────────────────
@@ -47,21 +55,56 @@ CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 
 -- ─────────────────────────────────────────
--- 워크스페이스 (팀 단위 - V2에서 확장)
+-- 워크스페이스
 -- ─────────────────────────────────────────
 CREATE TABLE workspaces (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name        VARCHAR(255) NOT NULL,
-    owner_id    UUID REFERENCES users(id),
-    created_at  TIMESTAMP DEFAULT NOW()
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name            VARCHAR(255) NOT NULL,
+    description     TEXT,
+    owner_id        UUID REFERENCES users(id),
+    type            VARCHAR(20) NOT NULL DEFAULT 'PERSONAL',
+    max_members     INTEGER DEFAULT 1,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
 );
+
+-- ─────────────────────────────────────────
+-- 워크스페이스 멤버
+-- ─────────────────────────────────────────
+CREATE TABLE workspace_members (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id    UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role            VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    joined_at       TIMESTAMP DEFAULT NOW(),
+    UNIQUE(workspace_id, user_id)
+);
+CREATE INDEX idx_workspace_members_workspace ON workspace_members(workspace_id);
+CREATE INDEX idx_workspace_members_user ON workspace_members(user_id);
+
+-- ─────────────────────────────────────────
+-- 워크스페이스 초대
+-- ─────────────────────────────────────────
+CREATE TABLE workspace_invitations (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id    UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    inviter_id      UUID NOT NULL REFERENCES users(id),
+    email           VARCHAR(255) NOT NULL,
+    role            VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    status          VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    token           VARCHAR(128) NOT NULL UNIQUE,
+    expires_at      TIMESTAMP NOT NULL,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_workspace_invitations_token ON workspace_invitations(token);
+CREATE INDEX idx_workspace_invitations_email ON workspace_invitations(email);
 
 -- ─────────────────────────────────────────
 -- 문서
 -- ─────────────────────────────────────────
 CREATE TABLE documents (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id    UUID REFERENCES workspaces(id),
+    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     user_id         UUID REFERENCES users(id),
     filename            VARCHAR(500) NOT NULL,
     original_filename   VARCHAR(500) NOT NULL,
@@ -102,7 +145,7 @@ CREATE INDEX idx_chunks_document ON document_chunks(document_id);
 -- ─────────────────────────────────────────
 CREATE TABLE chat_sessions (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id    UUID REFERENCES workspaces(id),
+    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     user_id         UUID REFERENCES users(id),
     title           VARCHAR(500),             -- 첫 질문 기반 자동 생성
     created_at      TIMESTAMP DEFAULT NOW(),
@@ -146,6 +189,7 @@ CREATE TABLE parsing_jobs (
 CREATE TABLE reports (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID REFERENCES users(id),
+    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     title           VARCHAR(500) NOT NULL,
     report_type     VARCHAR(50) NOT NULL,
     status          VARCHAR(50) DEFAULT 'PENDING',
@@ -166,6 +210,7 @@ CREATE INDEX idx_reports_user ON reports(user_id);
 CREATE TABLE discrepancy_results (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID NOT NULL REFERENCES users(id),
+    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     document_ids    JSONB NOT NULL,
     target_fields   JSONB,
     tolerance       DECIMAL(5,4) NOT NULL DEFAULT 0.001,

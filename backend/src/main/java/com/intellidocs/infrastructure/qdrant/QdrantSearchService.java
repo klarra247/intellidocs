@@ -89,6 +89,11 @@ public class QdrantSearchService {
             fb.addMust(Condition.newBuilder().setFilter(group.build()).build());
         }
 
+        // workspaceId → exact match
+        if (filters.getWorkspaceId() != null) {
+            fb.addMust(matchKeyword("workspace_id", filters.getWorkspaceId().toString()));
+        }
+
         // fileTypes → OR-group wrapped in must
         if (filters.getFileTypes() != null && !filters.getFileTypes().isEmpty()) {
             Filter.Builder group = Filter.newBuilder();

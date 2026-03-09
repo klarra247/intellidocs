@@ -1,5 +1,6 @@
 package com.intellidocs.domain.chat.service;
 
+import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.chat.dto.ChatHistoryResponse;
@@ -33,13 +34,10 @@ public class ChatHistoryService {
     }
 
     private ChatSession createSession(UUID userId) {
-        // Always let @GeneratedValue handle ID generation.
-        // Manually setting the ID on a @GeneratedValue entity causes
-        // Spring Data to call merge() instead of persist(), which can
-        // fail or generate a different ID.
         return chatSessionRepository.save(
                 ChatSession.builder()
                         .userId(userId)
+                        .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
                         .build());
     }
 

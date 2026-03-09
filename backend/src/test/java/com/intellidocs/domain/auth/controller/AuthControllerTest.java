@@ -6,6 +6,8 @@ import com.intellidocs.domain.auth.dto.AuthDto;
 import com.intellidocs.domain.auth.service.AuthService;
 import com.intellidocs.domain.auth.service.GoogleOAuthService;
 import com.intellidocs.domain.auth.service.JwtService;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
+import com.intellidocs.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -41,6 +43,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private WorkspaceRepository workspaceRepository;
+
+    @MockitoBean
+    private WorkspaceMemberRepository workspaceMemberRepository;
 
     // === Helper builders ===
 

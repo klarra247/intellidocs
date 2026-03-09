@@ -86,7 +86,8 @@ public class QdrantIndexService {
             String originalFilename,
             String fileType,
             List<ParsingMessage.ChunkData> chunks,
-            List<float[]> embeddings
+            List<float[]> embeddings,
+            UUID workspaceId
     ) {
         if (chunks.size() != embeddings.size()) {
             throw new IllegalArgumentException(String.format(
@@ -109,6 +110,9 @@ public class QdrantIndexService {
             payload.put("chunk_type", value(chunk.getChunkType()));
             if (chunk.getSectionTitle() != null) {
                 payload.put("section_title", value(chunk.getSectionTitle()));
+            }
+            if (workspaceId != null) {
+                payload.put("workspace_id", value(workspaceId.toString()));
             }
 
             points.add(PointStruct.newBuilder()

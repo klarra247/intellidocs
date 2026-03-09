@@ -28,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final WorkspaceContextFilter workspaceContextFilter;
     private final ObjectMapper objectMapper;
 
     @Value("${app.auth.dev-mode:true}")
@@ -63,7 +64,8 @@ public class SecurityConfig {
                                     ApiResponse.error("FORBIDDEN", "접근 권한이 없습니다")));
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(workspaceContextFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

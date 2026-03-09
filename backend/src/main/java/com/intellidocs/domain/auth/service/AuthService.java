@@ -7,6 +7,7 @@ import com.intellidocs.domain.auth.entity.RefreshToken;
 import com.intellidocs.domain.auth.entity.User;
 import com.intellidocs.domain.auth.repository.RefreshTokenRepository;
 import com.intellidocs.domain.auth.repository.UserRepository;
+import com.intellidocs.domain.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final RateLimitService rateLimitService;
+    private final WorkspaceService workspaceService;
 
     @Transactional
     public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
@@ -44,9 +46,12 @@ public class AuthService {
                 .build();
         userRepository.save(user);
 
+        // 3. Create personal workspace
+        workspaceService.createPersonalWorkspace(user);
+
         log.info("New user registered: email={}", request.email());
 
-        // 3. Generate tokens + return
+        // 4. Generate tokens + return
         return createAuthResponse(user);
     }
 

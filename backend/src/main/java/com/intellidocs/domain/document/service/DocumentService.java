@@ -1,5 +1,6 @@
 package com.intellidocs.domain.document.service;
 
+import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.RabbitMQConfig;
 import com.intellidocs.domain.document.dto.DocumentDto;
@@ -72,6 +73,7 @@ public class DocumentService {
         // 3. DB 저장
         Document document = Document.builder()
                 .userId(userId)
+                .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
                 .filename(storedFilename)
                 .originalFilename(originalFilename)
                 .fileType(fileType)
@@ -120,6 +122,12 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public List<DocumentDto.ListResponse> getDocuments(UUID userId) {
+        UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+        if (workspaceId != null) {
+            return documentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId).stream()
+                    .map(DocumentDto.ListResponse::from)
+                    .collect(Collectors.toList());
+        }
         return documentRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(DocumentDto.ListResponse::from)
                 .collect(Collectors.toList());

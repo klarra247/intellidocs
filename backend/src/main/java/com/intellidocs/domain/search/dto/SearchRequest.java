@@ -35,6 +35,7 @@ public class SearchRequest {
         private List<UUID> documentIds;
         private List<String> fileTypes;
         private DateRange dateRange;
+        private UUID workspaceId;
     }
 
     @Getter

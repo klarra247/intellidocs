@@ -44,8 +44,14 @@ public class DiscrepancyAutoDetectListener {
                 }
             }
 
-            // INDEXED 문서 조회 — 동일 유저 소유 문서만 (최대 10개, 최근순)
-            List<Document> indexed = documentRepository.findByUserIdAndStatus(userId, DocumentStatus.INDEXED);
+            // INDEXED 문서 조회 — 동일 워크스페이스 내 문서 우선, 없으면 유저 기준 (최대 10개)
+            UUID workspaceId = event.getWorkspaceId();
+            List<Document> indexed;
+            if (workspaceId != null) {
+                indexed = documentRepository.findByWorkspaceIdAndStatus(workspaceId, DocumentStatus.INDEXED);
+            } else {
+                indexed = documentRepository.findByUserIdAndStatus(userId, DocumentStatus.INDEXED);
+            }
             if (indexed.size() < 2) {
                 log.info("[AutoDetect] Skipping — fewer than 2 INDEXED documents for user {}", userId);
                 return;
