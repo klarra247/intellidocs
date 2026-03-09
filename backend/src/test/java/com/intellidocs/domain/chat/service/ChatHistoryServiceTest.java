@@ -2,11 +2,14 @@ package com.intellidocs.domain.chat.service;
 
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.SourceInfo;
+import com.intellidocs.domain.auth.repository.UserRepository;
 import com.intellidocs.domain.chat.dto.ChatHistoryResponse;
 import com.intellidocs.domain.chat.entity.ChatMessage;
 import com.intellidocs.domain.chat.entity.ChatSession;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.ChatSessionRepository;
+import com.intellidocs.domain.chat.repository.CommentRepository;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,12 +31,19 @@ class ChatHistoryServiceTest {
 
     @Mock private ChatSessionRepository chatSessionRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
+    @Mock private CommentRepository commentRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private SessionAccessService sessionAccessService;
+    @Mock private DocumentRepository documentRepository;
 
     private ChatHistoryService chatHistoryService;
 
     @BeforeEach
     void setUp() {
-        chatHistoryService = new ChatHistoryService(chatSessionRepository, chatMessageRepository);
+        chatHistoryService = new ChatHistoryService(
+                chatSessionRepository, chatMessageRepository,
+                commentRepository, userRepository, sessionAccessService,
+                documentRepository);
     }
 
     @Test
@@ -43,7 +53,7 @@ class ChatHistoryServiceTest {
         when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.of(existing));
 
         UUID userId = UUID.randomUUID();
-        ChatSession result = chatHistoryService.getOrCreateSession(sessionId, userId);
+        ChatSession result = chatHistoryService.getOrCreateSession(sessionId, userId, null);
 
         assertThat(result.getId()).isEqualTo(sessionId);
         verify(chatSessionRepository, never()).save(any());
@@ -56,7 +66,7 @@ class ChatHistoryServiceTest {
         when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.empty());
         when(chatSessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        chatHistoryService.getOrCreateSession(sessionId, userId);
+        chatHistoryService.getOrCreateSession(sessionId, userId, null);
 
         ArgumentCaptor<ChatSession> captor = ArgumentCaptor.forClass(ChatSession.class);
         verify(chatSessionRepository).save(captor.capture());
@@ -69,7 +79,7 @@ class ChatHistoryServiceTest {
         UUID userId = UUID.randomUUID();
         when(chatSessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        chatHistoryService.getOrCreateSession(null, userId);
+        chatHistoryService.getOrCreateSession(null, userId, null);
 
         verify(chatSessionRepository).save(any());
         verify(chatSessionRepository, never()).findById(any());
@@ -81,7 +91,7 @@ class ChatHistoryServiceTest {
                 .id(UUID.randomUUID()).userId(UUID.randomUUID()).build();
         when(chatMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        chatHistoryService.saveUserMessage(session, "질문입니다");
+        chatHistoryService.saveUserMessage(session, "질문입니다", null);
 
         ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
         verify(chatMessageRepository).save(captor.capture());
@@ -116,8 +126,9 @@ class ChatHistoryServiceTest {
     @Test
     void persistConversation_savesSessionAndBothMessages() {
         UUID sessionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         ChatSession session = ChatSession.builder()
-                .id(sessionId).userId(UUID.randomUUID()).build();
+                .id(sessionId).userId(userId).build();
         when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
         when(chatMessageRepository.save(any())).thenAnswer(inv -> {
             ChatMessage msg = inv.getArgument(0);
@@ -129,7 +140,6 @@ class ChatHistoryServiceTest {
                     .build();
         });
 
-        UUID userId = UUID.randomUUID();
         ChatHistoryService.PersistResult result = chatHistoryService.persistConversation(
                 sessionId, "매출이 얼마?", "150억원입니다.", List.of(), 0.8, userId);
 
@@ -164,9 +174,11 @@ class ChatHistoryServiceTest {
     @Test
     void getHistory_sessionNotFound_throwsException() {
         UUID sessionId = UUID.randomUUID();
-        when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+        UUID userId = UUID.randomUUID();
+        when(sessionAccessService.getSessionWithAccessCheck(sessionId, userId))
+                .thenThrow(BusinessException.notFound("ChatSession", sessionId));
 
-        assertThatThrownBy(() -> chatHistoryService.getHistory(sessionId))
+        assertThatThrownBy(() -> chatHistoryService.getHistory(sessionId, userId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("not found");
     }
@@ -174,9 +186,10 @@ class ChatHistoryServiceTest {
     @Test
     void getHistory_returnsMessagesInOrder() {
         UUID sessionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         ChatSession session = ChatSession.builder()
-                .id(sessionId).userId(UUID.randomUUID()).title("테스트 세션").build();
-        when(chatSessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+                .id(sessionId).userId(userId).title("테스트 세션").build();
+        when(sessionAccessService.getSessionWithAccessCheck(sessionId, userId)).thenReturn(session);
 
         ChatMessage userMsg = ChatMessage.builder()
                 .id(UUID.randomUUID()).session(session).role(ChatMessage.Role.USER)
@@ -188,7 +201,7 @@ class ChatHistoryServiceTest {
         when(chatMessageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId))
                 .thenReturn(List.of(userMsg, assistantMsg));
 
-        ChatHistoryResponse response = chatHistoryService.getHistory(sessionId);
+        ChatHistoryResponse response = chatHistoryService.getHistory(sessionId, userId);
 
         assertThat(response.getSessionId()).isEqualTo(sessionId);
         assertThat(response.getTitle()).isEqualTo("테스트 세션");

@@ -23,7 +23,12 @@ public class ChatHistoryResponse {
         private String role;
         private String content;
         private List<ChatMessage.SourceChunk> sourceChunks;
+        private List<ChatMessage.SelectedDocument> selectedDocuments;
         private Double confidence;
+        private boolean isPinned;
+        private UUID pinnedBy;
+        private LocalDateTime pinnedAt;
+        private long commentCount;
         private LocalDateTime createdAt;
     }
 }

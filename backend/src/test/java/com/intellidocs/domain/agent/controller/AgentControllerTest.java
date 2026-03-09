@@ -129,7 +129,7 @@ class AgentControllerTest {
                 .title("테스트")
                 .messages(List.of())
                 .build();
-        when(chatHistoryService.getHistory(sessionId)).thenReturn(history);
+        when(chatHistoryService.getHistory(any(UUID.class), any(UUID.class))).thenReturn(history);
 
         mockMvc.perform(get("/api/v1/agent/chat/history")
                         .param("sessionId", sessionId.toString()))

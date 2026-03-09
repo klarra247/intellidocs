@@ -37,13 +37,50 @@ public class ChatMessage {
     @Column(columnDefinition = "jsonb")
     private List<SourceChunk> sourceChunks;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<SelectedDocument> selectedDocuments;
+
     private Double confidence;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isPinned = false;
+
+    private UUID pinnedBy;
+
+    private LocalDateTime pinnedAt;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    public void pin(UUID userId) {
+        this.isPinned = true;
+        this.pinnedBy = userId;
+        this.pinnedAt = LocalDateTime.now();
+    }
+
+    public void unpin() {
+        this.isPinned = false;
+        this.pinnedBy = null;
+        this.pinnedAt = null;
+    }
+
+    public boolean isAssistantMessage() {
+        return this.role == Role.ASSISTANT;
+    }
+
     public enum Role {
         USER, ASSISTANT
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SelectedDocument {
+        private String id;
+        private String filename;
     }
 
     @Data

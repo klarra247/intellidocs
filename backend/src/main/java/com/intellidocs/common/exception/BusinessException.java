@@ -102,4 +102,33 @@ public class BusinessException extends RuntimeException {
     public static BusinessException tooManyRequests(String message) {
         return new BusinessException("TOO_MANY_REQUESTS", message, HttpStatus.TOO_MANY_REQUESTS);
     }
+
+    public static BusinessException personalWorkspaceRestriction(String action) {
+        return new BusinessException(
+                "PERSONAL_WORKSPACE",
+                "개인 워크스페이스에서는 " + action + "을(를) 사용할 수 없습니다",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    public static BusinessException cannotPinUserMessage() {
+        return new BusinessException(
+                "CANNOT_PIN_USER_MESSAGE",
+                "사용자 메시지는 핀할 수 없습니다. AI 응답만 핀할 수 있습니다",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    public static BusinessException pinLimitExceeded(int max) {
+        return new BusinessException(
+                "PIN_LIMIT_EXCEEDED",
+                "세션당 최대 " + max + "개의 메시지만 핀할 수 있습니다",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    public static BusinessException commentLimitExceeded(int max) {
+        return new BusinessException("COMMENT_LIMIT_EXCEEDED",
+            "문서당 최대 " + max + "개의 코멘트만 작성할 수 있습니다", HttpStatus.BAD_REQUEST);
+    }
 }

@@ -12,7 +12,7 @@ spring:
     password: ${DB_PASSWORD:intellidocs_secret}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 15
       minimum-idle: 5
       connection-timeout: 30000
 
@@ -159,6 +159,10 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+
+app:
+  auth:
+    dev-mode: false
 
 logging:
   level:

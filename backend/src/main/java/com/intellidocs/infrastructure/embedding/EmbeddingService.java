@@ -52,6 +52,8 @@ public class EmbeddingService {
      * OpenAI Embeddings API를 호출해 텍스트 배치를 임베딩합니다.
      * API 키 미설정 또는 호출 실패 시 빈 리스트를 반환합니다.
      */
+    private static final int BATCH_SIZE = 20;
+
     public List<float[]> embedBatch(List<String> texts) {
         if (restClient == null) {
             log.warn("[Embedding] Model not initialized — skipping embedding for {} texts", texts.size());
@@ -60,6 +62,20 @@ public class EmbeddingService {
         if (texts.isEmpty()) {
             return List.of();
         }
+
+        List<float[]> allEmbeddings = new java.util.ArrayList<>();
+        for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
+            List<String> batch = texts.subList(i, Math.min(i + BATCH_SIZE, texts.size()));
+            List<float[]> batchResult = embedSingleBatch(batch);
+            if (batchResult.isEmpty()) {
+                return List.of();
+            }
+            allEmbeddings.addAll(batchResult);
+        }
+        return allEmbeddings;
+    }
+
+    private List<float[]> embedSingleBatch(List<String> texts) {
         try {
             OpenAiEmbedRequest req = new OpenAiEmbedRequest(modelName, texts);
             OpenAiEmbedResponse resp = restClient.post()
@@ -72,7 +88,6 @@ public class EmbeddingService {
                 return List.of();
             }
 
-            // index 순서 보장 후 float[] 변환
             return resp.data().stream()
                     .sorted(Comparator.comparingInt(OpenAiEmbedding::index))
                     .map(e -> toFloatArray(e.embedding()))

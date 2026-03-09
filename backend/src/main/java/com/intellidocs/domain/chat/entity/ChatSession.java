@@ -28,6 +28,15 @@ public class ChatSession {
 
     private String title;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isShared = false;
+
+    private LocalDateTime sharedAt;
+
+    @Column(length = 100)
+    private String creatorName;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     @Builder.Default
@@ -38,5 +47,19 @@ public class ChatSession {
 
     public void updateTitle(String title) {
         this.title = title;
+    }
+
+    public void share() {
+        this.isShared = true;
+        this.sharedAt = LocalDateTime.now();
+    }
+
+    public void unshare() {
+        this.isShared = false;
+        this.sharedAt = null;
+    }
+
+    public boolean isCreator(UUID userId) {
+        return this.userId.equals(userId);
     }
 }

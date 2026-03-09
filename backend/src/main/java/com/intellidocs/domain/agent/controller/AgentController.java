@@ -52,7 +52,8 @@ public class AgentController {
     public ResponseEntity<ApiResponse<ChatHistoryResponse>> getChatHistory(
             @RequestParam UUID sessionId) {
         log.info("[AgentController] history sessionId={}", sessionId);
-        ChatHistoryResponse history = chatHistoryService.getHistory(sessionId);
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        ChatHistoryResponse history = chatHistoryService.getHistory(sessionId, userId);
         return ResponseEntity.ok(ApiResponse.ok(history));
     }
 }

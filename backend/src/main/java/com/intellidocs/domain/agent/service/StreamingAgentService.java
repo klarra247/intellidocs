@@ -21,6 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.intellidocs.common.WorkspaceContext;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +58,9 @@ public class StreamingAgentService {
     private static final int MAX_QUESTION_LENGTH = 2000;
 
     public SseEmitter streamChat(AgentRequest request, UUID userId) {
+        // Capture workspace ID from request thread (ThreadLocal) before async handoff
+        final UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+
         // 1. Validate
         if (request.getQuestion() == null || request.getQuestion().isBlank()) {
             throw BusinessException.badRequest("질문을 입력해 주세요.");
@@ -106,10 +111,11 @@ public class StreamingAgentService {
         }
         String userMessage = question;
         if (request.getDocumentIds() != null && !request.getDocumentIds().isEmpty()) {
-            String idList = request.getDocumentIds().stream()
-                    .map(UUID::toString)
+            // Resolve filenames so the LLM references documents by name, not UUID
+            String docList = documentRepository.findAllById(request.getDocumentIds()).stream()
+                    .map(doc -> doc.getOriginalFilename() + " (" + doc.getId() + ")")
                     .collect(Collectors.joining(", "));
-            userMessage += "\n[검색 대상 문서 ID: " + idList + "]";
+            userMessage += "\n[검색 대상 문서: " + docList + "]";
         }
 
         // 7. Start streaming
@@ -160,7 +166,8 @@ public class StreamingAgentService {
                                     chatHistoryService.persistConversation(
                                             request.getSessionId(),
                                             request.getQuestion(),
-                                            fullAnswer, sources, confidence, userId);
+                                            fullAnswer, sources, confidence, userId,
+                                            workspaceId, request.getDocumentIds());
 
                             doneData.put("messageId", result.assistantMessage().getId().toString());
                             doneData.put("sessionId", result.session().getId().toString());

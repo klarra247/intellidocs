@@ -3,11 +3,15 @@ package com.intellidocs.domain.chat.service;
 import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.dto.SourceInfo;
+import com.intellidocs.domain.auth.entity.User;
+import com.intellidocs.domain.auth.repository.UserRepository;
 import com.intellidocs.domain.chat.dto.ChatHistoryResponse;
 import com.intellidocs.domain.chat.entity.ChatMessage;
 import com.intellidocs.domain.chat.entity.ChatSession;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.ChatSessionRepository;
+import com.intellidocs.domain.chat.repository.CommentRepository;
+import com.intellidocs.domain.document.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,30 +27,46 @@ public class ChatHistoryService {
 
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
+    private final SessionAccessService sessionAccessService;
+    private final DocumentRepository documentRepository;
 
     @Transactional
-    public ChatSession getOrCreateSession(UUID sessionId, UUID userId) {
+    public ChatSession getOrCreateSession(UUID sessionId, UUID userId, UUID workspaceId) {
         if (sessionId != null) {
             return chatSessionRepository.findById(sessionId)
-                    .orElseGet(() -> createSession(userId));
+                    .orElseGet(() -> createSession(userId, workspaceId));
         }
-        return createSession(userId);
+        return createSession(userId, workspaceId);
     }
 
-    private ChatSession createSession(UUID userId) {
+    private ChatSession createSession(UUID userId, UUID workspaceId) {
+        String creatorName = userRepository.findById(userId)
+                .map(User::getName)
+                .orElse(null);
+
+        // workspaceId가 명시적으로 전달되지 않으면 ThreadLocal fallback
+        UUID resolvedWorkspaceId = workspaceId != null
+                ? workspaceId
+                : WorkspaceContext.getCurrentWorkspaceId();
+
         return chatSessionRepository.save(
                 ChatSession.builder()
                         .userId(userId)
-                        .workspaceId(WorkspaceContext.getCurrentWorkspaceId())
+                        .workspaceId(resolvedWorkspaceId)
+                        .creatorName(creatorName)
                         .build());
     }
 
     @Transactional
-    public ChatMessage saveUserMessage(ChatSession session, String content) {
+    public ChatMessage saveUserMessage(ChatSession session, String content,
+                                        List<ChatMessage.SelectedDocument> selectedDocuments) {
         ChatMessage message = ChatMessage.builder()
                 .session(session)
                 .role(ChatMessage.Role.USER)
                 .content(content)
+                .selectedDocuments(selectedDocuments)
                 .build();
         return chatMessageRepository.save(message);
     }
@@ -96,8 +116,45 @@ public class ChatHistoryService {
     public PersistResult persistConversation(UUID sessionId, String question,
                                               String answer, List<SourceInfo> sources,
                                               double confidence, UUID userId) {
-        ChatSession session = getOrCreateSession(sessionId, userId);
-        saveUserMessage(session, question);
+        return persistConversation(sessionId, question, answer, sources, confidence, userId, null, null);
+    }
+
+    /**
+     * Overload that accepts explicit workspaceId for async contexts (e.g. SSE callbacks)
+     * where ThreadLocal WorkspaceContext is unavailable.
+     */
+    @Transactional
+    public PersistResult persistConversation(UUID sessionId, String question,
+                                              String answer, List<SourceInfo> sources,
+                                              double confidence, UUID userId,
+                                              UUID workspaceId) {
+        return persistConversation(sessionId, question, answer, sources, confidence, userId, workspaceId, null);
+    }
+
+    @Transactional
+    public PersistResult persistConversation(UUID sessionId, String question,
+                                              String answer, List<SourceInfo> sources,
+                                              double confidence, UUID userId,
+                                              UUID workspaceId, List<UUID> documentIds) {
+        ChatSession session = getOrCreateSession(sessionId, userId, workspaceId);
+
+        // 공유 세션에 비생성자가 쓰기 시도하면 차단
+        if (sessionId != null && !session.isCreator(userId)) {
+            throw BusinessException.forbidden("공유 세션에 메시지를 작성할 수 없습니다");
+        }
+
+        // Resolve documentIds to SelectedDocument snapshots
+        List<ChatMessage.SelectedDocument> selectedDocuments = null;
+        if (documentIds != null && !documentIds.isEmpty()) {
+            selectedDocuments = documentRepository.findAllById(documentIds).stream()
+                    .map(doc -> ChatMessage.SelectedDocument.builder()
+                            .id(doc.getId().toString())
+                            .filename(doc.getOriginalFilename())
+                            .build())
+                    .toList();
+        }
+
+        saveUserMessage(session, question, selectedDocuments);
         ChatMessage assistantMsg = saveAssistantMessage(session, answer, sources, confidence);
         updateSessionTitle(session, question);
         return new PersistResult(session, assistantMsg);
@@ -106,9 +163,8 @@ public class ChatHistoryService {
     public record PersistResult(ChatSession session, ChatMessage assistantMessage) {}
 
     @Transactional(readOnly = true)
-    public ChatHistoryResponse getHistory(UUID sessionId) {
-        ChatSession session = chatSessionRepository.findById(sessionId)
-                .orElseThrow(() -> BusinessException.notFound("ChatSession", sessionId));
+    public ChatHistoryResponse getHistory(UUID sessionId, UUID userId) {
+        ChatSession session = sessionAccessService.getSessionWithAccessCheck(sessionId, userId);
 
         List<ChatMessage> messages = chatMessageRepository
                 .findBySessionIdOrderByCreatedAtAsc(sessionId);
@@ -119,7 +175,12 @@ public class ChatHistoryService {
                         .role(m.getRole().name())
                         .content(m.getContent())
                         .sourceChunks(m.getSourceChunks())
+                        .selectedDocuments(m.getSelectedDocuments())
                         .confidence(m.getConfidence())
+                        .isPinned(Boolean.TRUE.equals(m.getIsPinned()))
+                        .pinnedBy(m.getPinnedBy())
+                        .pinnedAt(m.getPinnedAt())
+                        .commentCount(commentRepository.countByMessageId(m.getId()))
                         .createdAt(m.getCreatedAt())
                         .build())
                 .toList();
