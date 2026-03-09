@@ -2,33 +2,51 @@ package com.intellidocs.domain.search.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.domain.search.dto.SearchRequest;
 import com.intellidocs.domain.search.dto.SearchResponse;
 import com.intellidocs.domain.search.dto.SearchResult;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchSearchService;
 import com.intellidocs.infrastructure.qdrant.QdrantSearchService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class HybridSearchService {
 
     private final QdrantSearchService qdrantSearchService;
     private final ElasticsearchSearchService elasticsearchSearchService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final Executor searchExecutor;
+
+    public HybridSearchService(
+            QdrantSearchService qdrantSearchService,
+            ElasticsearchSearchService elasticsearchSearchService,
+            StringRedisTemplate stringRedisTemplate,
+            ObjectMapper objectMapper,
+            @Qualifier("searchExecutor") Executor searchExecutor
+    ) {
+        this.qdrantSearchService = qdrantSearchService;
+        this.elasticsearchSearchService = elasticsearchSearchService;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.objectMapper = objectMapper;
+        this.searchExecutor = searchExecutor;
+    }
 
     @Value("${app.search.vector-weight:0.6}")
     private double vectorWeight;
@@ -51,7 +69,31 @@ public class HybridSearchService {
      * (they each catch exceptions and return empty lists).
      */
     public SearchResponse search(SearchRequest request) {
-        String cacheKey = buildCacheKey(request);
+        // Auto-inject workspaceId from context if not already set
+        UUID contextWorkspaceId = WorkspaceContext.getCurrentWorkspaceId();
+        if (contextWorkspaceId != null) {
+            SearchRequest.Filters filters = request.getFilters();
+            if (filters == null) {
+                filters = SearchRequest.Filters.builder()
+                        .workspaceId(contextWorkspaceId)
+                        .build();
+            } else if (filters.getWorkspaceId() == null) {
+                filters = SearchRequest.Filters.builder()
+                        .documentIds(filters.getDocumentIds())
+                        .fileTypes(filters.getFileTypes())
+                        .dateRange(filters.getDateRange())
+                        .workspaceId(contextWorkspaceId)
+                        .build();
+            }
+            request = SearchRequest.builder()
+                    .query(request.getQuery())
+                    .filters(filters)
+                    .limit(request.getLimit())
+                    .build();
+        }
+
+        final SearchRequest effectiveRequest = request;
+        String cacheKey = buildCacheKey(effectiveRequest);
 
         // 1. Cache read — skip silently on Redis error
         try {
@@ -67,16 +109,28 @@ public class HybridSearchService {
         // 2. Execute search
         // Measures total wall time: embedding + Qdrant gRPC + ES HTTP + RRF fusion
         long start = System.currentTimeMillis();
-        int limit = request.getLimit() != null ? request.getLimit() : defaultLimit;
+        int limit = effectiveRequest.getLimit() != null ? effectiveRequest.getLimit() : defaultLimit;
 
         // Fetch more candidates than limit so RRF has room to re-rank
         int candidateLimit = Math.min(limit * 3, 50);
 
         CompletableFuture<List<SearchResult>> vectorFuture = CompletableFuture.supplyAsync(() ->
-                qdrantSearchService.search(request.getQuery(), request.getFilters(), candidateLimit));
+                qdrantSearchService.search(effectiveRequest.getQuery(), effectiveRequest.getFilters(), candidateLimit),
+                searchExecutor)
+                .orTimeout(5, TimeUnit.SECONDS)
+                .exceptionally(ex -> {
+                    log.warn("[Hybrid] Vector search failed/timed out: {}", ex.getMessage());
+                    return Collections.emptyList();
+                });
 
         CompletableFuture<List<SearchResult>> bm25Future = CompletableFuture.supplyAsync(() ->
-                elasticsearchSearchService.search(request.getQuery(), request.getFilters(), candidateLimit));
+                elasticsearchSearchService.search(effectiveRequest.getQuery(), effectiveRequest.getFilters(), candidateLimit),
+                searchExecutor)
+                .orTimeout(5, TimeUnit.SECONDS)
+                .exceptionally(ex -> {
+                    log.warn("[Hybrid] BM25 search failed/timed out: {}", ex.getMessage());
+                    return Collections.emptyList();
+                });
 
         List<SearchResult> vectorResults = vectorFuture.join();
         List<SearchResult> bm25Results   = bm25Future.join();
@@ -92,7 +146,7 @@ public class HybridSearchService {
                 .elapsedMs(System.currentTimeMillis() - start)
                 .vectorHits(vectorResults.size())
                 .bm25Hits(bm25Results.size())
-                .appliedFilters(request.getFilters())
+                .appliedFilters(effectiveRequest.getFilters())
                 .build();
 
         // 3. Cache write — skip silently on Redis error
@@ -129,6 +183,9 @@ public class HybridSearchService {
                 }
                 if (f.getDateRange() != null) {
                     normalizedFilters.put("dateRange", objectMapper.writeValueAsString(f.getDateRange()));
+                }
+                if (f.getWorkspaceId() != null) {
+                    normalizedFilters.put("workspaceId", f.getWorkspaceId().toString());
                 }
             }
 

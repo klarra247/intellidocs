@@ -34,6 +34,9 @@ public class SecurityConfig {
     @Value("${app.auth.dev-mode:true}")
     private boolean devMode;
 
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    private String allowedOriginsRaw;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -73,8 +76,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        List<String> origins = List.of(allowedOriginsRaw.split(","));
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

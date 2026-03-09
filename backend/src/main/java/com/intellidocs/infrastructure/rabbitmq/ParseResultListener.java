@@ -45,6 +45,12 @@ public class ParseResultListener {
             return;
         }
 
+        // 멱등성 가드: 이미 인덱싱 완료된 문서는 재처리하지 않음
+        if (document.getStatus() == DocumentStatus.INDEXED) {
+            log.warn("Document {} already INDEXED — skipping duplicate parse result", document.getId());
+            return;
+        }
+
         // Phase 1: DB 트랜잭션 — 청크 저장 + 상태 INDEXING으로 변경 (빠르게 커밋)
         persistenceService.saveChunksAndStartIndexing(document, result);
 
@@ -60,6 +66,14 @@ public class ParseResultListener {
      * 트랜잭션 밖에서 실행되어 실패/타임아웃 시 DB 커넥션을 점유하지 않음.
      */
     private void indexDocument(Document document, ParsingMessage.ParseResult result) {
+        // 기존 벡터 삭제 (재인덱싱 시 중복 방지)
+        try {
+            qdrantIndexService.deleteByDocumentId(document.getId());
+        } catch (Exception e) {
+            log.warn("Failed to delete existing Qdrant vectors for document {} — proceeding: {}",
+                    document.getId(), e.getMessage());
+        }
+
         // 임베딩 → Qdrant
         try {
             List<String> texts = result.getChunks().stream()
@@ -73,7 +87,8 @@ public class ParseResultListener {
                         document.getOriginalFilename(),
                         document.getFileType() != null ? document.getFileType().name() : "UNKNOWN",
                         result.getChunks(),
-                        embeddings
+                        embeddings,
+                        document.getWorkspaceId()
                 );
                 sseEmitterService.send(document.getId(),
                         DocumentDto.StatusEvent.builder()
@@ -98,7 +113,8 @@ public class ParseResultListener {
                     document.getOriginalFilename(),
                     document.getFileType().name(),
                     result.getChunks(),
-                    document.getCreatedAt()
+                    document.getCreatedAt(),
+                    document.getWorkspaceId()
             );
             sseEmitterService.send(document.getId(),
                     DocumentDto.StatusEvent.builder()

@@ -120,6 +120,10 @@ app:
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
 
+  # CORS
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
   # File Storage
   storage:
     upload-dir: ${UPLOAD_DIR:/tmp/intellidocs/uploads}
