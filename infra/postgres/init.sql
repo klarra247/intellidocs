@@ -116,12 +116,37 @@ CREATE TABLE documents (
     error_message       TEXT,
     total_pages         INTEGER,
     total_chunks        INTEGER,
+    review_status       VARCHAR(20) NOT NULL DEFAULT 'NONE',
+    review_requested_by UUID REFERENCES users(id),
+    review_requested_at TIMESTAMP,
+    reviewed_by         UUID REFERENCES users(id),
+    reviewed_at         TIMESTAMP,
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_documents_workspace ON documents(workspace_id);
+CREATE INDEX idx_documents_workspace_created ON documents(workspace_id, created_at DESC);
 CREATE INDEX idx_documents_status ON documents(status);
+
+-- ─────────────────────────────────────────
+-- 문서 코멘트
+-- ─────────────────────────────────────────
+CREATE TABLE document_comments (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id     UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id),
+    chunk_index     INTEGER,
+    page_number     INTEGER,
+    content         TEXT NOT NULL,
+    resolved        BOOLEAN NOT NULL DEFAULT FALSE,
+    resolved_by     UUID REFERENCES users(id),
+    resolved_at     TIMESTAMP,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_doc_comments_document ON document_comments(document_id);
+CREATE INDEX idx_doc_comments_document_resolved ON document_comments(document_id, resolved);
 
 -- ─────────────────────────────────────────
 -- 문서 청크 메타데이터
@@ -148,9 +173,16 @@ CREATE TABLE chat_sessions (
     workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     user_id         UUID REFERENCES users(id),
     title           VARCHAR(500),             -- 첫 질문 기반 자동 생성
+    is_shared       BOOLEAN NOT NULL DEFAULT FALSE,
+    shared_at       TIMESTAMP,
+    creator_name    VARCHAR(100),
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX idx_chat_sessions_workspace ON chat_sessions(workspace_id);
+CREATE INDEX idx_chat_sessions_workspace_created ON chat_sessions(workspace_id, created_at DESC);
+CREATE INDEX idx_chat_sessions_workspace_shared ON chat_sessions(workspace_id, is_shared);
 
 -- ─────────────────────────────────────────
 -- 채팅 메시지
@@ -162,11 +194,41 @@ CREATE TABLE chat_messages (
     content         TEXT NOT NULL,
     table_data      JSONB,                    -- 표 형태 응답 데이터
     source_chunks   JSONB,                    -- 참조한 청크 목록
+    selected_documents JSONB,                 -- USER 메시지의 선택된 문서 스냅샷
     tool_calls      JSONB,                    -- Agent가 호출한 Tool 기록
+    is_pinned       BOOLEAN NOT NULL DEFAULT FALSE,
+    pinned_by       UUID REFERENCES users(id),
+    pinned_at       TIMESTAMP,
     created_at      TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_messages_session ON chat_messages(session_id);
+CREATE INDEX idx_chat_messages_session_pinned ON chat_messages(session_id) WHERE is_pinned = TRUE;
+
+-- ─────────────────────────────────────────
+-- 세션 읽음 상태
+-- ─────────────────────────────────────────
+CREATE TABLE session_read_status (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id              UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_message_id    UUID REFERENCES chat_messages(id) ON DELETE SET NULL,
+    last_read_at            TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(session_id, user_id)
+);
+
+-- ─────────────────────────────────────────
+-- 코멘트
+-- ─────────────────────────────────────────
+CREATE TABLE comments (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id      UUID NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id),
+    content         TEXT NOT NULL,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_comments_message ON comments(message_id);
 
 -- ─────────────────────────────────────────
 -- 파싱 작업 큐 추적 (RabbitMQ 보완용)
@@ -203,6 +265,7 @@ CREATE TABLE reports (
 );
 
 CREATE INDEX idx_reports_user ON reports(user_id);
+CREATE INDEX idx_reports_workspace_created ON reports(workspace_id, created_at DESC);
 
 -- ─────────────────────────────────────────
 -- 불일치 탐지 결과
@@ -224,3 +287,4 @@ CREATE TABLE discrepancy_results (
 CREATE INDEX idx_discrepancy_status ON discrepancy_results(status);
 CREATE INDEX idx_discrepancy_created ON discrepancy_results(created_at DESC);
 CREATE INDEX idx_discrepancy_user ON discrepancy_results(user_id);
+CREATE INDEX idx_discrepancy_workspace_created ON discrepancy_results(workspace_id, created_at DESC);
