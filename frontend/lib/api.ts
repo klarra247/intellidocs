@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
@@ -15,9 +15,23 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<boolean> | null = null;
 
+const WORKSPACE_SKIP_PREFIXES = ['/auth/', '/workspaces', '/invitations/'];
+
 function getAuthHeaders(): Record<string, string> {
   const token = useAuthStore.getState().accessToken;
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function getWorkspaceHeaders(path: string): Record<string, string> {
+  if (WORKSPACE_SKIP_PREFIXES.some((p) => path.startsWith(p))) return {};
+  try {
+    // lazy require to avoid circular dependency
+    const { useWorkspaceStore } = require('@/stores/workspaceStore');
+    const ws = useWorkspaceStore.getState().currentWorkspace;
+    return ws ? { 'X-Workspace-Id': ws.id } : {};
+  } catch {
+    return {};
+  }
 }
 
 async function ensureRefresh(): Promise<boolean> {
@@ -50,6 +64,7 @@ async function request<T>(
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders(),
+      ...getWorkspaceHeaders(path),
       ...options?.headers,
     },
   });
@@ -58,6 +73,15 @@ async function request<T>(
     const ok = await ensureRefresh();
     if (!ok) redirectToLogin();
     return request<T>(path, options, true);
+  }
+
+  if (res.status === 403) {
+    try {
+      const { useWorkspaceStore } = require('@/stores/workspaceStore');
+      useWorkspaceStore.getState().fetchWorkspaces();
+    } catch {
+      // workspace store not available
+    }
   }
 
   if (!res.ok) {
@@ -104,7 +128,7 @@ export const documentsApi = {
     const doUpload = async () => {
       const res = await fetch(`${BASE_URL}/documents/upload`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), ...getWorkspaceHeaders('/documents/upload') },
         body: formData,
       });
       return res;
@@ -203,4 +227,63 @@ export const discrepancyApi = {
     request<DiscrepancyResult[]>(
       `/discrepancies/recent${triggerType ? `?triggerType=${triggerType}` : ''}`,
     ),
+};
+
+// === Workspaces ===
+export const workspacesApi = {
+  list: () => request<Workspace[]>('/workspaces'),
+
+  get: (id: string) => request<WorkspaceDetail>(`/workspaces/${id}`),
+
+  create: (body: { name: string; description?: string }) =>
+    request<Workspace>('/workspaces', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  update: (id: string, body: { name?: string; description?: string }) =>
+    request<void>(`/workspaces/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  delete: (id: string) =>
+    request<void>(`/workspaces/${id}`, { method: 'DELETE' }),
+
+  invite: (id: string, body: { email: string; role: WorkspaceMemberRole }) =>
+    request<WorkspaceInviteResponse>(`/workspaces/${id}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  changeMemberRole: (wsId: string, memberId: string, role: WorkspaceMemberRole) =>
+    request<void>(`/workspaces/${wsId}/members/${memberId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+
+  removeMember: (wsId: string, memberId: string) =>
+    request<void>(`/workspaces/${wsId}/members/${memberId}`, {
+      method: 'DELETE',
+    }),
+
+  leave: (id: string) =>
+    request<void>(`/workspaces/${id}/leave`, { method: 'POST' }),
+
+  getInvitations: (id: string) =>
+    request<WorkspaceInviteResponse[]>(`/workspaces/${id}/invitations`),
+
+  cancelInvitation: (wsId: string, invitationId: string) =>
+    request<void>(`/workspaces/${wsId}/invitations/${invitationId}`, { method: 'DELETE' }),
+};
+
+// === Invitations ===
+export const invitationsApi = {
+  accept: (token: string) =>
+    request<void>(`/invitations/${token}/accept`, { method: 'POST' }),
+
+  decline: (token: string) =>
+    request<void>(`/invitations/${token}/decline`, { method: 'POST' }),
+
+  pending: () => request<PendingInvitation[]>('/invitations/pending'),
 };

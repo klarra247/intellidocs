@@ -16,6 +16,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useAuthStore } from '@/stores/authStore';
 
 // File type → icon + color
 const fileTypeConfig: Record<
@@ -84,6 +86,12 @@ interface DocumentCardProps {
 export default function DocumentCard({ document, index = 0 }: DocumentCardProps) {
   const { setPendingDelete } = useDocumentStore();
   const router = useRouter();
+  const currentUser = useAuthStore((s) => s.user);
+  const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
+
+  const isTeam = currentWorkspace?.type === 'TEAM';
+  const isMyDoc = !document.uploaderId || document.uploaderId === currentUser?.id;
+  const canDelete = !isTeam || isMyDoc || currentWorkspace?.role === 'OWNER' || currentWorkspace?.role === 'ADMIN';
 
   const ftConfig = fileTypeConfig[document.fileType] ?? fileTypeConfig.TXT;
   const stConfig = statusConfig[document.status];
@@ -153,13 +161,15 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
               <Eye className="h-3.5 w-3.5" strokeWidth={2} />
             </button>
           )}
-          <button
-            onClick={handleDelete}
-            className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-            title="삭제"
-          >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+              title="삭제"
+            >
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          )}
         </div>
       </div>
 

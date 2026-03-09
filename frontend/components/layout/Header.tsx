@@ -1,13 +1,14 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { FileText, MessageSquare, FileBarChart } from 'lucide-react';
+import { FileText, MessageSquare, FileBarChart, Settings } from 'lucide-react';
 import UserMenu from '@/components/auth/UserMenu';
 
 const pageConfig: Record<string, { title: string; icon: typeof FileText }> = {
   '/workspace': { title: '문서 관리', icon: FileText },
   '/workspace/chat': { title: 'AI 채팅', icon: MessageSquare },
   '/workspace/reports': { title: '리포트', icon: FileBarChart },
+  '/workspace/settings': { title: '워크스페이스 설정', icon: Settings },
 };
 
 export default function Header() {

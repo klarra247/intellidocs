@@ -139,6 +139,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   clearAuth: () => {
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('selectedWorkspaceId');
     set({
       user: null,
       accessToken: null,
@@ -146,6 +147,16 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       isAuthenticated: false,
       isLoading: false,
     });
+    try {
+      const { useWorkspaceStore } = require('@/stores/workspaceStore');
+      useWorkspaceStore.setState({
+        workspaces: [],
+        currentWorkspace: null,
+        workspaceDetail: null,
+        initialized: false,
+        error: null,
+      });
+    } catch { /* workspace store not available */ }
   },
 
   initAuth: async () => {

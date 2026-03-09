@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -13,6 +13,8 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ export default function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push('/workspace');
+      router.push(redirectTo || '/workspace');
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다');
     } finally {

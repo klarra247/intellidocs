@@ -55,6 +55,7 @@ export interface Document {
   fileType: FileType;
   fileSize: number;
   status: DocumentStatus;
+  uploaderId: string | null;
   createdAt: string;
 }
 
@@ -283,4 +284,58 @@ export interface DiscrepancyStatusEvent {
   status: DiscrepancyStatus;
   message: string;
   progress: number;
+}
+
+// === Workspace ===
+export type WorkspaceType = 'PERSONAL' | 'TEAM';
+export type WorkspaceMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description: string | null;
+  type: WorkspaceType;
+  role: WorkspaceMemberRole;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface WorkspaceMember {
+  userId: string;
+  name: string;
+  email: string;
+  profileImageUrl: string | null;
+  role: WorkspaceMemberRole;
+  joinedAt: string;
+}
+
+export interface WorkspaceDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  type: WorkspaceType;
+  myRole: WorkspaceMemberRole;
+  maxMembers: number;
+  members: WorkspaceMember[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceInviteResponse {
+  invitationId: string;
+  token: string;
+  email: string;
+  status: InvitationStatus;
+  expiresAt: string;
+}
+
+export interface PendingInvitation {
+  id: string;
+  token: string;
+  workspaceName: string;
+  inviterName: string;
+  inviterEmail: string;
+  role: WorkspaceMemberRole;
+  expiresAt: string;
 }

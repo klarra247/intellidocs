@@ -26,6 +26,18 @@ function appendToken(url: string): string {
   return `${url}${sep}token=${token}`;
 }
 
+function appendWorkspaceParam(url: string): string {
+  try {
+    const { useWorkspaceStore } = require('@/stores/workspaceStore');
+    const ws = useWorkspaceStore.getState().currentWorkspace;
+    if (!ws) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}workspaceId=${ws.id}`;
+  } catch {
+    return url;
+  }
+}
+
 /**
  * SSE client for document status updates with auto-reconnect.
  * Returns a cleanup function to close the connection.
@@ -46,7 +58,7 @@ export function subscribeDocumentStatus(
   function connect() {
     if (closed) return;
 
-    const url = appendToken(`${SSE_BASE_URL}/documents/${documentId}/status`);
+    const url = appendWorkspaceParam(appendToken(`${SSE_BASE_URL}/documents/${documentId}/status`));
     eventSource = new EventSource(url);
 
     // Reset timeout on each connect
@@ -118,6 +130,12 @@ export async function streamChat(
     const token = getAuthToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // Add workspace header for chat stream
+    try {
+      const { useWorkspaceStore } = require('@/stores/workspaceStore');
+      const ws = useWorkspaceStore.getState().currentWorkspace;
+      if (ws) headers['X-Workspace-Id'] = ws.id;
+    } catch { /* workspace store not available */ }
 
     return fetch(`${SSE_BASE_URL}/agent/chat/stream`, {
       method: 'POST',
@@ -193,7 +211,7 @@ export function subscribeReportStatus(
   function connect() {
     if (closed) return;
 
-    const url = appendToken(`${SSE_BASE_URL}/reports/${reportId}/status`);
+    const url = appendWorkspaceParam(appendToken(`${SSE_BASE_URL}/reports/${reportId}/status`));
     eventSource = new EventSource(url);
 
     clearTimeout(timeoutId);
@@ -267,7 +285,7 @@ export function subscribeDiscrepancyStatus(
   function connect() {
     if (closed) return;
 
-    const url = appendToken(`${SSE_BASE_URL}/discrepancies/${jobId}/status`);
+    const url = appendWorkspaceParam(appendToken(`${SSE_BASE_URL}/discrepancies/${jobId}/status`));
     eventSource = new EventSource(url);
 
     clearTimeout(timeoutId);

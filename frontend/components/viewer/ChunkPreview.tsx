@@ -97,6 +97,21 @@ function normalizeChunkToMarkdown(text: string): string {
   return result.join('\n');
 }
 
+const TRUNCATE_LIMIT = 300;
+const SENTENCE_END = /[.?!。\n]$/;
+const SENTENCE_START = /^[A-Z가-힣\d"'「『(【\[《]/;
+
+function addEllipsis(text: string): string {
+  let result = text;
+  if (!SENTENCE_START.test(result)) {
+    result = '...' + result;
+  }
+  if (!SENTENCE_END.test(result.trimEnd())) {
+    result = result.trimEnd() + '...';
+  }
+  return result;
+}
+
 export default function ChunkPreview() {
   const chunkText = useViewerStore((s) => s.chunkText);
   const chunkLoading = useViewerStore((s) => s.chunkLoading);
@@ -105,6 +120,7 @@ export default function ChunkPreview() {
   const currentPage = useViewerStore((s) => s.currentPage);
 
   const [expanded, setExpanded] = useState(true);
+  const [showFull, setShowFull] = useState(false);
 
   const hasPages = sourcePages.length > 1;
   const hasContent = chunkText !== null;
@@ -181,13 +197,30 @@ export default function ChunkPreview() {
             <div className="flex items-center justify-center py-4">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-primary-500" />
             </div>
-          ) : hasContent && (
-            <div className="chunk-preview-content max-h-[240px] overflow-y-auto rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {normalizeChunkToMarkdown(chunkText!)}
-              </ReactMarkdown>
-            </div>
-          )}
+          ) : hasContent && (() => {
+            const raw = chunkText!;
+            const isLong = raw.length > TRUNCATE_LIMIT;
+            const displayText = isLong && !showFull
+              ? addEllipsis(raw.slice(0, TRUNCATE_LIMIT))
+              : addEllipsis(raw);
+            return (
+              <div>
+                <div className="chunk-preview-content max-h-[240px] overflow-y-auto rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {normalizeChunkToMarkdown(displayText)}
+                  </ReactMarkdown>
+                </div>
+                {isLong && (
+                  <button
+                    onClick={() => setShowFull(!showFull)}
+                    className="mt-1.5 text-[12px] font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                  >
+                    {showFull ? '접기' : '더 보기'}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
