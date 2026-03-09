@@ -59,6 +59,13 @@ export default function DocumentViewerPanel() {
     }
   }, [isOpen, isMobile]);
 
+  // Load comment counts when document opens
+  useEffect(() => {
+    if (documentId && !directFileUrl) {
+      useDocumentCommentStore.getState().openPanel(documentId);
+    }
+  }, [documentId, directFileUrl]);
+
   // ESC key closes the panel
   useEffect(() => {
     if (!isOpen) return;

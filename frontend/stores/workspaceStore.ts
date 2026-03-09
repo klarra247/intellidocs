@@ -86,6 +86,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!ws) return;
     localStorage.setItem('selectedWorkspaceId', ws.id);
     set({ currentWorkspace: ws, workspaceDetail: null });
+    try {
+      const { useViewerStore } = require('@/stores/viewerStore');
+      useViewerStore.getState().closeViewer();
+    } catch { /* viewer store not available */ }
     refreshDependentStores();
   },
 

@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { MessageSquarePlus } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
+import { useDocumentCommentStore } from '@/stores/documentCommentStore';
 import { documentsApi } from '@/lib/api';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
@@ -21,6 +23,14 @@ export default function PdfViewer() {
 
   const [pdfError, setPdfError] = useState(false);
   const [pageWarning, setPageWarning] = useState<string | null>(null);
+
+  const handleAddComment = () => {
+    useDocumentCommentStore.getState().setPendingLocation(undefined, currentPage);
+    useViewerStore.getState().setActiveTab('comments');
+    if (documentId) {
+      useDocumentCommentStore.getState().openPanel(documentId);
+    }
+  };
 
   const fileUrl = useMemo(
     () => directFileUrl ?? (documentId ? documentsApi.getFileUrl(documentId) : null),
@@ -55,7 +65,18 @@ export default function PdfViewer() {
         </div>
       )}
 
-      <div className="flex flex-1 items-start justify-center p-4">
+      <div className="relative flex flex-1 items-start justify-center p-4">
+      {/* Add comment button (floating) */}
+      {!directFileUrl && (
+        <button
+          onClick={handleAddComment}
+          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-primary-50 hover:text-primary-600"
+          title={`p.${currentPage}에 코멘트 추가`}
+        >
+          <MessageSquarePlus className="h-3.5 w-3.5" />
+          p.{currentPage} 코멘트
+        </button>
+      )}
       <Document
         file={fileUrl}
         onLoadSuccess={({ numPages }) => {
