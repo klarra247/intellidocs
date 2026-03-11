@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus, DocumentVersion, VersionUploadResponse, DiffResponse, DiffDetailResponse } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
@@ -377,6 +377,58 @@ export const documentReviewApi = {
 
   getStatus: (docId: string) =>
     request<ReviewResponse>(`/documents/${docId}/review`),
+};
+
+// === Versions ===
+export const versionsApi = {
+  list: (docId: string) =>
+    request<DocumentVersion[]>(`/documents/${docId}/versions`),
+
+  upload: async (docId: string, file: File): Promise<VersionUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const doUpload = async () => {
+      const res = await fetch(`${BASE_URL}/documents/${docId}/versions`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), ...getWorkspaceHeaders(`/documents/${docId}/versions`) },
+        body: formData,
+      });
+      return res;
+    };
+
+    let res = await doUpload();
+
+    if (res.status === 401) {
+      const ok = await ensureRefresh();
+      if (!ok) redirectToLogin();
+      res = await doUpload();
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const message = body?.error?.message ?? body?.error ?? '버전 업로드 실패';
+      throw new ApiError(res.status, message);
+    }
+
+    const body: ApiResponse<VersionUploadResponse> = await res.json();
+    if (!body.success) {
+      throw new ApiError(res.status, '버전 업로드 실패');
+    }
+    return body.data as VersionUploadResponse;
+  },
+};
+
+// === Diff ===
+export const diffApi = {
+  create: (body: { sourceDocumentId: string; targetDocumentId: string }) =>
+    request<DiffResponse>('/documents/diff', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getResult: (diffId: string) =>
+    request<DiffDetailResponse>(`/documents/diff/${diffId}`),
 };
 
 // === Invitations ===

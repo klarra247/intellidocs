@@ -60,6 +60,7 @@ export interface Document {
   status: DocumentStatus;
   reviewStatus: ReviewStatus;
   uploaderId: string | null;
+  versionNumber?: number;
   createdAt: string;
 }
 
@@ -361,6 +362,90 @@ export interface DiscrepancyStatusEvent {
   status: DiscrepancyStatus;
   message: string;
   progress: number;
+}
+
+// === Document Versions ===
+export interface DocumentVersion {
+  documentId: string;
+  versionNumber: number;
+  originalFilename: string;
+  fileType: FileType;
+  fileSize: number;
+  status: DocumentStatus;
+  createdAt: string;
+  diffStatus: string | null;
+  diffId: string | null;
+}
+
+export interface DiffSummary {
+  totalChanges: number;
+  added: number;
+  removed: number;
+  modified: number;
+  unchanged: number;
+}
+
+export interface NumericChange {
+  field: string;
+  period: string;
+  sourceValue: string;
+  targetValue: string;
+  unit: string;
+  changeAbsolute: number;
+  changePercent: number;
+  direction: string;
+  sourcePageNumber: number | null;
+  targetPageNumber: number | null;
+}
+
+export interface TextChange {
+  type: 'ADDED' | 'REMOVED' | 'MODIFIED';
+  sectionTitle: string;
+  summary: string;
+  sourcePageNumber?: number | null;
+  targetPageNumber?: number | null;
+}
+
+export interface DiffResultData {
+  summary: DiffSummary;
+  numericChanges: NumericChange[];
+  textChanges: TextChange[];
+  metadata: {
+    sourceFilename: string;
+    targetFilename: string;
+    analysisModel: string;
+    processedAt: string;
+  };
+}
+
+export interface DiffDetailResponse {
+  id: string;
+  sourceDocumentId: string;
+  targetDocumentId: string;
+  diffType: string;
+  status: string;
+  resultData: DiffResultData | null;
+  createdAt: string;
+}
+
+export interface DiffResponse {
+  diffId: string;
+  status: string;
+}
+
+export interface DiffStatusEvent {
+  diffId: string;
+  status: string;
+  message: string;
+  progress: number;
+}
+
+export interface VersionUploadResponse {
+  documentId: string;
+  versionGroupId: string;
+  versionNumber: number;
+  parentVersionId: string;
+  status: DocumentStatus;
 }
 
 // === Workspace ===

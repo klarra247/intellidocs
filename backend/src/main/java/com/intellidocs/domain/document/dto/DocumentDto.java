@@ -74,6 +74,7 @@ public class DocumentDto {
         private DocumentStatus status;
         private ReviewStatus reviewStatus;
         private UUID uploaderId;
+        private Integer versionNumber;
         private LocalDateTime createdAt;
 
         public static ListResponse from(Document doc) {
@@ -85,6 +86,7 @@ public class DocumentDto {
                     .status(doc.getStatus())
                     .reviewStatus(doc.getReviewStatus())
                     .uploaderId(doc.getUserId())
+                    .versionNumber(doc.getVersionNumber())
                     .createdAt(doc.getCreatedAt())
                     .build();
         }
@@ -120,8 +122,9 @@ public class DocumentDto {
         private DocumentStatus status;
         private LocalDateTime createdAt;
         private String diffStatus;
+        private UUID diffId;
 
-        public static VersionInfo from(Document doc, String diffStatus) {
+        public static VersionInfo from(Document doc, String diffStatus, UUID diffId) {
             return VersionInfo.builder()
                     .documentId(doc.getId())
                     .versionNumber(doc.getVersionNumber())
@@ -131,6 +134,7 @@ public class DocumentDto {
                     .status(doc.getStatus())
                     .createdAt(doc.getCreatedAt())
                     .diffStatus(diffStatus)
+                    .diffId(diffId)
                     .build();
         }
     }

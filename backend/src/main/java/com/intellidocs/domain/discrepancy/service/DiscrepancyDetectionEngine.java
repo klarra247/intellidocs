@@ -117,7 +117,10 @@ public class DiscrepancyDetectionEngine {
         StringBuilder contextBuilder = new StringBuilder();
         for (SearchResult chunk : chunks) {
             if (chunk.getText() != null && !chunk.getText().isBlank()) {
-                contextBuilder.append(chunk.getText()).append("\n");
+                if (chunk.getPageNumber() != null && chunk.getPageNumber() > 0) {
+                    contextBuilder.append(String.format("[페이지 %d]\n", chunk.getPageNumber()));
+                }
+                contextBuilder.append(chunk.getText()).append("\n\n");
             }
         }
 
@@ -135,7 +138,7 @@ public class DiscrepancyDetectionEngine {
 
                 응답 형식 (JSON만, 다른 텍스트 없이):
                 [
-                  { "field": "%s", "period": "2023", "value": "452억", "numericValue": 45200000000, "unit": "원" }
+                  { "field": "%s", "period": "2023", "value": "452억", "numericValue": 45200000000, "unit": "원", "page": 5 }
                 ]
 
                 규칙:
@@ -146,6 +149,7 @@ public class DiscrepancyDetectionEngine {
                 - numericValue는 반드시 기본 단위(원, 개, %% 등)로 변환. "452억" → 45200000000
                 - %%는 그대로 숫자만 추출. "45%%" → 45
                 - value는 원문 그대로 보존
+                - page는 해당 수치가 나온 페이지 번호. [페이지 N] 태그를 참고. 알 수 없으면 null.
                 - 수치를 찾을 수 없으면 빈 배열 [] 반환
                 """, field, doc.getOriginalFilename(), contextBuilder, field);
 
@@ -158,8 +162,8 @@ public class DiscrepancyDetectionEngine {
 
         log.info("[Discrepancy] Raw LLM extraction for field='{}', doc='{}': {}", field, doc.getOriginalFilename(), response);
 
-        // 문서 정보 주입
-        Integer firstPage = chunks.stream()
+        // 문서 정보 주입 + 페이지/청크 인덱스 매칭
+        Integer fallbackPage = chunks.stream()
                 .filter(c -> c.getPageNumber() != null)
                 .map(SearchResult::getPageNumber)
                 .findFirst().orElse(null);
@@ -168,11 +172,24 @@ public class DiscrepancyDetectionEngine {
             v.setDocumentId(doc.getId().toString());
             v.setFilename(doc.getOriginalFilename());
             v.setPeriod(normalizePeriod(v.getPeriod()));
-            if (v.getPage() == null) {
-                v.setPage(firstPage);
+
+            // LLM이 페이지를 반환하지 않은 경우 → value 텍스트가 포함된 청크에서 매칭
+            if (v.getPage() == null && v.getValue() != null) {
+                for (SearchResult chunk : chunks) {
+                    if (chunk.getText() != null && chunk.getText().contains(v.getValue())) {
+                        v.setPage(chunk.getPageNumber());
+                        v.setChunkIndex(chunk.getChunkIndex());
+                        break;
+                    }
+                }
             }
-            log.info("[Discrepancy] Extracted: field='{}', period='{}', value='{}', numericValue={}, doc='{}'",
-                    v.getField(), v.getPeriod(), v.getValue(), v.getNumericValue(), v.getFilename());
+            // 그래도 없으면 첫 번째 청크 페이지 사용
+            if (v.getPage() == null) {
+                v.setPage(fallbackPage);
+            }
+
+            log.info("[Discrepancy] Extracted: field='{}', period='{}', value='{}', numericValue={}, page={}, doc='{}'",
+                    v.getField(), v.getPeriod(), v.getValue(), v.getNumericValue(), v.getPage(), v.getFilename());
         }
 
         return values;

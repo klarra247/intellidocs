@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { FileText } from 'lucide-react';
 import { ChatSource } from '@/lib/types';
 import { useViewerStore } from '@/stores/viewerStore';
 
@@ -41,9 +42,9 @@ export default function SourceBadge({ source }: SourceBadgeProps) {
     }
   };
 
-  const label = source.pageRange
-    ? `📄 ${truncateFilename(source.filename)}, ${source.pageRange}`
-    : `📄 ${truncateFilename(source.filename)}`;
+  const labelText = source.pageRange
+    ? `${truncateFilename(source.filename)}, ${source.pageRange}`
+    : truncateFilename(source.filename);
 
   return (
     <span className="relative inline-block">
@@ -57,7 +58,8 @@ export default function SourceBadge({ source }: SourceBadgeProps) {
             : 'bg-primary-50 text-primary-700 hover:bg-primary-100 hover:shadow-sm'
         } ${hasChunkIndex ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
       >
-        {label}
+        <FileText className="h-3 w-3 shrink-0" />
+        {labelText}
       </span>
 
       {showTooltip && (

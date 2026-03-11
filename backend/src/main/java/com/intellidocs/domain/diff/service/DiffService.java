@@ -62,14 +62,21 @@ public class DiffService {
             }
         }
 
-        // 이미 존재하는 diff → 기존 결과 반환
+        // 이미 존재하는 diff 확인
         Optional<DocumentVersionDiff> existing = diffRepository.findBySourceDocumentIdAndTargetDocumentId(sourceId, targetId);
         if (existing.isPresent()) {
-            DocumentVersionDiff diff = existing.get();
-            return DiffDto.DiffResponse.builder()
-                    .diffId(diff.getId())
-                    .status(diff.getStatus().name())
-                    .build();
+            DocumentVersionDiff existingDiff = existing.get();
+            // 진행 중이면 기존 결과 반환
+            if (existingDiff.getStatus() == DiffStatus.COMPARING || existingDiff.getStatus() == DiffStatus.PENDING) {
+                return DiffDto.DiffResponse.builder()
+                        .diffId(existingDiff.getId())
+                        .status(existingDiff.getStatus().name())
+                        .build();
+            }
+            // COMPLETED 또는 FAILED → 삭제 후 재실행
+            log.info("[DiffService] Deleting existing diff {} (status={}) for re-run", existingDiff.getId(), existingDiff.getStatus());
+            diffRepository.delete(existingDiff);
+            diffRepository.flush();
         }
 
         // 새 diff 생성
@@ -100,6 +107,10 @@ public class DiffService {
                     .orElseThrow(() -> BusinessException.notFound("Document", diff.getSourceDocumentId()));
             Document target = documentRepository.findById(diff.getTargetDocumentId())
                     .orElseThrow(() -> BusinessException.notFound("Document", diff.getTargetDocumentId()));
+
+            log.info("[DiffService] executeDiff: diffId={}, sourceId={} ({}), targetId={} ({})",
+                    diffId, source.getId(), source.getOriginalFilename(),
+                    target.getId(), target.getOriginalFilename());
 
             sendProgress(diffId, DiffStatus.COMPARING, "수치 비교 중...", 40);
             sendProgress(diffId, DiffStatus.COMPARING, "텍스트 비교 중...", 70);

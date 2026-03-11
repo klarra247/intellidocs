@@ -8,7 +8,7 @@ export interface HighlightInfo {
   sectionTitle: string | null;
 }
 
-export type ViewerTab = 'document' | 'comments';
+export type ViewerTab = 'document' | 'comments' | 'versions';
 
 interface ViewerState {
   // Panel state
@@ -46,6 +46,9 @@ interface ViewerState {
   loadedRange: [number, number];
   chunksLoading: boolean;
 
+  // Diff compare overlay (shown in ChunkPreview area when navigating from DiffViewer)
+  diffCompare: { sourceValue: string; targetValue: string; field: string } | null;
+
   // Common
   loading: boolean;
   error: string | null;
@@ -62,6 +65,7 @@ interface ViewerState {
   setScale: (scale: number) => void;
   setActiveSheet: (index: number) => void;
   setActiveTab: (tab: ViewerTab) => void;
+  setDiffCompare: (info: { sourceValue: string; targetValue: string; field: string } | null) => void;
   loadMoreChunks: (direction: 'before' | 'after') => Promise<void>;
 }
 
@@ -81,6 +85,7 @@ const initialState = {
   chunkText: null,
   chunkLoading: false,
   primaryChunk: null,
+  diffCompare: null,
   currentPage: 1,
   totalPages: 0,
   scale: 1.0,
@@ -117,6 +122,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       documentDetail: null,
       chunkText: null,
       chunkLoading: false,
+      diffCompare: null,
       currentPage: 1,
       totalPages: 0,
       scale: 1.0,
@@ -284,6 +290,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   setScale: (scale) => set({ scale }),
   setActiveSheet: (index) => set({ activeSheet: index }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setDiffCompare: (info) => set({ diffCompare: info }),
 
   loadMoreChunks: async (direction) => {
     const { documentId, documentDetail, loadedRange, visibleChunks, chunksLoading } = get();

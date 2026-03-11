@@ -43,53 +43,87 @@ public class DocumentDiffEngine {
     }
 
     public List<NumericChange> compareNumericValues(Document source, Document target) {
+        log.info("[DiffEngine] === Numeric comparison start ===");
+        log.info("[DiffEngine] Source: id={}, filename={}", source.getId(), source.getOriginalFilename());
+        log.info("[DiffEngine] Target: id={}, filename={}", target.getId(), target.getOriginalFilename());
+
         // 1. 공통 수치 항목 식별
         List<String> fields = engine.identifyCommonFields(List.of(source, target));
         if (fields.isEmpty()) {
             log.info("[DiffEngine] No common numeric fields found between {} and {}", source.getId(), target.getId());
             return List.of();
         }
+        log.info("[DiffEngine] Common fields: {}", fields);
 
         // 2. 양쪽 문서에서 수치 추출
         Map<String, List<DiscrepancyDetectionEngine.ExtractedValue>> extracted =
                 engine.extractValues(List.of(source, target), fields);
 
-        // 3. 같은 field + period 매칭하여 변화량 계산
+        // 3. 버전 비교: 각 문서의 최신 기간 값 기준으로 비교
         List<NumericChange> changes = new ArrayList<>();
         for (Map.Entry<String, List<DiscrepancyDetectionEngine.ExtractedValue>> entry : extracted.entrySet()) {
             String field = entry.getKey();
             List<DiscrepancyDetectionEngine.ExtractedValue> values = entry.getValue();
 
             // source/target 분리
-            Map<String, DiscrepancyDetectionEngine.ExtractedValue> sourceByPeriod = new LinkedHashMap<>();
-            Map<String, DiscrepancyDetectionEngine.ExtractedValue> targetByPeriod = new LinkedHashMap<>();
+            List<DiscrepancyDetectionEngine.ExtractedValue> sourceValues = new ArrayList<>();
+            List<DiscrepancyDetectionEngine.ExtractedValue> targetValues = new ArrayList<>();
 
             for (DiscrepancyDetectionEngine.ExtractedValue v : values) {
-                String period = v.getPeriod() != null ? v.getPeriod() : "N/A";
                 if (source.getId().toString().equals(v.getDocumentId())) {
-                    sourceByPeriod.putIfAbsent(period, v);
+                    sourceValues.add(v);
                 } else if (target.getId().toString().equals(v.getDocumentId())) {
-                    targetByPeriod.putIfAbsent(period, v);
+                    targetValues.add(v);
                 }
             }
 
-            // 매칭
-            Set<String> allPeriods = new LinkedHashSet<>();
-            allPeriods.addAll(sourceByPeriod.keySet());
-            allPeriods.addAll(targetByPeriod.keySet());
+            log.info("[DiffEngine] Field '{}': source extracted {} values, target extracted {} values",
+                    field, sourceValues.size(), targetValues.size());
+            for (DiscrepancyDetectionEngine.ExtractedValue sv : sourceValues) {
+                log.info("[DiffEngine]   SOURCE: period='{}', value='{}', numericValue={}, docId={}",
+                        sv.getPeriod(), sv.getValue(), sv.getNumericValue(), sv.getDocumentId());
+            }
+            for (DiscrepancyDetectionEngine.ExtractedValue tv : targetValues) {
+                log.info("[DiffEngine]   TARGET: period='{}', value='{}', numericValue={}, docId={}",
+                        tv.getPeriod(), tv.getValue(), tv.getNumericValue(), tv.getDocumentId());
+            }
 
-            for (String period : allPeriods) {
+            if (sourceValues.isEmpty() || targetValues.isEmpty()) continue;
+
+            // Period 기준으로 그룹핑
+            Map<String, DiscrepancyDetectionEngine.ExtractedValue> sourceByPeriod = new LinkedHashMap<>();
+            Map<String, DiscrepancyDetectionEngine.ExtractedValue> targetByPeriod = new LinkedHashMap<>();
+            for (DiscrepancyDetectionEngine.ExtractedValue v : sourceValues) {
+                String period = v.getPeriod() != null ? v.getPeriod() : "N/A";
+                sourceByPeriod.putIfAbsent(period, v);
+            }
+            for (DiscrepancyDetectionEngine.ExtractedValue v : targetValues) {
+                String period = v.getPeriod() != null ? v.getPeriod() : "N/A";
+                targetByPeriod.putIfAbsent(period, v);
+            }
+
+            // Strategy A: 같은 기간 매칭 (값이 실제로 다른 경우만)
+            boolean foundMeaningfulChange = false;
+            Set<String> commonPeriods = new LinkedHashSet<>(sourceByPeriod.keySet());
+            commonPeriods.retainAll(targetByPeriod.keySet());
+
+            for (String period : commonPeriods) {
                 DiscrepancyDetectionEngine.ExtractedValue sv = sourceByPeriod.get(period);
                 DiscrepancyDetectionEngine.ExtractedValue tv = targetByPeriod.get(period);
-
-                if (sv == null || tv == null) continue;
                 if (sv.getNumericValue() == null || tv.getNumericValue() == null) continue;
 
                 double sVal = sv.getNumericValue();
                 double tVal = tv.getNumericValue();
                 double changeAbsolute = tVal - sVal;
+
+                // 같은 기간 + 같은 값이면 변화 아님 → 스킵
+                if (Math.abs(changeAbsolute) < 0.001) {
+                    log.info("[DiffEngine] Field '{}' period '{}': same value {} → skip", field, period, sVal);
+                    continue;
+                }
+
                 Double changePercent = sVal != 0 ? (changeAbsolute / sVal) * 100 : null;
-                String direction = changeAbsolute > 0 ? "INCREASED" : changeAbsolute < 0 ? "DECREASED" : "UNCHANGED";
+                String direction = changeAbsolute > 0 ? "INCREASED" : "DECREASED";
 
                 changes.add(NumericChange.builder()
                         .field(field)
@@ -105,11 +139,82 @@ public class DocumentDiffEngine {
                         .sourceChunkIndex(sv.getChunkIndex())
                         .targetChunkIndex(tv.getChunkIndex())
                         .build());
+                foundMeaningfulChange = true;
+            }
+
+            // Strategy B: 같은 기간 매칭에서 의미있는 변화를 못 찾으면,
+            // 각 문서의 최신(마지막) 기간 값끼리 비교
+            if (!foundMeaningfulChange) {
+                // source의 마지막 기간, target의 마지막 기간
+                DiscrepancyDetectionEngine.ExtractedValue sv = getLatestPeriodValue(sourceValues);
+                DiscrepancyDetectionEngine.ExtractedValue tv = getLatestPeriodValue(targetValues);
+
+                if (sv != null && tv != null
+                        && sv.getNumericValue() != null && tv.getNumericValue() != null) {
+                    // 같은 기간 + 같은 값이면 진짜 동일한 것 → 스킵
+                    String sPeriod = sv.getPeriod() != null ? sv.getPeriod() : "N/A";
+                    String tPeriod = tv.getPeriod() != null ? tv.getPeriod() : "N/A";
+
+                    double sVal = sv.getNumericValue();
+                    double tVal = tv.getNumericValue();
+                    double changeAbsolute = tVal - sVal;
+
+                    if (Math.abs(changeAbsolute) >= 0.001) {
+                        Double changePercent = sVal != 0 ? (changeAbsolute / sVal) * 100 : null;
+                        String direction = changeAbsolute > 0 ? "INCREASED" : changeAbsolute < 0 ? "DECREASED" : "UNCHANGED";
+
+                        String periodLabel = sPeriod.equals(tPeriod) ? sPeriod : sPeriod + " → " + tPeriod;
+
+                        log.info("[DiffEngine] Field '{}': cross-period match {} vs {} → change {}%",
+                                field, sPeriod, tPeriod, changePercent);
+
+                        changes.add(NumericChange.builder()
+                                .field(field)
+                                .period(periodLabel)
+                                .sourceValue(sv.getValue())
+                                .targetValue(tv.getValue())
+                                .unit(sv.getUnit())
+                                .changeAbsolute(changeAbsolute)
+                                .changePercent(changePercent)
+                                .direction(direction)
+                                .sourcePageNumber(sv.getPage())
+                                .targetPageNumber(tv.getPage())
+                                .sourceChunkIndex(sv.getChunkIndex())
+                                .targetChunkIndex(tv.getChunkIndex())
+                                .build());
+                    } else {
+                        log.info("[DiffEngine] Field '{}': latest values identical (source {}={}, target {}={})",
+                                field, sPeriod, sVal, tPeriod, tVal);
+                    }
+                }
             }
         }
 
         log.info("[DiffEngine] Found {} numeric changes between {} and {}", changes.size(), source.getId(), target.getId());
         return changes;
+    }
+
+    /**
+     * 추출된 값 중 가장 최근 기간의 값을 반환.
+     * 기간 문자열을 역순 정렬하여 가장 큰(최신) 기간 선택.
+     */
+    private DiscrepancyDetectionEngine.ExtractedValue getLatestPeriodValue(
+            List<DiscrepancyDetectionEngine.ExtractedValue> values) {
+        if (values.isEmpty()) return null;
+        if (values.size() == 1) return values.get(0);
+
+        // numericValue가 있는 값만 대상
+        List<DiscrepancyDetectionEngine.ExtractedValue> valid = values.stream()
+                .filter(v -> v.getNumericValue() != null)
+                .toList();
+        if (valid.isEmpty()) return null;
+
+        // period 역순 정렬 (2024-Q2 > 2024-Q1 > 2023)
+        return valid.stream()
+                .max(Comparator.comparing(
+                        v -> v.getPeriod() != null ? v.getPeriod() : "",
+                        Comparator.naturalOrder()))
+                .orElse(valid.get(0));
     }
 
     public List<TextChange> compareTextSections(Document source, Document target) {

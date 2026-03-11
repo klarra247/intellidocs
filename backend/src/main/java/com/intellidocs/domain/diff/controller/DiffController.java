@@ -30,7 +30,10 @@ public class DiffController {
             @Valid @RequestBody DiffDto.DiffRequest request) {
         UUID userId = SecurityContextHelper.getCurrentUserId();
         DiffDto.DiffResponse response = diffService.createManualDiff(request, userId);
-        asyncExecutor.execute(UUID.fromString(response.getDiffId().toString()));
+        // Only start async execution for new (PENDING) diffs
+        if ("PENDING".equals(response.getStatus())) {
+            asyncExecutor.execute(UUID.fromString(response.getDiffId().toString()));
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 

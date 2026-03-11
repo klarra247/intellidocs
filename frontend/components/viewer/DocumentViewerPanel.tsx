@@ -7,11 +7,13 @@ import ViewerToolbar from './ViewerToolbar';
 import ChunkPreview from './ChunkPreview';
 
 import { useDocumentCommentStore } from '@/stores/documentCommentStore';
+import { X, FileText, MessageSquare, GitBranch } from 'lucide-react';
 
 const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 const ExcelViewer = dynamic(() => import('./ExcelViewer'), { ssr: false });
 const ChunkTextViewer = dynamic(() => import('./ChunkTextViewer'), { ssr: false });
 const DocumentCommentTab = dynamic(() => import('./DocumentCommentTab'), { ssr: false });
+const VersionTimeline = dynamic(() => import('../version/VersionTimeline'), { ssr: false });
 
 /** File types rendered by ChunkTextViewer */
 const TEXT_BASED_TYPES = new Set(['TXT', 'MD', 'DOCX']);
@@ -35,6 +37,8 @@ export default function DocumentViewerPanel() {
   const setActiveTab = useViewerStore((s) => s.setActiveTab);
   const documentId = useViewerStore((s) => s.documentId);
   const unresolvedCount = useDocumentCommentStore((s) => s.unresolvedCount);
+  const diffCompare = useViewerStore((s) => s.diffCompare);
+  const setDiffCompare = useViewerStore((s) => s.setDiffCompare);
 
   const fileType = directFileUrl ? 'PDF' : (documentDetail?.fileType ?? null);
 
@@ -174,7 +178,7 @@ export default function DocumentViewerPanel() {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {'\uD83D\uDCC4'} 문서
+                <FileText className="h-3.5 w-3.5" /> 문서
               </button>
               <button
                 onClick={() => {
@@ -189,12 +193,22 @@ export default function DocumentViewerPanel() {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {'\uD83D\uDCAC'} 코멘트
+                <MessageSquare className="h-3.5 w-3.5" /> 코멘트
                 {unresolvedCount > 0 && (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                     {unresolvedCount}
                   </span>
                 )}
+              </button>
+              <button
+                onClick={() => setActiveTab('versions')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium transition-colors ${
+                  activeTab === 'versions'
+                    ? 'border-b-2 border-primary-600 text-primary-700'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <GitBranch className="h-3.5 w-3.5" /> 버전
               </button>
             </div>
           )}
@@ -248,8 +262,40 @@ export default function DocumentViewerPanel() {
             </div>
           )}
 
+          {activeTab === 'versions' && !directFileUrl && documentId && (
+            <div className="relative flex-1 overflow-auto">
+              <VersionTimeline documentId={documentId} />
+            </div>
+          )}
+
           {/* Chunk preview (bottom, only for PDF/XLSX when chunkText exists and on document tab) */}
           {activeTab === 'document' && showChunkPreview && <ChunkPreview />}
+
+          {/* Diff compare bar (shown when navigating from DiffViewer numeric change click) */}
+          {activeTab === 'document' && diffCompare && (
+            <div className="border-t border-blue-200 bg-blue-50 px-4 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12px] font-semibold text-blue-800">
+                  {diffCompare.field}
+                </span>
+                <button
+                  onClick={() => setDiffCompare(null)}
+                  className="rounded p-0.5 text-blue-400 hover:bg-blue-100 hover:text-blue-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-3 text-[12px]">
+                <span className="text-slate-500">
+                  이전: <span className="font-mono font-medium text-red-600">{diffCompare.sourceValue}</span>
+                </span>
+                <span className="text-slate-300">→</span>
+                <span className="text-slate-500">
+                  현재: <span className="font-mono font-medium text-green-600">{diffCompare.targetValue}</span>
+                </span>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </>

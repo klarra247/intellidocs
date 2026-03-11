@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Document, DocumentStatus, FileType } from '@/lib/types';
 import { useDocumentStore } from '@/stores/documentStore';
@@ -10,6 +11,7 @@ import {
   File,
   Trash2,
   Eye,
+  Plus,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -89,6 +91,7 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
   const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
   const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
+  const versionInputRef = useRef<HTMLInputElement>(null);
 
   const isTeam = currentWorkspace?.type === 'TEAM';
   const isMyDoc = !document.uploaderId || document.uploaderId === currentUser?.id;
@@ -120,6 +123,21 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
     setPendingDelete(document.id);
   };
 
+  const handleVersionUpload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    versionInputRef.current?.click();
+  };
+
+  const handleVersionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { useVersionStore } = await import('@/stores/versionStore');
+    await useVersionStore.getState().uploadNewVersion(document.id, file);
+    if (versionInputRef.current) versionInputRef.current.value = '';
+  };
+
   return (
     <div
       onClick={handleCardClick}
@@ -130,6 +148,13 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
       }`}
       style={{ opacity: 0 }}
     >
+      {/* Version badge */}
+      {document.versionNumber != null && document.versionNumber > 1 && (
+        <span className="absolute -top-1 -left-1 rounded-full bg-primary-100 text-primary-700 text-[10px] font-bold px-1.5 py-0.5 z-10">
+          v{document.versionNumber}
+        </span>
+      )}
+
       {/* Top row: icon + name + delete */}
       <div className="flex items-start gap-3">
         <div
@@ -153,6 +178,25 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
 
         {/* Action buttons */}
         <div className="flex items-center gap-0.5">
+          {isReady && (
+            <>
+              <input
+                ref={versionInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.docx,.xlsx,.txt,.md"
+                onClick={(e) => e.stopPropagation()}
+                onChange={handleVersionFileChange}
+              />
+              <button
+                onClick={handleVersionUpload}
+                className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-emerald-50 hover:text-emerald-500 group-hover:opacity-100"
+                title="새 버전 추가"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            </>
+          )}
           {isReady && (
             <button
               onClick={handlePreview}

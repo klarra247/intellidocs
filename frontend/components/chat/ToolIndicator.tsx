@@ -1,16 +1,16 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, ClipboardList, ArrowLeftRight, BarChart3, Calculator, Ratio, TrendingUp } from 'lucide-react';
 import { ActiveTool } from '@/lib/types';
 
-const toolLabels: Record<string, string> = {
-  searchDocuments: '🔍 문서 검색 중...',
-  summarizeDocument: '📋 문서 요약 중...',
-  compareDocuments: '🔄 문서 비교 중...',
-  extractAndCompile: '📊 데이터 추출 중...',
-  calculateChange: '🧮 변화율 계산 중...',
-  calculateFinancialRatio: '📐 재무비율 계산 중...',
-  analyzeTrend: '📈 트렌드 분석 중...',
+const toolConfig: Record<string, { icon: typeof Search; label: string }> = {
+  searchDocuments: { icon: Search, label: '문서 검색 중...' },
+  summarizeDocument: { icon: ClipboardList, label: '문서 요약 중...' },
+  compareDocuments: { icon: ArrowLeftRight, label: '문서 비교 중...' },
+  extractAndCompile: { icon: BarChart3, label: '데이터 추출 중...' },
+  calculateChange: { icon: Calculator, label: '변화율 계산 중...' },
+  calculateFinancialRatio: { icon: Ratio, label: '재무비율 계산 중...' },
+  analyzeTrend: { icon: TrendingUp, label: '트렌드 분석 중...' },
 };
 
 interface ToolIndicatorProps {
@@ -22,15 +22,20 @@ export default function ToolIndicator({ tools }: ToolIndicatorProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      {tools.map((tool) => (
-        <div
-          key={tool.tool}
-          className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-700 animate-fade-in"
-        >
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>{toolLabels[tool.tool] ?? tool.message ?? `${tool.tool} 실행 중...`}</span>
-        </div>
-      ))}
+      {tools.map((tool) => {
+        const config = toolConfig[tool.tool];
+        const ToolIcon = config?.icon;
+        return (
+          <div
+            key={tool.tool}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-700 animate-fade-in"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {ToolIcon && <ToolIcon className="h-3.5 w-3.5" />}
+            <span>{config?.label ?? tool.message ?? `${tool.tool} 실행 중...`}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

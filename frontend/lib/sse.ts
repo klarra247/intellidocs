@@ -1,4 +1,4 @@
-import { DocumentStatusEvent, ReportStatusEvent, DiscrepancyStatusEvent } from './types';
+import { DocumentStatusEvent, ReportStatusEvent, DiscrepancyStatusEvent, DiffStatusEvent } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -303,6 +303,80 @@ export function subscribeDiscrepancyStatus(
 
       try {
         const data: DiscrepancyStatusEvent = JSON.parse(e.data);
+        onEvent(data);
+
+        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+          cleanup();
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    });
+
+    eventSource.onerror = () => {
+      eventSource?.close();
+      eventSource = null;
+
+      if (closed) return;
+
+      if (retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(connect, retryDelay * retryCount);
+      } else {
+        onError?.('SSE 연결에 실패했습니다');
+        cleanup();
+      }
+    };
+  }
+
+  function cleanup() {
+    closed = true;
+    clearTimeout(timeoutId);
+    eventSource?.close();
+    eventSource = null;
+  }
+
+  connect();
+  return cleanup;
+}
+
+/**
+ * SSE client for diff status updates.
+ */
+export function subscribeDiffStatus(
+  diffId: string,
+  onEvent: (event: DiffStatusEvent) => void,
+  onError?: (error: string) => void,
+  options: SSEOptions = {},
+): () => void {
+  const { maxRetries = 3, retryDelay = 2000, timeout = 300_000 } = options;
+
+  let eventSource: EventSource | null = null;
+  let retryCount = 0;
+  let timeoutId: ReturnType<typeof setTimeout>;
+  let closed = false;
+
+  function connect() {
+    if (closed) return;
+
+    const url = appendWorkspaceParam(appendToken(`${SSE_BASE_URL}/documents/diff/${diffId}/status`));
+    eventSource = new EventSource(url);
+
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      onError?.('연결 시간이 초과되었습니다');
+      cleanup();
+    }, timeout);
+
+    eventSource.addEventListener('status', (e: MessageEvent) => {
+      retryCount = 0;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        cleanup();
+      }, timeout);
+
+      try {
+        const data: DiffStatusEvent = JSON.parse(e.data);
         onEvent(data);
 
         if (data.status === 'COMPLETED' || data.status === 'FAILED') {

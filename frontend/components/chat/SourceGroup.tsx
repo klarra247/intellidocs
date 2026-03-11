@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { FileText } from 'lucide-react';
 import { ChatSource } from '@/lib/types';
 import { useViewerStore } from '@/stores/viewerStore';
 
@@ -130,7 +131,8 @@ export default function SourceGroup({ documentId, filename, sources }: SourceGro
             : 'bg-primary-50 text-primary-700 hover:bg-primary-100 hover:shadow-sm'
         } ${hasClickable ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
       >
-        📄 {truncateFilename(filename)}
+        <FileText className="h-3 w-3 shrink-0" />
+        {truncateFilename(filename)}
         {uniquePages.length > 0 && (
           <span className="ml-0.5 text-primary-500">
             {uniquePages.map((page, i) => {

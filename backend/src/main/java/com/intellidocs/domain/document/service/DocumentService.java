@@ -294,7 +294,7 @@ public class DocumentService {
         UUID versionGroupId = document.getVersionGroupId();
         if (versionGroupId == null) {
             // 단일 버전 — 자신만 반환
-            return List.of(DocumentDto.VersionInfo.from(document, null));
+            return List.of(DocumentDto.VersionInfo.from(document, null, null));
         }
 
         List<Document> versions = documentRepository.findByVersionGroupIdOrderByVersionNumberDesc(versionGroupId);
@@ -304,12 +304,13 @@ public class DocumentService {
         List<DocumentVersionDiff> diffs = diffRepository.findBySourceDocumentIdInOrTargetDocumentIdIn(docIds, docIds);
 
         return versions.stream().map(v -> {
-            String diffStatus = diffs.stream()
+            var matchedDiff = diffs.stream()
                     .filter(d -> d.getTargetDocumentId().equals(v.getId()) || d.getSourceDocumentId().equals(v.getId()))
                     .findFirst()
-                    .map(d -> d.getStatus().name())
                     .orElse(null);
-            return DocumentDto.VersionInfo.from(v, diffStatus);
+            String diffStatus = matchedDiff != null ? matchedDiff.getStatus().name() : null;
+            UUID diffId = matchedDiff != null ? matchedDiff.getId() : null;
+            return DocumentDto.VersionInfo.from(v, diffStatus, diffId);
         }).toList();
     }
 

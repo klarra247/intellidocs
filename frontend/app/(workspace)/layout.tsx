@@ -1,11 +1,14 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import DocumentViewerPanel from '@/components/viewer/DocumentViewerPanel';
 import AuthGuard from '@/components/auth/AuthGuard';
 import WorkspaceInitializer from '@/components/workspace/WorkspaceInitializer';
 import WorkspaceReady from '@/components/workspace/WorkspaceReady';
+
+const DiffViewer = dynamic(() => import('@/components/version/DiffViewer'), { ssr: false });
 
 export default function WorkspaceLayout({
   children,
@@ -26,6 +29,7 @@ export default function WorkspaceLayout({
             </main>
           </div>
         </div>
+        <DiffViewer />
       </WorkspaceReady>
     </AuthGuard>
   );
