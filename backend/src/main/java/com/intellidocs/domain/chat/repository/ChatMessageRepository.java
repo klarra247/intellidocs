@@ -25,4 +25,16 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
             "AND cm.createdAt > (SELECT m.createdAt FROM ChatMessage m WHERE m.id = :lastReadMessageId)")
     long countUnreadMessages(@Param("sessionId") UUID sessionId,
                              @Param("lastReadMessageId") UUID lastReadMessageId);
+
+    @Query("SELECT cm.session.id, COUNT(cm), MAX(cm.createdAt) " +
+            "FROM ChatMessage cm WHERE cm.session.id IN :sessionIds GROUP BY cm.session.id")
+    List<Object[]> findSessionStats(@Param("sessionIds") List<UUID> sessionIds);
+
+    @Query(value = "SELECT cm.session_id, COUNT(*) FROM chat_messages cm " +
+            "JOIN session_read_status srs ON srs.session_id = cm.session_id AND srs.user_id = :userId " +
+            "WHERE cm.session_id IN :sessionIds " +
+            "AND cm.created_at > (SELECT m.created_at FROM chat_messages m WHERE m.id = srs.last_read_message_id) " +
+            "GROUP BY cm.session_id", nativeQuery = true)
+    List<Object[]> countUnreadBatch(@Param("sessionIds") List<UUID> sessionIds,
+                                    @Param("userId") UUID userId);
 }

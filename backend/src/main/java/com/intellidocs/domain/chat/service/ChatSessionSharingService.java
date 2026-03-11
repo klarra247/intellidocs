@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -83,18 +84,24 @@ public class ChatSessionSharingService {
                 .findByUserIdAndSessionIdIn(userId, sessionIds).stream()
                 .collect(Collectors.toMap(SessionReadStatus::getSessionId, Function.identity()));
 
-        return sessions.stream().map(session -> {
-            long messageCount = chatMessageRepository.countBySessionId(session.getId());
-            var lastMessage = chatMessageRepository
-                    .findTopBySessionIdOrderByCreatedAtDesc(session.getId());
+        // Batch session stats: messageCount + lastMessageAt (1 query)
+        Map<UUID, Object[]> statsMap = chatMessageRepository.findSessionStats(sessionIds).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], Function.identity()));
 
-            long unreadCount = 0;
-            SessionReadStatus readStatus = readStatusMap.get(session.getId());
-            if (readStatus != null && readStatus.getLastReadMessageId() != null) {
-                unreadCount = chatMessageRepository
-                        .countUnreadMessages(session.getId(), readStatus.getLastReadMessageId());
-            } else if (messageCount > 0 && !session.isCreator(userId)) {
-                // 한 번도 읽지 않은 공유 세션 → 전체 메시지가 unread
+        // Batch unread counts (1 query)
+        Map<UUID, Long> unreadMap = chatMessageRepository.countUnreadBatch(sessionIds, userId).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> ((Number) r[1]).longValue()));
+
+        return sessions.stream().map(session -> {
+            Object[] stats = statsMap.get(session.getId());
+            long messageCount = stats != null ? ((Number) stats[1]).longValue() : 0;
+            LocalDateTime lastMessageAt = stats != null ? (LocalDateTime) stats[2] : null;
+
+            long unreadCount = unreadMap.getOrDefault(session.getId(), 0L);
+            // readStatus 없는 공유 세션 → 전체 메시지가 unread
+            if (!unreadMap.containsKey(session.getId())
+                    && !readStatusMap.containsKey(session.getId())
+                    && messageCount > 0 && !session.isCreator(userId)) {
                 unreadCount = messageCount;
             }
 
@@ -106,7 +113,7 @@ public class ChatSessionSharingService {
                     .isShared(Boolean.TRUE.equals(session.getIsShared()))
                     .isOwner(session.isCreator(userId))
                     .messageCount(messageCount)
-                    .lastMessageAt(lastMessage.map(m -> m.getCreatedAt()).orElse(null))
+                    .lastMessageAt(lastMessageAt)
                     .unreadCount(unreadCount)
                     .createdAt(session.getCreatedAt())
                     .build();

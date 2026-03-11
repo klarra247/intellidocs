@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -169,6 +171,13 @@ public class ChatHistoryService {
         List<ChatMessage> messages = chatMessageRepository
                 .findBySessionIdOrderByCreatedAtAsc(sessionId);
 
+        // Batch comment counts (1 query instead of N)
+        List<UUID> messageIds = messages.stream().map(ChatMessage::getId).toList();
+        Map<UUID, Long> commentCountMap = messageIds.isEmpty()
+                ? Map.of()
+                : commentRepository.countByMessageIds(messageIds).stream()
+                        .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+
         List<ChatHistoryResponse.MessageDto> messageDtos = messages.stream()
                 .map(m -> ChatHistoryResponse.MessageDto.builder()
                         .id(m.getId())
@@ -180,7 +189,7 @@ public class ChatHistoryService {
                         .isPinned(Boolean.TRUE.equals(m.getIsPinned()))
                         .pinnedBy(m.getPinnedBy())
                         .pinnedAt(m.getPinnedAt())
-                        .commentCount(commentRepository.countByMessageId(m.getId()))
+                        .commentCount(commentCountMap.getOrDefault(m.getId(), 0L))
                         .createdAt(m.getCreatedAt())
                         .build())
                 .toList();

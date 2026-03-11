@@ -200,6 +200,7 @@ class ChatHistoryServiceTest {
 
         when(chatMessageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId))
                 .thenReturn(List.of(userMsg, assistantMsg));
+        when(commentRepository.countByMessageIds(any())).thenReturn(List.of());
 
         ChatHistoryResponse response = chatHistoryService.getHistory(sessionId, userId);
 

@@ -140,9 +140,10 @@ class ChatSessionSharingServiceTest {
 
         when(chatSessionRepository.findAccessibleSessions(workspaceId, userId))
                 .thenReturn(List.of(session));
-        when(chatMessageRepository.countBySessionId(any())).thenReturn(5L);
-        when(chatMessageRepository.findTopBySessionIdOrderByCreatedAtDesc(any()))
-                .thenReturn(Optional.empty());
+        when(chatMessageRepository.findSessionStats(any()))
+                .thenReturn(List.<Object[]>of(new Object[]{session.getId(), 5L, null}));
+        when(chatMessageRepository.countUnreadBatch(any(), any()))
+                .thenReturn(List.of());
         when(sessionReadStatusRepository.findByUserIdAndSessionIdIn(any(), any()))
                 .thenReturn(List.of());
 
