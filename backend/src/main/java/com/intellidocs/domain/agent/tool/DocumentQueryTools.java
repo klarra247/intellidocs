@@ -2,6 +2,9 @@ package com.intellidocs.domain.agent.tool;
 
 import com.intellidocs.common.SecurityContextHelper;
 import com.intellidocs.domain.agent.dto.ToolEvent;
+import com.intellidocs.domain.diff.entity.DiffResultData;
+import com.intellidocs.domain.diff.entity.DocumentVersionDiff;
+import com.intellidocs.domain.diff.repository.DiffRepository;
 import com.intellidocs.domain.discrepancy.entity.DiscrepancyResultData;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
 import com.intellidocs.domain.document.entity.Document;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -35,6 +39,7 @@ public class DocumentQueryTools {
     private final HybridSearchService hybridSearchService;
     private final DiscrepancyService discrepancyService;
     private final DocumentRepository documentRepository;
+    private final DiffRepository diffRepository;
 
     /**
      * Collects SearchResults from tool executions on the current thread.
@@ -233,6 +238,68 @@ public class DocumentQueryTools {
         }
     }
 
+    @Tool("두 문서 버전의 변경 사항을 비교 분석한다. documentId는 UUID 형식이어야 한다. " +
+          "해당 문서의 버전 그룹에서 최근 2개 버전을 비교하여 수치 변화와 텍스트 변경 사항을 보여준다.")
+    public String compareVersions(@P("비교할 문서 ID (UUID). 이 문서의 버전 그룹 내 최근 2개 버전을 비교한다") String documentId) {
+        log.debug("compareVersions called: documentId='{}'", documentId);
+        emitEvent(ToolEvent.start("compareVersions", "버전 비교 분석 중..."));
+
+        try {
+            UUID docId;
+            try {
+                docId = UUID.fromString(documentId);
+            } catch (IllegalArgumentException e) {
+                emitEvent(ToolEvent.end("compareVersions", "잘못된 문서 ID"));
+                return "잘못된 문서 ID입니다: " + documentId;
+            }
+
+            Document doc = documentRepository.findById(docId).orElse(null);
+            if (doc == null) {
+                emitEvent(ToolEvent.end("compareVersions", "문서를 찾을 수 없음"));
+                return "문서를 찾을 수 없습니다: " + documentId;
+            }
+
+            if (doc.getVersionGroupId() == null) {
+                emitEvent(ToolEvent.end("compareVersions", "단일 버전"));
+                return "비교할 이전 버전이 없습니다. 이 문서는 버전 관리되지 않은 단일 문서입니다.";
+            }
+
+            List<Document> versions = documentRepository.findByVersionGroupIdOrderByVersionNumberDesc(doc.getVersionGroupId());
+            if (versions.size() < 2) {
+                emitEvent(ToolEvent.end("compareVersions", "버전 1개"));
+                return "비교할 이전 버전이 없습니다.";
+            }
+
+            // 최신 2개 버전 (newest first)
+            Document latest = versions.get(0);
+            Document previous = versions.get(1);
+
+            // diff 결과 조회
+            Optional<DocumentVersionDiff> diffOpt = diffRepository.findBySourceDocumentIdAndTargetDocumentId(
+                    previous.getId(), latest.getId());
+
+            if (diffOpt.isEmpty()) {
+                emitEvent(ToolEvent.end("compareVersions", "비교 결과 없음"));
+                return "비교 결과가 아직 생성되지 않았습니다. 잠시 후 다시 시도하세요.";
+            }
+
+            DocumentVersionDiff diff = diffOpt.get();
+            if (diff.getResultData() == null) {
+                emitEvent(ToolEvent.end("compareVersions", "비교 진행 중"));
+                return "버전 비교가 진행 중입니다 (상태: " + diff.getStatus().name() + "). 잠시 후 다시 시도하세요.";
+            }
+
+            String formatted = formatDiffResult(diff.getResultData(), previous, latest);
+            emitEvent(ToolEvent.end("compareVersions", "비교 완료"));
+            return truncate(formatted);
+
+        } catch (Exception e) {
+            log.error("compareVersions failed", e);
+            emitEvent(ToolEvent.end("compareVersions", "비교 실패"));
+            return "버전 비교 중 오류가 발생했습니다: " + e.getMessage();
+        }
+    }
+
     // ── Private helpers ──────────────────────────────────────────
 
     private SearchRequest.Filters buildFilters(List<String> documentIds) {
@@ -331,6 +398,50 @@ public class DocumentQueryTools {
 
         sb.append("**검사 항목**: ").append(data.getSummary().getTotalFieldsChecked()).append("개, ");
         sb.append("**불일치**: ").append(data.getSummary().getDiscrepanciesFound()).append("건\n");
+
+        return sb.toString();
+    }
+
+    private String formatDiffResult(DiffResultData data, Document source, Document target) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("## 버전 비교 결과\n\n");
+        sb.append(String.format("- **이전 버전**: %s (v%d)\n", source.getOriginalFilename(), source.getVersionNumber()));
+        sb.append(String.format("- **새 버전**: %s (v%d)\n\n", target.getOriginalFilename(), target.getVersionNumber()));
+
+        if (data.getSummary() != null) {
+            DiffResultData.DiffSummary s = data.getSummary();
+            sb.append(String.format("**변경 요약**: 총 %d건 (추가 %d, 삭제 %d, 수정 %d)\n\n",
+                    s.getTotalChanges(), s.getAdded(), s.getRemoved(), s.getModified()));
+        }
+
+        if (data.getNumericChanges() != null && !data.getNumericChanges().isEmpty()) {
+            sb.append("### 수치 변화\n\n");
+            sb.append("| 항목 | 기간 | 이전 | 이후 | 변화 | 방향 |\n");
+            sb.append("|------|------|------|------|------|------|\n");
+            for (DiffResultData.NumericChange nc : data.getNumericChanges()) {
+                String changeStr = nc.getChangePercent() != null
+                        ? String.format("%.1f%%", nc.getChangePercent())
+                        : "-";
+                sb.append(String.format("| %s | %s | %s | %s | %s | %s |\n",
+                        nc.getField(), nc.getPeriod(),
+                        nc.getSourceValue(), nc.getTargetValue(),
+                        changeStr, nc.getDirection()));
+            }
+            sb.append("\n");
+        }
+
+        if (data.getTextChanges() != null && !data.getTextChanges().isEmpty()) {
+            sb.append("### 텍스트 변경\n\n");
+            for (DiffResultData.TextChange tc : data.getTextChanges()) {
+                sb.append(String.format("- **[%s]** %s: %s\n", tc.getType(), tc.getSectionTitle(), tc.getSummary()));
+            }
+            sb.append("\n");
+        }
+
+        if ((data.getNumericChanges() == null || data.getNumericChanges().isEmpty())
+                && (data.getTextChanges() == null || data.getTextChanges().isEmpty())) {
+            sb.append("변경 사항이 없습니다.\n");
+        }
 
         return sb.toString();
     }

@@ -5,6 +5,7 @@ import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.agent.service.IntelliDocsAgent;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
+import com.intellidocs.domain.diff.repository.DiffRepository;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.repository.DocumentRepository;
@@ -45,6 +46,7 @@ public class ReportService {
     private final ReportSseEmitterService sseEmitterService;
     private final ObjectMapper objectMapper;
     private final DiscrepancyService discrepancyService;
+    private final DiffRepository diffRepository;
 
     public ReportService(
             ReportRepository reportRepository,
@@ -54,7 +56,8 @@ public class ReportService {
             ReportPdfRenderer reportPdfRenderer,
             ReportSseEmitterService sseEmitterService,
             ObjectMapper objectMapper,
-            DiscrepancyService discrepancyService) {
+            DiscrepancyService discrepancyService,
+            DiffRepository diffRepository) {
         this.reportRepository = reportRepository;
         this.documentRepository = documentRepository;
         this.chatLanguageModel = chatLanguageModel;
@@ -63,6 +66,7 @@ public class ReportService {
         this.sseEmitterService = sseEmitterService;
         this.objectMapper = objectMapper;
         this.discrepancyService = discrepancyService;
+        this.diffRepository = diffRepository;
     }
 
     @Transactional
@@ -133,7 +137,7 @@ public class ReportService {
             sendProgress(reportId, ReportStatus.GENERATING, "AI 분석 중...", 10);
 
             // 2. Build report-specific agent
-            DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+            DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
             FinancialCalculatorTools calcTools = new FinancialCalculatorTools();
 
             IntelliDocsAgent agent = AiServices.builder(IntelliDocsAgent.class)

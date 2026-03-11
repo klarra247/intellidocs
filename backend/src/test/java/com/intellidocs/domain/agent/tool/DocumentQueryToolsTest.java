@@ -34,11 +34,14 @@ class DocumentQueryToolsTest {
     @Mock
     private DocumentRepository documentRepository;
 
+    @Mock
+    private com.intellidocs.domain.diff.repository.DiffRepository diffRepository;
+
     private DocumentQueryTools documentQueryTools;
 
     @BeforeEach
     void setUp() {
-        documentQueryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        documentQueryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
     }
 
     @Test
@@ -355,7 +358,7 @@ class DocumentQueryToolsTest {
                 SearchResponse.builder().results(List.of(chunk))
                         .totalResults(1).elapsedMs(10L).vectorHits(1).bm25Hits(0).build());
 
-        DocumentQueryTools freshTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools freshTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         freshTools.searchDocuments("query", null);
 
         assertThat(freshTools.getInstanceCollectedResults()).hasSize(1);

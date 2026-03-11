@@ -39,6 +39,7 @@ class AgentServiceTest {
     @Mock private HybridSearchService hybridSearchService;
     @Mock private DiscrepancyService discrepancyService;
     @Mock private DocumentRepository documentRepository;
+    @Mock private com.intellidocs.domain.diff.repository.DiffRepository diffRepository;
 
     private AgentService agentService;
 
@@ -53,7 +54,7 @@ class AgentServiceTest {
                 .build();
         lenient().when(chatLanguageModel.chat(any(ChatRequest.class))).thenReturn(chatResponse);
 
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         FinancialCalculatorTools calcTools = new FinancialCalculatorTools();
         agentService = new AgentService(chatLanguageModel, queryTools, calcTools);
         ReflectionTestUtils.setField(agentService, "provider", "anthropic");
@@ -92,7 +93,7 @@ class AgentServiceTest {
                         .build());
 
         // Manually invoke the tool to populate ThreadLocal (simulating agent tool call)
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         AgentService localService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
         ReflectionTestUtils.setField(localService, "provider", "anthropic");
         ReflectionTestUtils.setField(localService, "anthropicKey", "sk-test-key");
@@ -187,7 +188,7 @@ class AgentServiceTest {
                 .thenReturn(chatResponse);
 
         // Rebuild agent with fresh mock
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         AgentService retryService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
         ReflectionTestUtils.setField(retryService, "provider", "anthropic");
         ReflectionTestUtils.setField(retryService, "anthropicKey", "sk-test-key");
@@ -222,7 +223,7 @@ class AgentServiceTest {
                 .build();
         when(chatLanguageModel.chat(any(ChatRequest.class))).thenReturn(chatResponse);
 
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         AgentService tableService = new AgentService(chatLanguageModel, queryTools, new FinancialCalculatorTools());
         ReflectionTestUtils.setField(tableService, "provider", "anthropic");
         ReflectionTestUtils.setField(tableService, "anthropicKey", "sk-test-key");

@@ -3,11 +3,14 @@ package com.intellidocs.domain.document.service;
 import com.intellidocs.common.WorkspaceContext;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.config.RabbitMQConfig;
+import com.intellidocs.domain.diff.entity.DocumentVersionDiff;
+import com.intellidocs.domain.diff.repository.DiffRepository;
 import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.entity.FileType;
 import com.intellidocs.domain.document.repository.DocumentRepository;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
 import com.intellidocs.infrastructure.parsing.ParsingServiceClient;
 import com.intellidocs.infrastructure.qdrant.QdrantIndexService;
@@ -52,6 +55,8 @@ public class DocumentService {
     private final ElasticsearchIndexService esIndexService;
     private final CacheManager cacheManager;
     private final ParsingServiceClient parsingServiceClient;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final DiffRepository diffRepository;
 
     @Value("${app.storage.upload-dir}")
     private String uploadDir;
@@ -183,6 +188,129 @@ public class DocumentService {
         documentRepository.delete(document);
         evictSearchCache();
         log.info("Document deleted: {}", documentId);
+    }
+
+    /**
+     * 문서 버전 업로드 — 기존 문서의 새 버전을 생성
+     */
+    @Transactional
+    public DocumentDto.VersionUploadResponse uploadVersion(UUID parentDocumentId, MultipartFile file, UUID userId) {
+        // 1. 부모 문서 존재 확인
+        Document parent = documentRepository.findById(parentDocumentId)
+                .orElseThrow(() -> BusinessException.notFound("Document", parentDocumentId));
+
+        // 2. 부모 INDEXED 확인
+        if (parent.getStatus() != DocumentStatus.INDEXED) {
+            throw BusinessException.conflict("이전 버전 문서의 처리가 완료되지 않았습니다");
+        }
+
+        // 3. 워크스페이스 접근 확인
+        if (parent.getWorkspaceId() != null) {
+            if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(parent.getWorkspaceId(), userId)) {
+                throw BusinessException.forbidden("해당 워크스페이스에 접근 권한이 없습니다");
+            }
+        }
+
+        // 4. versionGroupId 결정 (lazy init)
+        UUID versionGroupId = parent.getVersionGroupId();
+        if (versionGroupId == null) {
+            versionGroupId = parent.getId();
+            parent.setVersionInfo(versionGroupId, 1, null);
+            documentRepository.save(parent);
+        }
+
+        // 5. 다음 버전 번호
+        int nextVersion = documentRepository.findMaxVersionNumber(versionGroupId).orElse(1) + 1;
+
+        // 6. 파일 검증
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !FileType.isSupported(originalFilename)) {
+            throw BusinessException.unsupportedFileType(originalFilename);
+        }
+        FileType fileType = FileType.fromFilename(originalFilename);
+
+        // 7. 파일 저장
+        String storedFilename = UUID.randomUUID() + "." + fileType.getExtension();
+        Path storagePath = saveFile(file, storedFilename);
+
+        // 8. DB 저장
+        Document document = Document.builder()
+                .userId(userId)
+                .workspaceId(parent.getWorkspaceId())
+                .filename(storedFilename)
+                .originalFilename(originalFilename)
+                .fileType(fileType)
+                .fileSize(file.getSize())
+                .storagePath(storagePath.toString())
+                .build();
+        document.setVersionInfo(versionGroupId, nextVersion, parentDocumentId);
+        document = documentRepository.save(document);
+        log.info("Version {} uploaded: id={}, parentId={}, groupId={}",
+                nextVersion, document.getId(), parentDocumentId, versionGroupId);
+
+        // 9. SSE + 파싱 큐 발행
+        sseEmitterService.send(document.getId(),
+                DocumentDto.StatusEvent.builder()
+                        .documentId(document.getId())
+                        .status(document.getStatus())
+                        .message("파일 업로드 완료. 파싱을 시작합니다.")
+                        .progress(10)
+                        .build());
+
+        document.startParsing();
+        documentRepository.save(document);
+
+        ParsingMessage.ParseRequest parseRequest = ParsingMessage.ParseRequest.builder()
+                .documentId(document.getId())
+                .filename(originalFilename)
+                .fileType(fileType.name())
+                .storagePath(storagePath.toString())
+                .build();
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE,
+                RabbitMQConfig.PARSE_ROUTING_KEY,
+                parseRequest
+        );
+        evictSearchCache();
+
+        return DocumentDto.VersionUploadResponse.builder()
+                .documentId(document.getId())
+                .versionGroupId(versionGroupId)
+                .versionNumber(nextVersion)
+                .parentVersionId(parentDocumentId)
+                .status(document.getStatus())
+                .build();
+    }
+
+    /**
+     * 문서 버전 히스토리 조회
+     */
+    @Transactional(readOnly = true)
+    public List<DocumentDto.VersionInfo> getVersionHistory(UUID documentId, UUID userId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> BusinessException.notFound("Document", documentId));
+
+        UUID versionGroupId = document.getVersionGroupId();
+        if (versionGroupId == null) {
+            // 단일 버전 — 자신만 반환
+            return List.of(DocumentDto.VersionInfo.from(document, null));
+        }
+
+        List<Document> versions = documentRepository.findByVersionGroupIdOrderByVersionNumberDesc(versionGroupId);
+
+        // 해당 그룹의 모든 문서 ID 수집
+        List<UUID> docIds = versions.stream().map(Document::getId).toList();
+        List<DocumentVersionDiff> diffs = diffRepository.findBySourceDocumentIdInOrTargetDocumentIdIn(docIds, docIds);
+
+        return versions.stream().map(v -> {
+            String diffStatus = diffs.stream()
+                    .filter(d -> d.getTargetDocumentId().equals(v.getId()) || d.getSourceDocumentId().equals(v.getId()))
+                    .findFirst()
+                    .map(d -> d.getStatus().name())
+                    .orElse(null);
+            return DocumentDto.VersionInfo.from(v, diffStatus);
+        }).toList();
     }
 
     // TODO: JWT 구현 시 소유자 검증 추가

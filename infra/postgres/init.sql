@@ -121,6 +121,9 @@ CREATE TABLE documents (
     review_requested_at TIMESTAMP,
     reviewed_by         UUID REFERENCES users(id),
     reviewed_at         TIMESTAMP,
+    version_group_id    UUID,
+    version_number      INTEGER NOT NULL DEFAULT 1,
+    parent_version_id   UUID REFERENCES documents(id) ON DELETE SET NULL,
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
 );
@@ -128,6 +131,10 @@ CREATE TABLE documents (
 CREATE INDEX idx_documents_workspace ON documents(workspace_id);
 CREATE INDEX idx_documents_workspace_created ON documents(workspace_id, created_at DESC);
 CREATE INDEX idx_documents_status ON documents(status);
+CREATE INDEX idx_documents_version_group ON documents(version_group_id);
+CREATE INDEX idx_documents_parent_version ON documents(parent_version_id);
+
+-- 마이그레이션: UPDATE documents SET version_group_id = id, version_number = 1 WHERE version_group_id IS NULL;
 
 -- ─────────────────────────────────────────
 -- 문서 코멘트
@@ -288,3 +295,23 @@ CREATE INDEX idx_discrepancy_status ON discrepancy_results(status);
 CREATE INDEX idx_discrepancy_created ON discrepancy_results(created_at DESC);
 CREATE INDEX idx_discrepancy_user ON discrepancy_results(user_id);
 CREATE INDEX idx_discrepancy_workspace_created ON discrepancy_results(workspace_id, created_at DESC);
+
+-- ─────────────────────────────────────────
+-- 문서 버전 Diff 결과
+-- ─────────────────────────────────────────
+CREATE TABLE document_version_diffs (
+    id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    source_document_id    UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    target_document_id    UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    workspace_id          UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    diff_type             VARCHAR(20) NOT NULL DEFAULT 'VERSION',
+    status                VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    result_data           JSONB,
+    error_message         TEXT,
+    created_at            TIMESTAMP DEFAULT NOW(),
+    updated_at            TIMESTAMP DEFAULT NOW(),
+    UNIQUE(source_document_id, target_document_id)
+);
+CREATE INDEX idx_version_diffs_source ON document_version_diffs(source_document_id);
+CREATE INDEX idx_version_diffs_target ON document_version_diffs(target_document_id);
+CREATE INDEX idx_version_diffs_workspace ON document_version_diffs(workspace_id);

@@ -5,6 +5,7 @@ import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
+import com.intellidocs.domain.diff.repository.DiffRepository;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.search.dto.SearchResult;
@@ -40,6 +41,7 @@ public class StreamingAgentService {
     private final ChatHistoryService chatHistoryService;
     private final DiscrepancyService discrepancyService;
     private final DocumentRepository documentRepository;
+    private final DiffRepository diffRepository;
 
     @Value("${app.llm.provider:anthropic}")
     private String provider;
@@ -80,7 +82,7 @@ public class StreamingAgentService {
                 : UUID.randomUUID();
 
         // 4. Per-request tool instances with callbacks
-        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository);
+        DocumentQueryTools queryTools = new DocumentQueryTools(hybridSearchService, discrepancyService, documentRepository, diffRepository);
         FinancialCalculatorTools calcTools = new FinancialCalculatorTools();
         queryTools.setEventCallback(event -> sendSseEvent(emitter, event.getEventType(), event));
         calcTools.setEventCallback(event -> sendSseEvent(emitter, event.getEventType(), event));

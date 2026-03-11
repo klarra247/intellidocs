@@ -62,6 +62,14 @@ public class Document {
     private UUID reviewedBy;
     private LocalDateTime reviewedAt;
 
+    private UUID versionGroupId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer versionNumber = 1;
+
+    private UUID parentVersionId;
+
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DocumentChunk> chunks = new ArrayList<>();
@@ -105,5 +113,11 @@ public class Document {
         this.reviewStatus = status;
         this.reviewedBy = userId;
         this.reviewedAt = LocalDateTime.now();
+    }
+
+    public void setVersionInfo(UUID versionGroupId, int versionNumber, UUID parentVersionId) {
+        this.versionGroupId = versionGroupId;
+        this.versionNumber = versionNumber;
+        this.parentVersionId = parentVersionId;
     }
 }

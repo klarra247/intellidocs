@@ -97,6 +97,28 @@ public class DocumentController {
     }
 
     /**
+     * 문서 새 버전 업로드
+     */
+    @PostMapping(value = "/{id}/versions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<DocumentDto.VersionUploadResponse>> uploadVersion(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        DocumentDto.VersionUploadResponse response = documentService.uploadVersion(id, file, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+    }
+
+    /**
+     * 문서 버전 히스토리 조회
+     */
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<ApiResponse<java.util.List<DocumentDto.VersionInfo>>> getVersionHistory(
+            @PathVariable UUID id) {
+        UUID userId = SecurityContextHelper.getCurrentUserId();
+        return ResponseEntity.ok(ApiResponse.ok(documentService.getVersionHistory(id, userId)));
+    }
+
+    /**
      * 리뷰 요청
      */
     @PostMapping("/{id}/review-request")

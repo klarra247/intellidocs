@@ -98,4 +98,40 @@ public class DocumentDto {
         private String message;
         private Integer progress; // 0-100
     }
+
+    @Getter
+    @Builder
+    public static class VersionUploadResponse {
+        private UUID documentId;
+        private UUID versionGroupId;
+        private Integer versionNumber;
+        private UUID parentVersionId;
+        private DocumentStatus status;
+    }
+
+    @Getter
+    @Builder
+    public static class VersionInfo {
+        private UUID documentId;
+        private Integer versionNumber;
+        private String originalFilename;
+        private FileType fileType;
+        private Long fileSize;
+        private DocumentStatus status;
+        private LocalDateTime createdAt;
+        private String diffStatus;
+
+        public static VersionInfo from(Document doc, String diffStatus) {
+            return VersionInfo.builder()
+                    .documentId(doc.getId())
+                    .versionNumber(doc.getVersionNumber())
+                    .originalFilename(doc.getOriginalFilename())
+                    .fileType(doc.getFileType())
+                    .fileSize(doc.getFileSize())
+                    .status(doc.getStatus())
+                    .createdAt(doc.getCreatedAt())
+                    .diffStatus(diffStatus)
+                    .build();
+        }
+    }
 }
