@@ -315,3 +315,43 @@ CREATE TABLE document_version_diffs (
 CREATE INDEX idx_version_diffs_source ON document_version_diffs(source_document_id);
 CREATE INDEX idx_version_diffs_target ON document_version_diffs(target_document_id);
 CREATE INDEX idx_version_diffs_workspace ON document_version_diffs(workspace_id);
+
+-- ============================================================
+-- Knowledge Graph
+-- ============================================================
+CREATE TABLE IF NOT EXISTS entities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id),
+    document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+    name VARCHAR(300) NOT NULL,
+    normalized_name VARCHAR(300) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    value VARCHAR(500),
+    period VARCHAR(50),
+    chunk_index INTEGER,
+    page_number INTEGER,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_entities_workspace ON entities(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_entities_document ON entities(document_id);
+CREATE INDEX IF NOT EXISTS idx_entities_normalized ON entities(workspace_id, normalized_name);
+CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(workspace_id, entity_type);
+
+CREATE TABLE IF NOT EXISTS entity_relations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id),
+    source_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    target_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    relation_type VARCHAR(100) NOT NULL,
+    description VARCHAR(500),
+    confidence DECIMAL DEFAULT 0.8,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT now(),
+    UNIQUE(source_entity_id, target_entity_id, relation_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_relations_workspace ON entity_relations(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_relations_source ON entity_relations(source_entity_id);
+CREATE INDEX IF NOT EXISTS idx_relations_target ON entity_relations(target_entity_id);
