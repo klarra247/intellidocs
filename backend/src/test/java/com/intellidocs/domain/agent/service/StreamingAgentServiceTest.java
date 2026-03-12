@@ -31,6 +31,7 @@ class StreamingAgentServiceTest {
     @Mock private DiscrepancyService discrepancyService;
     @Mock private DocumentRepository documentRepository;
     @Mock private com.intellidocs.domain.diff.repository.DiffRepository diffRepository;
+    @Mock private com.intellidocs.domain.knowledgegraph.tool.KnowledgeGraphTools knowledgeGraphTools;
 
     private StreamingAgentService streamingAgentService;
 
@@ -38,7 +39,7 @@ class StreamingAgentServiceTest {
     void setUp() {
         streamingAgentService = new StreamingAgentService(
                 streamingChatLanguageModel, hybridSearchService, chatHistoryService,
-                discrepancyService, documentRepository, diffRepository);
+                discrepancyService, documentRepository, diffRepository, knowledgeGraphTools);
         ReflectionTestUtils.setField(streamingAgentService, "provider", "anthropic");
         ReflectionTestUtils.setField(streamingAgentService, "anthropicKey", "sk-test-key");
         ReflectionTestUtils.setField(streamingAgentService, "openaiKey", "");

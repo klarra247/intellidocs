@@ -115,6 +115,29 @@ public class LlmConfig {
                 .build();
     }
 
+    /**
+     * Knowledge Graph 엔티티/관계 추출 전용 모델 — 정확한 JSON 추출을 위해 temperature=0.1.
+     */
+    @Bean("kgChatLanguageModel")
+    public ChatLanguageModel kgChatLanguageModel() {
+        if ("openai".equalsIgnoreCase(provider)) {
+            String key = openaiKey.isBlank() ? "placeholder-key" : openaiKey;
+            return OpenAiChatModel.builder()
+                    .apiKey(key)
+                    .modelName(openaiModel)
+                    .temperature(0.1)
+                    .maxTokens(4096)
+                    .build();
+        }
+        String key = anthropicKey.isBlank() ? "placeholder-key" : anthropicKey;
+        return AnthropicChatModel.builder()
+                .apiKey(key)
+                .modelName(anthropicModel)
+                .temperature(0.1)
+                .maxTokens(4096)
+                .build();
+    }
+
     @Bean
     public StreamingChatLanguageModel streamingChatLanguageModel() {
         if ("openai".equalsIgnoreCase(provider)) {

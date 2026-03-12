@@ -14,8 +14,8 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EntityExtractionService {
 
     private final DocumentRepository documentRepository;
@@ -33,6 +32,20 @@ public class EntityExtractionService {
     private final QdrantChunkRetrievalService qdrantService;
     private final ChatLanguageModel chatLanguageModel;
     private final EntityNormalizationService normalizationService;
+
+    public EntityExtractionService(DocumentRepository documentRepository,
+                                   DocumentChunkRepository chunkRepository,
+                                   KgEntityRepository kgEntityRepository,
+                                   QdrantChunkRetrievalService qdrantService,
+                                   @Qualifier("kgChatLanguageModel") ChatLanguageModel chatLanguageModel,
+                                   EntityNormalizationService normalizationService) {
+        this.documentRepository = documentRepository;
+        this.chunkRepository = chunkRepository;
+        this.kgEntityRepository = kgEntityRepository;
+        this.qdrantService = qdrantService;
+        this.chatLanguageModel = chatLanguageModel;
+        this.normalizationService = normalizationService;
+    }
 
     private static final int BATCH_SIZE = 5;
     private static final int MAX_CHUNKS = 20;

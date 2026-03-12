@@ -9,8 +9,8 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,12 +20,19 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RelationExtractionService {
 
     private final KgEntityRepository entityRepository;
     private final KgRelationRepository relationRepository;
     private final ChatLanguageModel chatLanguageModel;
+
+    public RelationExtractionService(KgEntityRepository entityRepository,
+                                     KgRelationRepository relationRepository,
+                                     @Qualifier("kgChatLanguageModel") ChatLanguageModel chatLanguageModel) {
+        this.entityRepository = entityRepository;
+        this.relationRepository = relationRepository;
+        this.chatLanguageModel = chatLanguageModel;
+    }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
