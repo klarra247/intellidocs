@@ -5,6 +5,7 @@ import com.intellidocs.domain.agent.dto.AgentRequest;
 import com.intellidocs.domain.agent.dto.SourceInfo;
 import com.intellidocs.domain.agent.tool.DocumentQueryTools;
 import com.intellidocs.domain.agent.tool.FinancialCalculatorTools;
+import com.intellidocs.domain.knowledgegraph.tool.KnowledgeGraphTools;
 import com.intellidocs.domain.diff.repository.DiffRepository;
 import com.intellidocs.domain.discrepancy.service.DiscrepancyService;
 import com.intellidocs.domain.document.repository.DocumentRepository;
@@ -42,6 +43,7 @@ public class StreamingAgentService {
     private final DiscrepancyService discrepancyService;
     private final DocumentRepository documentRepository;
     private final DiffRepository diffRepository;
+    private final KnowledgeGraphTools knowledgeGraphTools;
 
     @Value("${app.llm.provider:anthropic}")
     private String provider;
@@ -101,7 +103,7 @@ public class StreamingAgentService {
                                     .maxMessages(10)
                                     .build());
                 })
-                .tools(queryTools, calcTools)
+                .tools(queryTools, calcTools, knowledgeGraphTools)
                 .build();
 
         // 6. User message (truncate if too long)

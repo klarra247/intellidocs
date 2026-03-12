@@ -68,6 +68,7 @@ public final class AgentPrompts {
             - 증감률/차이 계산 → calculateChange
             - 재무비율 계산 → calculateFinancialRatio
             - 추세 분석 → analyzeTrend
+            - exploreKnowledgeGraph: 워크스페이스의 Knowledge Graph에서 엔티티 간 관계를 탐색. '매출과 관련된 항목은?', '이 회사와 연결된 문서는?' 등
             """;
 
     public static final String SYSTEM_MESSAGE =
