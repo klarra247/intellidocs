@@ -51,6 +51,7 @@ public class DocumentQueryTools {
     private Consumer<ToolEvent> eventCallback;
     private final List<SearchResult> instanceCollectedResults = new ArrayList<>();
     private int discrepancyDetectionCount = 0;
+    private int versionComparisonCount = 0;
 
     public void setEventCallback(Consumer<ToolEvent> callback) {
         this.eventCallback = callback;
@@ -71,10 +72,15 @@ public class DocumentQueryTools {
         return discrepancyDetectionCount;
     }
 
+    public int getVersionComparisonCount() {
+        return versionComparisonCount;
+    }
+
     /** Call before agent.chat() to reset collected results. */
     public void clearCollectedResults() {
         COLLECTED_RESULTS.get().clear();
         discrepancyDetectionCount = 0;
+        versionComparisonCount = 0;
     }
 
     /** Call after agent.chat() to retrieve all search results from this request. */
@@ -290,6 +296,7 @@ public class DocumentQueryTools {
             }
 
             String formatted = formatDiffResult(diff.getResultData(), previous, latest);
+            versionComparisonCount++;
             emitEvent(ToolEvent.end("compareVersions", "비교 완료"));
             return truncate(formatted);
 
