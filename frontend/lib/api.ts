@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus, DocumentVersion, VersionUploadResponse, DiffResponse, DiffDetailResponse } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus, DocumentVersion, VersionUploadResponse, DiffResponse, DiffDetailResponse, GraphResponse, MetricDetailResponse, GraphSearchResponse, GraphRebuildResponse, GraphStatsResponse } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
@@ -440,4 +440,31 @@ export const invitationsApi = {
     request<void>(`/invitations/${token}/decline`, { method: 'POST' }),
 
   pending: () => request<PendingInvitation[]>('/invitations/pending'),
+};
+
+// === Knowledge Graph ===
+export const knowledgeGraphApi = {
+  getGraph: (params?: { documentIds?: string[]; changeDirection?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.documentIds?.length) {
+      params.documentIds.forEach((id) => searchParams.append('documentIds', id));
+    }
+    if (params?.changeDirection) {
+      searchParams.set('changeDirection', params.changeDirection);
+    }
+    const qs = searchParams.toString();
+    return request<GraphResponse>(`/knowledge-graph${qs ? `?${qs}` : ''}`);
+  },
+
+  getMetricDetail: (normalizedMetric: string) =>
+    request<MetricDetailResponse>(`/knowledge-graph/metrics/${encodeURIComponent(normalizedMetric)}`),
+
+  search: (q: string) =>
+    request<GraphSearchResponse>(`/knowledge-graph/search?q=${encodeURIComponent(q)}`),
+
+  rebuild: () =>
+    request<GraphRebuildResponse>('/knowledge-graph/rebuild', { method: 'POST' }),
+
+  getStats: () =>
+    request<GraphStatsResponse>('/knowledge-graph/stats'),
 };

@@ -538,3 +538,77 @@ export interface ReviewResponse {
   reviewedByName: string | null;
   reviewedAt: string | null;
 }
+
+// === Knowledge Graph (Metric-Centric) ===
+
+export interface MetricOccurrence {
+  documentId: string;
+  documentName: string;
+  value: string;
+  numericValue: number | null;
+  unit: string;
+  period: string;
+  pageNumber: number | null;
+}
+
+export interface MetricChange {
+  from: number;
+  to: number;
+  changePercent: number | null;
+  direction: 'increase' | 'decrease' | 'unchanged';
+}
+
+export interface GraphNode {
+  id: string;
+  type: 'document' | 'metric';
+  name: string;
+  // document fields
+  fileType?: string;
+  status?: string;
+  metricsCount?: number;
+  // metric fields
+  occurrences?: MetricOccurrence[];
+  change?: MetricChange | null;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  period?: string;
+  value?: string;
+}
+
+export interface GraphStats {
+  totalDocuments: number;
+  totalMetrics: number;
+  totalEdges: number;
+  crossDocumentMetrics: number;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  stats: GraphStats;
+}
+
+export interface MetricDetailResponse {
+  metricName: string;
+  occurrences: MetricOccurrence[];
+  change: MetricChange | null;
+}
+
+export interface GraphSearchResponse {
+  results: GraphNode[];
+}
+
+export interface GraphRebuildResponse {
+  status: string;
+  message: string;
+}
+
+export interface GraphStatsResponse {
+  totalDocuments: number;
+  totalMetrics: number;
+  crossDocumentMetrics: number;
+}

@@ -129,6 +129,16 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           // Auto-remove completed upload entry after delay
           if (isDone) {
             sseCleanups.delete(tempId);
+
+            // Notify KG extraction started
+            try {
+              const { useChatStore } = require('@/stores/chatStore');
+              useChatStore.getState().showToast(
+                '📊 Knowledge Graph 엔티티 추출이 시작되었습니다',
+                'success'
+              );
+            } catch { /* chat store not available */ }
+
             setTimeout(() => {
               set((state) => {
                 const next = new Map(state.uploadingFiles);

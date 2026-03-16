@@ -252,3 +252,24 @@
 .prose-chat tbody tr:hover {
   @apply bg-primary-50/30;
 }
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: pointer !important;
+}
+
+.react-flow__edge-text {
+  pointer-events: none;
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+}
+
+.react-flow__controls {
+  border-radius: 8px;
+}
+
+.react-flow__controls button {
+  border-radius: 6px;
+}

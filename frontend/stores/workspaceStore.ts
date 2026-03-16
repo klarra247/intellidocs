@@ -43,6 +43,10 @@ function refreshDependentStores() {
     const { useDiscrepancyStore } = require('@/stores/discrepancyStore');
     useDiscrepancyStore.getState().fetchRecent();
   } catch { /* not available */ }
+  try {
+    const { useGraphStore } = require('@/stores/graphStore');
+    useGraphStore.getState().reset();
+  } catch { /* not available */ }
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
