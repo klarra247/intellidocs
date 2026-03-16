@@ -13,6 +13,7 @@ import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.workspace.entity.WorkspaceMember;
 import com.intellidocs.domain.workspace.entity.WorkspaceMemberRole;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
+import com.intellidocs.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,13 +37,14 @@ class DocumentCommentServiceTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private UserRepository userRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+    @Mock private NotificationService notificationService;
 
     private DocumentCommentService service;
 
     @BeforeEach
     void setUp() {
         service = new DocumentCommentService(
-                commentRepository, documentRepository, userRepository, workspaceMemberRepository);
+                commentRepository, documentRepository, userRepository, workspaceMemberRepository, notificationService);
     }
 
     private Document buildDocument(UUID workspaceId) {

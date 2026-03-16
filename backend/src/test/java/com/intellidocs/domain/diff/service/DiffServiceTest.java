@@ -98,7 +98,7 @@ class DiffServiceTest {
     }
 
     @Test
-    void createManualDiff_alreadyExists_returnsExisting() {
+    void createManualDiff_alreadyInProgress_returnsExisting() {
         UUID srcId = UUID.randomUUID();
         UUID tgtId = UUID.randomUUID();
         UUID diffId = UUID.randomUUID();
@@ -107,7 +107,7 @@ class DiffServiceTest {
                 .id(diffId)
                 .sourceDocumentId(srcId)
                 .targetDocumentId(tgtId)
-                .status(DiffStatus.COMPLETED)
+                .status(DiffStatus.COMPARING)
                 .build();
 
         when(documentRepository.findById(srcId)).thenReturn(Optional.of(buildDocument(srcId)));
@@ -122,8 +122,36 @@ class DiffServiceTest {
         DiffDto.DiffResponse response = service.createManualDiff(request, USER_ID);
 
         assertThat(response.getDiffId()).isEqualTo(diffId);
-        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getStatus()).isEqualTo("COMPARING");
         verify(diffRepository, never()).save(any());
+    }
+
+    @Test
+    void createManualDiff_completedExists_deletesAndRecreates() {
+        UUID srcId = UUID.randomUUID();
+        UUID tgtId = UUID.randomUUID();
+
+        DocumentVersionDiff existingDiff = DocumentVersionDiff.builder()
+                .sourceDocumentId(srcId)
+                .targetDocumentId(tgtId)
+                .status(DiffStatus.COMPLETED)
+                .build();
+
+        when(documentRepository.findById(srcId)).thenReturn(Optional.of(buildDocument(srcId)));
+        when(documentRepository.findById(tgtId)).thenReturn(Optional.of(buildDocument(tgtId)));
+        when(workspaceMemberRepository.existsByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID)).thenReturn(true);
+        when(diffRepository.findBySourceDocumentIdAndTargetDocumentId(srcId, tgtId)).thenReturn(Optional.of(existingDiff));
+        when(diffRepository.save(any(DocumentVersionDiff.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DiffDto.DiffRequest request = new DiffDto.DiffRequest();
+        request.setSourceDocumentId(srcId);
+        request.setTargetDocumentId(tgtId);
+
+        DiffDto.DiffResponse response = service.createManualDiff(request, USER_ID);
+
+        assertThat(response.getStatus()).isEqualTo("PENDING");
+        verify(diffRepository).delete(existingDiff);
+        verify(diffRepository).save(any(DocumentVersionDiff.class));
     }
 
     @Test

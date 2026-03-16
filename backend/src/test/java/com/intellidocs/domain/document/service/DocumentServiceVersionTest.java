@@ -8,6 +8,7 @@ import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.entity.FileType;
+import com.intellidocs.domain.document.repository.DocumentCommentRepository;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.*;
 class DocumentServiceVersionTest {
 
     @Mock private DocumentRepository documentRepository;
+    @Mock private DocumentCommentRepository documentCommentRepository;
     @Mock private RabbitTemplate rabbitTemplate;
     @Mock private DocumentSseEmitterService sseEmitterService;
     @Mock private QdrantIndexService qdrantIndexService;
@@ -59,7 +61,7 @@ class DocumentServiceVersionTest {
     @BeforeEach
     void setUp() {
         service = new DocumentService(
-                documentRepository, rabbitTemplate, sseEmitterService,
+                documentRepository, documentCommentRepository, rabbitTemplate, sseEmitterService,
                 qdrantIndexService, esIndexService, cacheManager,
                 parsingServiceClient, workspaceMemberRepository, diffRepository
         );

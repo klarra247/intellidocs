@@ -8,6 +8,8 @@ import com.intellidocs.domain.chat.entity.SessionReadStatus;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.ChatSessionRepository;
 import com.intellidocs.domain.chat.repository.SessionReadStatusRepository;
+import com.intellidocs.domain.notification.service.NotificationService;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +33,8 @@ class ChatSessionSharingServiceTest {
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private SessionReadStatusRepository sessionReadStatusRepository;
     @Mock private UserRepository userRepository;
+    @Mock private NotificationService notificationService;
+    @Mock private WorkspaceMemberRepository workspaceMemberRepository;
 
     private ChatSessionSharingService service;
 
@@ -38,7 +42,7 @@ class ChatSessionSharingServiceTest {
     void setUp() {
         service = new ChatSessionSharingService(
                 sessionAccessService, chatSessionRepository, chatMessageRepository,
-                sessionReadStatusRepository, userRepository);
+                sessionReadStatusRepository, userRepository, notificationService, workspaceMemberRepository);
     }
 
     @Test

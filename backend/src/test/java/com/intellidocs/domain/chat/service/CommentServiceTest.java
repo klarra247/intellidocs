@@ -9,6 +9,7 @@ import com.intellidocs.domain.chat.entity.ChatSession;
 import com.intellidocs.domain.chat.entity.Comment;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.CommentRepository;
+import com.intellidocs.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,13 +32,14 @@ class CommentServiceTest {
     @Mock private CommentRepository commentRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private UserRepository userRepository;
+    @Mock private NotificationService notificationService;
 
     private CommentService service;
 
     @BeforeEach
     void setUp() {
         service = new CommentService(
-                sessionAccessService, commentRepository, chatMessageRepository, userRepository);
+                sessionAccessService, commentRepository, chatMessageRepository, userRepository, notificationService);
     }
 
     private ChatMessage buildMessage(UUID sessionId) {

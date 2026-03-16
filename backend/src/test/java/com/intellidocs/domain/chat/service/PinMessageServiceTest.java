@@ -5,6 +5,8 @@ import com.intellidocs.domain.chat.dto.PinMessageDto;
 import com.intellidocs.domain.chat.entity.ChatMessage;
 import com.intellidocs.domain.chat.entity.ChatSession;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
+import com.intellidocs.domain.auth.repository.UserRepository;
+import com.intellidocs.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,12 +26,14 @@ class PinMessageServiceTest {
 
     @Mock private SessionAccessService sessionAccessService;
     @Mock private ChatMessageRepository chatMessageRepository;
+    @Mock private NotificationService notificationService;
+    @Mock private UserRepository userRepository;
 
     private PinMessageService service;
 
     @BeforeEach
     void setUp() {
-        service = new PinMessageService(sessionAccessService, chatMessageRepository);
+        service = new PinMessageService(sessionAccessService, chatMessageRepository, notificationService, userRepository);
     }
 
     private ChatMessage buildAssistantMessage(UUID sessionId) {

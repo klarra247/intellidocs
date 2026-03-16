@@ -10,6 +10,7 @@ import com.intellidocs.domain.document.entity.FileType;
 import com.intellidocs.domain.document.entity.ReviewStatus;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
+import com.intellidocs.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +31,13 @@ class DocumentReviewServiceTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private UserRepository userRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+    @Mock private NotificationService notificationService;
 
     private DocumentReviewService service;
 
     @BeforeEach
     void setUp() {
-        service = new DocumentReviewService(documentRepository, userRepository, workspaceMemberRepository);
+        service = new DocumentReviewService(documentRepository, userRepository, workspaceMemberRepository, notificationService);
     }
 
     private Document buildDocument(UUID workspaceId) {
