@@ -1,14 +1,16 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { FileText, MessageSquare, FileBarChart, Settings } from 'lucide-react';
+import { FileText, MessageSquare, FileBarChart, Settings, Bell } from 'lucide-react';
 import UserMenu from '@/components/auth/UserMenu';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 const pageConfig: Record<string, { title: string; icon: typeof FileText }> = {
   '/workspace': { title: '문서 관리', icon: FileText },
   '/workspace/chat': { title: 'AI 채팅', icon: MessageSquare },
   '/workspace/reports': { title: '리포트', icon: FileBarChart },
   '/workspace/settings': { title: '워크스페이스 설정', icon: Settings },
+  '/workspace/notifications': { title: '알림', icon: Bell },
 };
 
 export default function Header() {
@@ -26,7 +28,10 @@ export default function Header() {
           {config?.title ?? 'IntelliDocs'}
         </h2>
       </div>
-      <UserMenu />
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <UserMenu />
+      </div>
     </header>
   );
 }

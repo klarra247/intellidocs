@@ -1,4 +1,4 @@
-import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus, DocumentVersion, VersionUploadResponse, DiffResponse, DiffDetailResponse, GraphResponse, MetricDetailResponse, GraphSearchResponse, GraphRebuildResponse, GraphStatsResponse } from './types';
+import { ApiResponse, Document, DocumentDetail, UploadResponse, ReportGenerateRequest, ReportGenerateResponse, Report, DiscrepancyDetectRequest, DiscrepancyDetectResponse, DiscrepancyResult, ChunkResponse, BulkChunkResponse, ExcelPreview, Workspace, WorkspaceDetail, WorkspaceInviteResponse, WorkspaceMemberRole, PendingInvitation, SessionSummary, ShareResponse, ReadStatusResponse, PinResponse, PinnedMessageResponse, CommentResponse, DocumentCommentResponse, DocumentCommentListResponse, ReviewResponse, ReviewStatus, DocumentVersion, VersionUploadResponse, DiffResponse, DiffDetailResponse, GraphResponse, MetricDetailResponse, GraphSearchResponse, GraphRebuildResponse, GraphStatsResponse, NotificationListResponse, NotificationUnreadCountResponse, NotificationMarkAllReadResponse } from './types';
 import { useAuthStore } from '@/stores/authStore';
 
 const BASE_URL = '/api/v1';
@@ -467,4 +467,27 @@ export const knowledgeGraphApi = {
 
   getStats: () =>
     request<GraphStatsResponse>('/knowledge-graph/stats'),
+};
+
+// === Notifications ===
+export const notificationsApi = {
+  list: (page = 0, size = 20, isRead?: boolean) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('size', String(size));
+    if (isRead != null) params.set('isRead', String(isRead));
+    return request<NotificationListResponse>(`/notifications?${params}`);
+  },
+
+  unreadCount: () =>
+    request<NotificationUnreadCountResponse>('/notifications/unread-count'),
+
+  markAsRead: (id: string) =>
+    request<void>(`/notifications/${id}/read`, { method: 'PATCH' }),
+
+  markAllAsRead: () =>
+    request<NotificationMarkAllReadResponse>('/notifications/read-all', { method: 'PATCH' }),
+
+  delete: (id: string) =>
+    request<void>(`/notifications/${id}`, { method: 'DELETE' }),
 };

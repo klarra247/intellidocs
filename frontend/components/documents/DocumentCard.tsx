@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  MessageCircle,
 } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -233,9 +234,25 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
           <ReviewStatusBadge status={document.reviewStatus} size="sm" />
         </div>
 
-        <span className="text-[11px] text-slate-300">
-          {document.createdAt ? formatRelativeDate(document.createdAt) : ''}
-        </span>
+        <div className="flex items-center gap-2">
+          {(document.unresolvedCommentCount ?? 0) > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const viewer = useViewerStore.getState();
+                viewer.openViewer(document.id);
+                setTimeout(() => viewer.setActiveTab('comments'), 200);
+              }}
+              className="flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-600 hover:bg-orange-200 transition-colors"
+            >
+              <MessageCircle className="h-3 w-3" />
+              {document.unresolvedCommentCount}
+            </button>
+          )}
+          <span className="text-[11px] text-slate-300">
+            {document.createdAt ? formatRelativeDate(document.createdAt) : ''}
+          </span>
+        </div>
       </div>
     </div>
   );

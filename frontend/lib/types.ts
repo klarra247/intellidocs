@@ -61,6 +61,7 @@ export interface Document {
   reviewStatus: ReviewStatus;
   uploaderId: string | null;
   versionNumber?: number;
+  unresolvedCommentCount?: number;
   createdAt: string;
 }
 
@@ -611,4 +612,48 @@ export interface GraphStatsResponse {
   totalDocuments: number;
   totalMetrics: number;
   crossDocumentMetrics: number;
+}
+
+// === Notifications ===
+export type NotificationType =
+  | 'DOCUMENT_INDEXED'
+  | 'DISCREPANCY_FOUND'
+  | 'SESSION_SHARED'
+  | 'COMMENT_ADDED'
+  | 'DOC_COMMENT_ADDED'
+  | 'MESSAGE_PINNED'
+  | 'REVIEW_REQUESTED'
+  | 'REVIEW_COMPLETED'
+  | 'WORKSPACE_INVITATION'
+  | 'VERSION_DIFF_COMPLETED';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  senderId: string | null;
+  senderName: string | null;
+  senderProfileImage: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  workspaceId: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationListResponse {
+  notifications: Notification[];
+  totalCount: number;
+  unreadCount: number;
+  page: number;
+  size: number;
+}
+
+export interface NotificationUnreadCountResponse {
+  count: number;
+}
+
+export interface NotificationMarkAllReadResponse {
+  updatedCount: number;
 }
