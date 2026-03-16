@@ -377,3 +377,23 @@ CREATE TABLE IF NOT EXISTS document_metrics (
 CREATE INDEX IF NOT EXISTS idx_doc_metrics_workspace ON document_metrics(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_doc_metrics_normalized ON document_metrics(workspace_id, normalized_metric);
 CREATE INDEX IF NOT EXISTS idx_doc_metrics_document ON document_metrics(document_id);
+
+-- ============================================================
+-- Notifications
+-- ============================================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES users(id),
+    workspace_id UUID REFERENCES workspaces(id),
+    notification_type VARCHAR(50) NOT NULL,
+    title VARCHAR(300) NOT NULL,
+    message TEXT,
+    reference_type VARCHAR(50),
+    reference_id UUID,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_workspace ON notifications(workspace_id, created_at DESC);
