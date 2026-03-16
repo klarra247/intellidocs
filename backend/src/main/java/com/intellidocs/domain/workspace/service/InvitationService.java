@@ -3,6 +3,8 @@ package com.intellidocs.domain.workspace.service;
 import com.intellidocs.common.exception.BusinessException;
 import com.intellidocs.domain.auth.entity.User;
 import com.intellidocs.domain.auth.repository.UserRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import com.intellidocs.domain.workspace.dto.WorkspaceDto;
 import com.intellidocs.domain.workspace.entity.*;
 import com.intellidocs.domain.workspace.repository.WorkspaceInvitationRepository;
@@ -28,6 +30,7 @@ public class InvitationService {
     private final WorkspaceMemberRepository memberRepository;
     private final WorkspaceRepository workspaceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int TOKEN_LENGTH = 64;
@@ -79,6 +82,25 @@ public class InvitationService {
                 .expiresAt(LocalDateTime.now().plusDays(INVITATION_EXPIRY_DAYS))
                 .build();
         invitationRepository.save(invitation);
+
+        try {
+            userRepository.findByEmail(email).ifPresent(invitee -> {
+                User inviterUser = userRepository.findById(inviterId).orElse(null);
+                String inviterName = inviterUser != null ? inviterUser.getName() : "알 수 없음";
+                notificationService.createNotification(
+                        invitee.getId(),
+                        inviterId,
+                        workspaceId,
+                        NotificationType.WORKSPACE_INVITATION,
+                        "'" + workspace.getName() + "' 워크스페이스에 초대되었습니다",
+                        inviterName + "님이 초대했습니다",
+                        "workspace",
+                        workspaceId
+                );
+            });
+        } catch (Exception e) {
+            log.warn("[Notification] Failed to send WORKSPACE_INVITATION notification", e);
+        }
 
         log.info("Invitation created: workspace={}, email={}, role={}", workspaceId, email, assignRole);
 

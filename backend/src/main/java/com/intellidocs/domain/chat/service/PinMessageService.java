@@ -1,9 +1,13 @@
 package com.intellidocs.domain.chat.service;
 
 import com.intellidocs.common.exception.BusinessException;
+import com.intellidocs.domain.auth.entity.User;
+import com.intellidocs.domain.auth.repository.UserRepository;
 import com.intellidocs.domain.chat.dto.PinMessageDto;
 import com.intellidocs.domain.chat.entity.ChatMessage;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,8 @@ public class PinMessageService {
 
     private final SessionAccessService sessionAccessService;
     private final ChatMessageRepository chatMessageRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Transactional
     public PinMessageDto.PinResponse pinMessage(UUID messageId, UUID userId) {
@@ -50,6 +56,24 @@ public class PinMessageService {
 
         message.pin(userId);
         chatMessageRepository.save(message);
+
+        try {
+            UUID sessionCreatorId = message.getSession().getUserId();
+            User sender = userRepository.findById(userId).orElse(null);
+            String senderName = sender != null ? sender.getName() : "알 수 없음";
+            notificationService.createNotification(
+                    sessionCreatorId,
+                    userId,
+                    message.getSession().getWorkspaceId(),
+                    NotificationType.MESSAGE_PINNED,
+                    senderName + "님이 메시지를 고정했습니다",
+                    null,
+                    "chat_message",
+                    messageId
+            );
+        } catch (Exception e) {
+            log.warn("[Notification] Failed to send MESSAGE_PINNED notification", e);
+        }
 
         return new PinMessageDto.PinResponse(
                 messageId, true, message.getPinnedBy(), message.getPinnedAt());

@@ -1,6 +1,7 @@
 package com.intellidocs.domain.chat.service;
 
 import com.intellidocs.common.exception.BusinessException;
+import com.intellidocs.domain.auth.entity.User;
 import com.intellidocs.domain.auth.repository.UserRepository;
 import com.intellidocs.domain.chat.dto.ChatSessionDto;
 import com.intellidocs.domain.chat.entity.ChatSession;
@@ -8,6 +9,10 @@ import com.intellidocs.domain.chat.entity.SessionReadStatus;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.ChatSessionRepository;
 import com.intellidocs.domain.chat.repository.SessionReadStatusRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
+import com.intellidocs.domain.workspace.entity.WorkspaceMember;
+import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +35,8 @@ public class ChatSessionSharingService {
     private final ChatMessageRepository chatMessageRepository;
     private final SessionReadStatusRepository sessionReadStatusRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     @Transactional
     public ChatSessionDto.ShareResponse shareSession(UUID sessionId, UUID userId) {
@@ -48,6 +55,26 @@ public class ChatSessionSharingService {
         if (!Boolean.TRUE.equals(session.getIsShared())) {
             session.share();
             chatSessionRepository.save(session);
+
+            try {
+                List<UUID> memberIds = workspaceMemberRepository.findByWorkspaceId(session.getWorkspaceId())
+                        .stream().map(wm -> wm.getUserId()).toList();
+                User sender = userRepository.findById(userId).orElse(null);
+                String senderName = sender != null ? sender.getName() : "알 수 없음";
+                String title = senderName + "님이 '" + session.getTitle() + "' 채팅을 공유했습니다";
+                notificationService.createBulkNotifications(
+                        memberIds,
+                        userId,
+                        session.getWorkspaceId(),
+                        NotificationType.SESSION_SHARED,
+                        title,
+                        null,
+                        "chat_session",
+                        sessionId
+                );
+            } catch (Exception e) {
+                log.warn("[Notification] Failed to send SESSION_SHARED notification", e);
+            }
         }
 
         return new ChatSessionDto.ShareResponse(session.getIsShared(), session.getSharedAt());

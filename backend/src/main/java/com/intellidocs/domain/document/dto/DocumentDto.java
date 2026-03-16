@@ -76,8 +76,13 @@ public class DocumentDto {
         private UUID uploaderId;
         private Integer versionNumber;
         private LocalDateTime createdAt;
+        private Integer unresolvedCommentCount;
 
         public static ListResponse from(Document doc) {
+            return from(doc, 0);
+        }
+
+        public static ListResponse from(Document doc, int unresolvedCommentCount) {
             return ListResponse.builder()
                     .id(doc.getId())
                     .originalFilename(doc.getOriginalFilename())
@@ -88,6 +93,7 @@ public class DocumentDto {
                     .uploaderId(doc.getUserId())
                     .versionNumber(doc.getVersionNumber())
                     .createdAt(doc.getCreatedAt())
+                    .unresolvedCommentCount(unresolvedCommentCount)
                     .build();
         }
     }

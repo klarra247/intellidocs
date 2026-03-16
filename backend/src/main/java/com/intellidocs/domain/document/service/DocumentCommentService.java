@@ -9,6 +9,8 @@ import com.intellidocs.domain.document.entity.DocumentComment;
 import com.intellidocs.domain.document.repository.DocumentCommentRepository;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.workspace.entity.WorkspaceMember;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class DocumentCommentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public DocumentCommentDto.CommentResponse createComment(UUID documentId,
@@ -51,6 +54,23 @@ public class DocumentCommentService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BusinessException.notFound("User", userId));
+
+        try {
+            UUID uploaderId = document.getUserId();
+            String senderName = user.getName();
+            notificationService.createNotification(
+                    uploaderId,
+                    userId,
+                    document.getWorkspaceId(),
+                    NotificationType.DOC_COMMENT_ADDED,
+                    senderName + "님이 " + document.getOriginalFilename() + "에 코멘트를 남겼습니다",
+                    request.content().length() > 100 ? request.content().substring(0, 100) + "..." : request.content(),
+                    "document",
+                    documentId
+            );
+        } catch (Exception e) {
+            log.warn("[Notification] Failed to send DOC_COMMENT_ADDED notification", e);
+        }
 
         return toResponse(comment, user, userId);
     }

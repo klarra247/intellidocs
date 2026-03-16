@@ -7,6 +7,8 @@ import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.event.DocumentIndexedEvent;
 import com.intellidocs.domain.document.repository.DocumentRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -26,6 +28,7 @@ public class DiscrepancyAutoDetectListener {
     private final DocumentRepository documentRepository;
     private final DiscrepancyService discrepancyService;
     private final DiscrepancyResultRepository discrepancyResultRepository;
+    private final NotificationService notificationService;
 
     @Async
     @EventListener
@@ -64,6 +67,28 @@ public class DiscrepancyAutoDetectListener {
 
             log.info("[AutoDetect] Starting auto detection for {} documents (user: {})", docIds.size(), userId);
             discrepancyService.detectSync(docIds, null, 0.001, TriggerType.AUTO, userId);
+            try {
+                var latestResults = discrepancyResultRepository
+                        .findTop10ByUserIdAndTriggerTypeOrderByCreatedAtDesc(userId, TriggerType.AUTO);
+                if (!latestResults.isEmpty() && latestResults.get(0).getResultData() != null) {
+                    var resultData = latestResults.get(0).getResultData();
+                    int found = resultData.getDiscrepancies() != null ? resultData.getDiscrepancies().size() : 0;
+                    if (found > 0) {
+                        notificationService.createNotification(
+                                userId,
+                                null,
+                                event.getWorkspaceId(),
+                                NotificationType.DISCREPANCY_FOUND,
+                                found + "건의 수치 불일치가 발견되었습니다",
+                                null,
+                                "discrepancy",
+                                latestResults.get(0).getId()
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[Notification] Failed to send DISCREPANCY_FOUND notification", e);
+            }
             log.info("[AutoDetect] Auto detection completed for document: {}", event.getDocumentId());
 
         } catch (Exception e) {

@@ -8,6 +8,8 @@ import com.intellidocs.domain.chat.entity.ChatMessage;
 import com.intellidocs.domain.chat.entity.Comment;
 import com.intellidocs.domain.chat.repository.ChatMessageRepository;
 import com.intellidocs.domain.chat.repository.CommentRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public CommentDto.CommentResponse createComment(UUID messageId, String content, UUID userId) {
@@ -43,6 +46,24 @@ public class CommentService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BusinessException.notFound("User", userId));
+
+        try {
+            UUID sessionCreatorId = message.getSession().getUserId();
+            String senderName = user.getName();
+            String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
+            notificationService.createNotification(
+                    sessionCreatorId,
+                    userId,
+                    message.getSession().getWorkspaceId(),
+                    NotificationType.COMMENT_ADDED,
+                    senderName + "님이 코멘트를 남겼습니다",
+                    preview,
+                    "chat_message",
+                    messageId
+            );
+        } catch (Exception e) {
+            log.warn("[Notification] Failed to send COMMENT_ADDED notification", e);
+        }
 
         return toResponse(comment, user, userId);
     }

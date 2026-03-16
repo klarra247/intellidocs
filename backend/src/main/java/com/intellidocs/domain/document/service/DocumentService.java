@@ -9,6 +9,7 @@ import com.intellidocs.domain.document.dto.DocumentDto;
 import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.entity.FileType;
+import com.intellidocs.domain.document.repository.DocumentCommentRepository;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.workspace.repository.WorkspaceMemberRepository;
 import com.intellidocs.infrastructure.elasticsearch.ElasticsearchIndexService;
@@ -40,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,7 @@ import java.util.stream.Collectors;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final DocumentCommentRepository documentCommentRepository;
     private final RabbitTemplate rabbitTemplate;
     private final DocumentSseEmitterService sseEmitterService;
     private final QdrantIndexService qdrantIndexService;
@@ -131,13 +134,25 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public List<DocumentDto.ListResponse> getDocuments(UUID userId) {
         UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
+
+        List<Document> docs;
         if (workspaceId != null) {
-            return documentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId).stream()
-                    .map(DocumentDto.ListResponse::from)
-                    .collect(Collectors.toList());
+            docs = documentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+        } else {
+            docs = documentRepository.findByUserIdOrderByCreatedAtDesc(userId);
         }
-        return documentRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(DocumentDto.ListResponse::from)
+
+        if (docs.isEmpty()) return List.of();
+
+        List<UUID> docIds = docs.stream().map(Document::getId).toList();
+        Map<UUID, Integer> unresolvedMap = documentCommentRepository.countUnresolvedByDocumentIds(docIds)
+                .stream().collect(Collectors.toMap(
+                        r -> (UUID) r[0],
+                        r -> ((Number) r[1]).intValue()
+                ));
+
+        return docs.stream()
+                .map(doc -> DocumentDto.ListResponse.from(doc, unresolvedMap.getOrDefault(doc.getId(), 0)))
                 .collect(Collectors.toList());
     }
 
@@ -146,16 +161,40 @@ public class DocumentService {
         UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
         if (workspaceId != null) {
             Page<Document> page = documentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId, pageable);
+            List<Document> content = page.getContent();
+            Map<UUID, Integer> unresolvedMap = Map.of();
+            if (!content.isEmpty()) {
+                List<UUID> docIds = content.stream().map(Document::getId).toList();
+                unresolvedMap = documentCommentRepository.countUnresolvedByDocumentIds(docIds)
+                        .stream().collect(Collectors.toMap(
+                                r -> (UUID) r[0],
+                                r -> ((Number) r[1]).intValue()
+                        ));
+            }
+            Map<UUID, Integer> finalMap = unresolvedMap;
             return DocumentDto.PageResponse.builder()
-                    .content(page.getContent().stream().map(DocumentDto.ListResponse::from).toList())
+                    .content(content.stream()
+                            .map(doc -> DocumentDto.ListResponse.from(doc, finalMap.getOrDefault(doc.getId(), 0)))
+                            .toList())
                     .currentPage(page.getNumber())
                     .totalPages(page.getTotalPages())
                     .totalElements(page.getTotalElements())
                     .build();
         }
         // fallback: 워크스페이스 미설정 시 전체 반환
-        List<DocumentDto.ListResponse> all = documentRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(DocumentDto.ListResponse::from).toList();
+        List<Document> allDocs = documentRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        Map<UUID, Integer> unresolvedMap = Map.of();
+        if (!allDocs.isEmpty()) {
+            List<UUID> docIds = allDocs.stream().map(Document::getId).toList();
+            unresolvedMap = documentCommentRepository.countUnresolvedByDocumentIds(docIds)
+                    .stream().collect(Collectors.toMap(
+                            r -> (UUID) r[0],
+                            r -> ((Number) r[1]).intValue()
+                    ));
+        }
+        Map<UUID, Integer> finalMap = unresolvedMap;
+        List<DocumentDto.ListResponse> all = allDocs.stream()
+                .map(doc -> DocumentDto.ListResponse.from(doc, finalMap.getOrDefault(doc.getId(), 0))).toList();
         return DocumentDto.PageResponse.builder()
                 .content(all)
                 .currentPage(0)

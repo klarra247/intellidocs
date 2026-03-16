@@ -7,6 +7,8 @@ import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.event.DocumentIndexedEvent;
 import com.intellidocs.domain.document.repository.DocumentRepository;
+import com.intellidocs.domain.notification.entity.NotificationType;
+import com.intellidocs.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -23,6 +25,7 @@ public class VersionDiffAutoTriggerListener {
     private final DocumentRepository documentRepository;
     private final DiffRepository diffRepository;
     private final DiffService diffService;
+    private final NotificationService notificationService;
 
     @Async
     @EventListener
@@ -60,6 +63,24 @@ public class VersionDiffAutoTriggerListener {
 
             log.info("[AutoDiff] Starting auto diff: {} → {} (diffId={})", parentVersionId, documentId, diff.getId());
             diffService.executeDiff(diff.getId());
+
+            try {
+                Document doc = documentRepository.findById(event.getDocumentId()).orElse(null);
+                if (doc != null) {
+                    notificationService.createNotification(
+                            event.getUserId(),
+                            null,
+                            event.getWorkspaceId(),
+                            NotificationType.VERSION_DIFF_COMPLETED,
+                            doc.getOriginalFilename() + " 버전 비교가 완료되었습니다",
+                            null,
+                            "document",
+                            event.getDocumentId()
+                    );
+                }
+            } catch (Exception e) {
+                log.warn("[Notification] Failed to send VERSION_DIFF_COMPLETED notification", e);
+            }
 
         } catch (Exception e) {
             log.error("[AutoDiff] Auto diff failed for document: {}", event.getDocumentId(), e);
