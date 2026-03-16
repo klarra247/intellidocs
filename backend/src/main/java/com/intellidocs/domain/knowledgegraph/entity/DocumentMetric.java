@@ -3,20 +3,18 @@ package com.intellidocs.domain.knowledgegraph.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "entities")
+@Table(name = "document_metrics")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class KgEntity {
+public class DocumentMetric {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,21 +23,23 @@ public class KgEntity {
     @Column(name = "workspace_id", nullable = false)
     private UUID workspaceId;
 
-    @Column(name = "document_id")
+    @Column(name = "document_id", nullable = false)
     private UUID documentId;
 
-    @Column(nullable = false, length = 300)
-    private String name;
+    @Column(name = "metric_name", nullable = false, length = 200)
+    private String metricName;
 
-    @Column(name = "normalized_name", nullable = false, length = 300)
-    private String normalizedName;
+    @Column(name = "normalized_metric", nullable = false, length = 200)
+    private String normalizedMetric;
 
-    @Column(name = "entity_type", nullable = false, length = 50)
-    @Enumerated(EnumType.STRING)
-    private EntityType entityType;
-
-    @Column(length = 500)
+    @Column(length = 100)
     private String value;
+
+    @Column(name = "numeric_value")
+    private BigDecimal numericValue;
+
+    @Column(length = 20)
+    private String unit;
 
     @Column(length = 50)
     private String period;
@@ -49,10 +49,6 @@ public class KgEntity {
 
     @Column(name = "page_number")
     private Integer pageNumber;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private Map<String, Object> metadata;
 
     @CreationTimestamp
     @Column(name = "created_at")

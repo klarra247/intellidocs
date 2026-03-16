@@ -355,3 +355,25 @@ CREATE TABLE IF NOT EXISTS entity_relations (
 CREATE INDEX IF NOT EXISTS idx_relations_workspace ON entity_relations(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_relations_source ON entity_relations(source_entity_id);
 CREATE INDEX IF NOT EXISTS idx_relations_target ON entity_relations(target_entity_id);
+
+-- ============================================================
+-- Document Metrics (Knowledge Graph v2)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS document_metrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id),
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    metric_name VARCHAR(200) NOT NULL,
+    normalized_metric VARCHAR(200) NOT NULL,
+    value VARCHAR(100),
+    numeric_value DECIMAL,
+    unit VARCHAR(20),
+    period VARCHAR(50),
+    chunk_index INTEGER,
+    page_number INTEGER,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_metrics_workspace ON document_metrics(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_doc_metrics_normalized ON document_metrics(workspace_id, normalized_metric);
+CREATE INDEX IF NOT EXISTS idx_doc_metrics_document ON document_metrics(document_id);
