@@ -5,7 +5,6 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class KnowledgeGraphDto {
@@ -19,56 +18,64 @@ public class KnowledgeGraphDto {
 
     @Getter @Builder
     public static class Node {
-        private UUID id;
-        private String type;
-        private String entityType;
+        private String id;        // "doc_{uuid}" or "metric_{normalizedName}"
+        private String type;      // "document" or "metric"
+        // Document fields
         private String name;
-        private String normalizedName;
-        private String value;
-        private String period;
-        private UUID documentId;
-        private String documentName;
-        private Integer pageNumber;
         private String fileType;
         private String status;
+        private Integer metricsCount;
+        // Metric fields
+        private List<MetricOccurrence> occurrences;
+        private MetricChange change;
+    }
+
+    @Getter @Builder
+    public static class MetricOccurrence {
+        private UUID documentId;
+        private String documentName;
+        private String value;
+        private BigDecimal numericValue;
+        private String unit;
+        private String period;
+        private Integer pageNumber;
+    }
+
+    @Getter @Builder
+    public static class MetricChange {
+        private BigDecimal from;
+        private BigDecimal to;
+        private BigDecimal changePercent;
+        private String direction; // "increase", "decrease", "unchanged"
     }
 
     @Getter @Builder
     public static class Edge {
-        private UUID id;
-        private UUID source;
-        private UUID target;
-        private String relationType;
-        private String description;
-        private BigDecimal confidence;
+        private String id;
+        private String source;  // "doc_{uuid}"
+        private String target;  // "metric_{normalizedName}"
+        private String period;
+        private String value;
     }
 
     @Getter @Builder
     public static class Stats {
-        private long totalNodes;
+        private long totalDocuments;
+        private long totalMetrics;
         private long totalEdges;
-        private Map<String, Long> entityTypes;
+        private long crossDocumentMetrics;
     }
 
     @Getter @Builder
-    public static class EntityDetailResponse {
-        private Node entity;
-        private List<Node> relatedEntities;
-        private String sourceChunkText;
-        private DocumentInfo document;
-    }
-
-    @Getter @Builder
-    public static class DocumentInfo {
-        private UUID id;
-        private String filename;
-        private String fileType;
-        private String status;
+    public static class MetricDetailResponse {
+        private String metricName;
+        private List<MetricOccurrence> occurrences;
+        private MetricChange change;
     }
 
     @Getter @Builder
     public static class SearchResponse {
-        private List<Node> entities;
+        private List<Node> results;
     }
 
     @Getter @Builder
@@ -79,8 +86,8 @@ public class KnowledgeGraphDto {
 
     @Getter @Builder
     public static class StatsResponse {
-        private long totalEntities;
-        private long totalRelations;
-        private Map<String, Long> byType;
+        private long totalDocuments;
+        private long totalMetrics;
+        private long crossDocumentMetrics;
     }
 }

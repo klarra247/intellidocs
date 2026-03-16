@@ -5,15 +5,15 @@ import com.intellidocs.domain.document.entity.Document;
 import com.intellidocs.domain.document.entity.DocumentStatus;
 import com.intellidocs.domain.document.repository.DocumentRepository;
 import com.intellidocs.domain.knowledgegraph.dto.KnowledgeGraphDto;
-import com.intellidocs.domain.knowledgegraph.entity.*;
-import com.intellidocs.domain.knowledgegraph.repository.KgEntityRepository;
-import com.intellidocs.domain.knowledgegraph.repository.KgRelationRepository;
-import com.intellidocs.infrastructure.qdrant.QdrantChunkRetrievalService;
+import com.intellidocs.domain.knowledgegraph.entity.DocumentMetric;
+import com.intellidocs.domain.knowledgegraph.repository.DocumentMetricRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -23,10 +23,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class KnowledgeGraphService {
 
-    private final KgEntityRepository entityRepository;
-    private final KgRelationRepository relationRepository;
+    private final DocumentMetricRepository metricRepository;
     private final DocumentRepository documentRepository;
-    private final QdrantChunkRetrievalService qdrantService;
     private final KgExtractionAsyncExecutor asyncExecutor;
 
     private static final int MAX_NODES = 200;
@@ -36,140 +34,202 @@ public class KnowledgeGraphService {
 
     @Transactional(readOnly = true)
     public KnowledgeGraphDto.GraphResponse getGraph(UUID workspaceId,
-                                                     List<String> entityTypes,
-                                                     List<UUID> documentIds) {
-        List<KgEntity> entities;
+                                                     List<UUID> documentIds,
+                                                     String changeDirection) {
+        List<DocumentMetric> metrics;
         if (documentIds != null && !documentIds.isEmpty()) {
-            entities = entityRepository.findByWorkspaceIdAndDocumentIdIn(workspaceId, documentIds);
-        } else if (entityTypes != null && !entityTypes.isEmpty()) {
-            List<EntityType> types = entityTypes.stream()
-                    .map(this::parseEntityType)
-                    .filter(Objects::nonNull)
-                    .toList();
-            entities = types.isEmpty()
-                    ? entityRepository.findByWorkspaceId(workspaceId)
-                    : entityRepository.findByWorkspaceIdAndEntityTypeIn(workspaceId, types);
+            metrics = metricRepository.findByWorkspaceIdAndDocumentIdIn(workspaceId, documentIds);
         } else {
-            entities = entityRepository.findByWorkspaceId(workspaceId);
+            metrics = metricRepository.findByWorkspaceId(workspaceId);
         }
 
-        if (entities.size() > MAX_NODES) {
-            entities = entities.subList(0, MAX_NODES);
-        }
-
-        Set<UUID> docIds = entities.stream()
-                .map(KgEntity::getDocumentId)
-                .filter(Objects::nonNull)
+        // Build document map
+        Set<UUID> docIds = metrics.stream()
+                .map(DocumentMetric::getDocumentId)
                 .collect(Collectors.toSet());
         Map<UUID, Document> docMap = documentRepository.findAllById(docIds).stream()
                 .collect(Collectors.toMap(Document::getId, d -> d));
 
-        List<KnowledgeGraphDto.Node> nodes = new ArrayList<>();
-        for (KgEntity e : entities) {
-            Document doc = e.getDocumentId() != null ? docMap.get(e.getDocumentId()) : null;
-            nodes.add(toNode(e, doc));
-        }
+        // Group metrics by normalizedMetric
+        Map<String, List<DocumentMetric>> metricGroups = metrics.stream()
+                .collect(Collectors.groupingBy(DocumentMetric::getNormalizedMetric));
 
+        List<KnowledgeGraphDto.Node> nodes = new ArrayList<>();
+        List<KnowledgeGraphDto.Edge> edges = new ArrayList<>();
+
+        // Add document nodes
         for (Document doc : docMap.values()) {
+            long metricsCount = metrics.stream()
+                    .filter(m -> doc.getId().equals(m.getDocumentId()))
+                    .map(DocumentMetric::getNormalizedMetric)
+                    .distinct()
+                    .count();
             nodes.add(KnowledgeGraphDto.Node.builder()
-                    .id(doc.getId())
+                    .id("doc_" + doc.getId())
                     .type("document")
                     .name(doc.getOriginalFilename())
                     .fileType(doc.getFileType().name())
                     .status(doc.getStatus().name())
+                    .metricsCount((int) metricsCount)
                     .build());
         }
 
-        List<UUID> entityIds = entities.stream().map(KgEntity::getId).toList();
-        List<KgRelation> relations = entityIds.isEmpty()
-                ? List.of()
-                : relationRepository.findByEntityIds(entityIds);
+        // Add metric nodes and edges
+        for (Map.Entry<String, List<DocumentMetric>> entry : metricGroups.entrySet()) {
+            String normalizedMetric = entry.getKey();
+            List<DocumentMetric> group = entry.getValue();
 
-        if (relations.size() > MAX_EDGES) {
-            relations = relations.subList(0, MAX_EDGES);
+            List<KnowledgeGraphDto.MetricOccurrence> occurrences = group.stream()
+                    .map(m -> {
+                        Document doc = docMap.get(m.getDocumentId());
+                        return KnowledgeGraphDto.MetricOccurrence.builder()
+                                .documentId(m.getDocumentId())
+                                .documentName(doc != null ? doc.getOriginalFilename() : null)
+                                .value(m.getValue())
+                                .numericValue(m.getNumericValue())
+                                .unit(m.getUnit())
+                                .period(m.getPeriod())
+                                .pageNumber(m.getPageNumber())
+                                .build();
+                    })
+                    .toList();
+
+            KnowledgeGraphDto.MetricChange change = computeChange(occurrences);
+
+            // Filter by changeDirection if specified
+            if (changeDirection != null && change != null && !changeDirection.equals(change.getDirection())) {
+                continue;
+            }
+            if (changeDirection != null && change == null) {
+                continue; // Skip metrics without change data when filtering
+            }
+
+            nodes.add(KnowledgeGraphDto.Node.builder()
+                    .id("metric_" + normalizedMetric)
+                    .type("metric")
+                    .name(group.get(0).getMetricName())
+                    .occurrences(occurrences)
+                    .change(change)
+                    .build());
+
+            // Create edges from documents to this metric
+            for (DocumentMetric m : group) {
+                edges.add(KnowledgeGraphDto.Edge.builder()
+                        .id("edge_" + m.getId())
+                        .source("doc_" + m.getDocumentId())
+                        .target("metric_" + normalizedMetric)
+                        .period(m.getPeriod())
+                        .value(m.getValue())
+                        .build());
+            }
         }
 
-        List<KnowledgeGraphDto.Edge> edges = relations.stream()
-                .map(this::toEdge)
-                .toList();
+        if (nodes.size() > MAX_NODES) {
+            nodes = nodes.subList(0, MAX_NODES);
+        }
+        if (edges.size() > MAX_EDGES) {
+            edges = edges.subList(0, MAX_EDGES);
+        }
 
-        Map<String, Long> typeStats = entities.stream()
-                .collect(Collectors.groupingBy(e -> e.getEntityType().name(), Collectors.counting()));
+        long crossDocMetrics = metricGroups.values().stream()
+                .filter(group -> group.stream()
+                        .map(DocumentMetric::getDocumentId)
+                        .distinct()
+                        .count() > 1)
+                .count();
 
         return KnowledgeGraphDto.GraphResponse.builder()
                 .nodes(nodes)
                 .edges(edges)
                 .stats(KnowledgeGraphDto.Stats.builder()
-                        .totalNodes(nodes.size())
+                        .totalDocuments(docMap.size())
+                        .totalMetrics(metricGroups.size())
                         .totalEdges(edges.size())
-                        .entityTypes(typeStats)
+                        .crossDocumentMetrics(crossDocMetrics)
                         .build())
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public KnowledgeGraphDto.EntityDetailResponse getEntityDetail(UUID entityId, UUID workspaceId) {
-        KgEntity entity = entityRepository.findById(entityId)
-                .orElseThrow(() -> BusinessException.notFound("Entity", entityId));
-
-        if (!entity.getWorkspaceId().equals(workspaceId)) {
-            throw BusinessException.forbidden("해당 워크스페이스의 엔티티가 아닙니다");
+    public KnowledgeGraphDto.MetricDetailResponse getMetricDetail(String normalizedMetric, UUID workspaceId) {
+        List<DocumentMetric> metrics = metricRepository.searchByNormalizedMetric(workspaceId, normalizedMetric);
+        if (metrics.isEmpty()) {
+            throw BusinessException.notFound("Metric", normalizedMetric);
         }
 
-        List<KgRelation> relations = relationRepository.findByEntityId(entityId);
-        Set<UUID> relatedIds = new HashSet<>();
-        for (KgRelation r : relations) {
-            relatedIds.add(r.getSourceEntityId());
-            relatedIds.add(r.getTargetEntityId());
-        }
-        relatedIds.remove(entityId);
+        Set<UUID> docIds = metrics.stream()
+                .map(DocumentMetric::getDocumentId)
+                .collect(Collectors.toSet());
+        Map<UUID, Document> docMap = documentRepository.findAllById(docIds).stream()
+                .collect(Collectors.toMap(Document::getId, d -> d));
 
-        List<KgEntity> relatedEntities = relatedIds.isEmpty()
-                ? List.of()
-                : entityRepository.findAllById(relatedIds);
+        List<KnowledgeGraphDto.MetricOccurrence> occurrences = metrics.stream()
+                .map(m -> {
+                    Document doc = docMap.get(m.getDocumentId());
+                    return KnowledgeGraphDto.MetricOccurrence.builder()
+                            .documentId(m.getDocumentId())
+                            .documentName(doc != null ? doc.getOriginalFilename() : null)
+                            .value(m.getValue())
+                            .numericValue(m.getNumericValue())
+                            .unit(m.getUnit())
+                            .period(m.getPeriod())
+                            .pageNumber(m.getPageNumber())
+                            .build();
+                })
+                .toList();
 
-        Map<UUID, Document> docMap = documentRepository.findAllById(
-                relatedEntities.stream().map(KgEntity::getDocumentId)
-                        .filter(Objects::nonNull).collect(Collectors.toSet())
-        ).stream().collect(Collectors.toMap(Document::getId, d -> d));
-
-        String chunkText = null;
-        if (entity.getDocumentId() != null && entity.getChunkIndex() != null) {
-            chunkText = qdrantService.getChunkText(entity.getDocumentId(), entity.getChunkIndex())
-                    .orElse(null);
-        }
-
-        Document sourceDoc = entity.getDocumentId() != null
-                ? documentRepository.findById(entity.getDocumentId()).orElse(null)
-                : null;
-
-        return KnowledgeGraphDto.EntityDetailResponse.builder()
-                .entity(toNode(entity, sourceDoc))
-                .relatedEntities(relatedEntities.stream()
-                        .map(e -> toNode(e, docMap.get(e.getDocumentId())))
-                        .toList())
-                .sourceChunkText(chunkText)
-                .document(sourceDoc != null ? KnowledgeGraphDto.DocumentInfo.builder()
-                        .id(sourceDoc.getId())
-                        .filename(sourceDoc.getOriginalFilename())
-                        .fileType(sourceDoc.getFileType().name())
-                        .status(sourceDoc.getStatus().name())
-                        .build() : null)
+        return KnowledgeGraphDto.MetricDetailResponse.builder()
+                .metricName(metrics.get(0).getMetricName())
+                .occurrences(occurrences)
+                .change(computeChange(occurrences))
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public KnowledgeGraphDto.SearchResponse searchEntities(UUID workspaceId, String query) {
-        List<KgEntity> entities = entityRepository.searchByNormalizedName(workspaceId, query);
-        Map<UUID, Document> docMap = documentRepository.findAllById(
-                entities.stream().map(KgEntity::getDocumentId)
-                        .filter(Objects::nonNull).collect(Collectors.toSet())
-        ).stream().collect(Collectors.toMap(Document::getId, d -> d));
+    public KnowledgeGraphDto.SearchResponse searchMetrics(UUID workspaceId, String query) {
+        List<DocumentMetric> metrics = metricRepository.searchByNormalizedMetric(workspaceId, query);
+
+        Set<UUID> docIds = metrics.stream()
+                .map(DocumentMetric::getDocumentId)
+                .collect(Collectors.toSet());
+        Map<UUID, Document> docMap = documentRepository.findAllById(docIds).stream()
+                .collect(Collectors.toMap(Document::getId, d -> d));
+
+        // Group by normalizedMetric to return metric nodes
+        Map<String, List<DocumentMetric>> metricGroups = metrics.stream()
+                .collect(Collectors.groupingBy(DocumentMetric::getNormalizedMetric));
+
+        List<KnowledgeGraphDto.Node> results = new ArrayList<>();
+        for (Map.Entry<String, List<DocumentMetric>> entry : metricGroups.entrySet()) {
+            String normalizedMetric = entry.getKey();
+            List<DocumentMetric> group = entry.getValue();
+
+            List<KnowledgeGraphDto.MetricOccurrence> occurrences = group.stream()
+                    .map(m -> {
+                        Document doc = docMap.get(m.getDocumentId());
+                        return KnowledgeGraphDto.MetricOccurrence.builder()
+                                .documentId(m.getDocumentId())
+                                .documentName(doc != null ? doc.getOriginalFilename() : null)
+                                .value(m.getValue())
+                                .numericValue(m.getNumericValue())
+                                .unit(m.getUnit())
+                                .period(m.getPeriod())
+                                .pageNumber(m.getPageNumber())
+                                .build();
+                    })
+                    .toList();
+
+            results.add(KnowledgeGraphDto.Node.builder()
+                    .id("metric_" + normalizedMetric)
+                    .type("metric")
+                    .name(group.get(0).getMetricName())
+                    .occurrences(occurrences)
+                    .change(computeChange(occurrences))
+                    .build());
+        }
 
         return KnowledgeGraphDto.SearchResponse.builder()
-                .entities(entities.stream()
-                        .map(e -> toNode(e, docMap.get(e.getDocumentId())))
-                        .toList())
+                .results(results)
                 .build();
     }
 
@@ -185,65 +245,73 @@ public class KnowledgeGraphService {
         }
 
         for (Document doc : indexed) {
-            asyncExecutor.extractAndBuildRelations(doc.getId(), workspaceId);
+            asyncExecutor.extractMetrics(doc.getId(), workspaceId);
         }
 
         rebuildingWorkspaces.remove(workspaceId);
 
         return KnowledgeGraphDto.RebuildResponse.builder()
                 .status("PROCESSING")
-                .message("총 " + indexed.size() + "개 문서에서 엔티티 추출을 시작합니다")
+                .message("총 " + indexed.size() + "개 문서에서 지표 추출을 시작합니다")
                 .build();
     }
 
     @Transactional(readOnly = true)
     public KnowledgeGraphDto.StatsResponse getStats(UUID workspaceId) {
-        long totalEntities = entityRepository.countByWorkspaceId(workspaceId);
-        long totalRelations = relationRepository.countByWorkspaceId(workspaceId);
+        List<DocumentMetric> allMetrics = metricRepository.findByWorkspaceId(workspaceId);
 
-        Map<String, Long> byType = new LinkedHashMap<>();
-        for (Object[] row : entityRepository.countByWorkspaceIdGroupByType(workspaceId)) {
-            byType.put(((EntityType) row[0]).name(), (Long) row[1]);
-        }
+        Map<String, List<DocumentMetric>> metricGroups = allMetrics.stream()
+                .collect(Collectors.groupingBy(DocumentMetric::getNormalizedMetric));
+
+        long crossDocMetrics = metricGroups.values().stream()
+                .filter(group -> group.stream()
+                        .map(DocumentMetric::getDocumentId)
+                        .distinct()
+                        .count() > 1)
+                .count();
+
+        Set<UUID> docIds = allMetrics.stream()
+                .map(DocumentMetric::getDocumentId)
+                .collect(Collectors.toSet());
 
         return KnowledgeGraphDto.StatsResponse.builder()
-                .totalEntities(totalEntities)
-                .totalRelations(totalRelations)
-                .byType(byType)
+                .totalDocuments(docIds.size())
+                .totalMetrics(metricGroups.size())
+                .crossDocumentMetrics(crossDocMetrics)
                 .build();
     }
 
-    private KnowledgeGraphDto.Node toNode(KgEntity entity, Document doc) {
-        return KnowledgeGraphDto.Node.builder()
-                .id(entity.getId())
-                .type("entity")
-                .entityType(entity.getEntityType().name())
-                .name(entity.getName())
-                .normalizedName(entity.getNormalizedName())
-                .value(entity.getValue())
-                .period(entity.getPeriod())
-                .documentId(entity.getDocumentId())
-                .documentName(doc != null ? doc.getOriginalFilename() : null)
-                .pageNumber(entity.getPageNumber())
-                .build();
-    }
+    private KnowledgeGraphDto.MetricChange computeChange(List<KnowledgeGraphDto.MetricOccurrence> occurrences) {
+        List<KnowledgeGraphDto.MetricOccurrence> withNumeric = occurrences.stream()
+                .filter(o -> o.getNumericValue() != null)
+                .toList();
 
-    private KnowledgeGraphDto.Edge toEdge(KgRelation relation) {
-        return KnowledgeGraphDto.Edge.builder()
-                .id(relation.getId())
-                .source(relation.getSourceEntityId())
-                .target(relation.getTargetEntityId())
-                .relationType(relation.getRelationType().name())
-                .description(relation.getDescription())
-                .confidence(relation.getConfidence())
-                .build();
-    }
+        if (withNumeric.size() < 2) return null;
 
-    private EntityType parseEntityType(String raw) {
-        try {
-            return EntityType.valueOf(raw.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
+        List<KnowledgeGraphDto.MetricOccurrence> sorted = new ArrayList<>(withNumeric);
+        sorted.sort(Comparator.comparing(
+                o -> o.getPeriod() != null ? o.getPeriod() : "",
+                Comparator.naturalOrder()));
+
+        BigDecimal from = sorted.get(0).getNumericValue();
+        BigDecimal to = sorted.get(sorted.size() - 1).getNumericValue();
+
+        BigDecimal changePercent = null;
+        if (from.compareTo(BigDecimal.ZERO) != 0) {
+            changePercent = to.subtract(from)
+                    .divide(from.abs(), 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"))
+                    .setScale(1, RoundingMode.HALF_UP);
         }
+
+        int cmp = to.compareTo(from);
+        String direction = cmp > 0 ? "increase" : cmp < 0 ? "decrease" : "unchanged";
+
+        return KnowledgeGraphDto.MetricChange.builder()
+                .from(from)
+                .to(to)
+                .changePercent(changePercent)
+                .direction(direction)
+                .build();
     }
 }

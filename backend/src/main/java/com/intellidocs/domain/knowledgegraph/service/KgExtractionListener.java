@@ -15,8 +15,8 @@ public class KgExtractionListener {
 
     @EventListener
     public void onDocumentIndexed(DocumentIndexedEvent event) {
-        log.info("[KG] DocumentIndexedEvent received — triggering KG extraction for document: {}",
+        log.info("[KG] DocumentIndexedEvent received — triggering metric extraction for document: {}",
                 event.getDocumentId());
-        asyncExecutor.extractAndBuildRelations(event.getDocumentId(), event.getWorkspaceId());
+        asyncExecutor.extractMetrics(event.getDocumentId(), event.getWorkspaceId());
     }
 }

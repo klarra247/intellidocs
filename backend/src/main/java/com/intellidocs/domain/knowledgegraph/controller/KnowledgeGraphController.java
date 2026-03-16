@@ -20,19 +20,19 @@ public class KnowledgeGraphController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<KnowledgeGraphDto.GraphResponse>> getGraph(
-            @RequestParam(required = false) List<String> entityTypes,
-            @RequestParam(required = false) List<UUID> documentIds) {
+            @RequestParam(required = false) List<UUID> documentIds,
+            @RequestParam(required = false) String changeDirection) {
         UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
         return ResponseEntity.ok(ApiResponse.ok(
-                knowledgeGraphService.getGraph(workspaceId, entityTypes, documentIds)));
+                knowledgeGraphService.getGraph(workspaceId, documentIds, changeDirection)));
     }
 
-    @GetMapping("/entities/{entityId}")
-    public ResponseEntity<ApiResponse<KnowledgeGraphDto.EntityDetailResponse>> getEntityDetail(
-            @PathVariable UUID entityId) {
+    @GetMapping("/metrics/{normalizedMetric}")
+    public ResponseEntity<ApiResponse<KnowledgeGraphDto.MetricDetailResponse>> getMetricDetail(
+            @PathVariable String normalizedMetric) {
         UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
         return ResponseEntity.ok(ApiResponse.ok(
-                knowledgeGraphService.getEntityDetail(entityId, workspaceId)));
+                knowledgeGraphService.getMetricDetail(normalizedMetric, workspaceId)));
     }
 
     @GetMapping("/search")
@@ -40,7 +40,7 @@ public class KnowledgeGraphController {
             @RequestParam String q) {
         UUID workspaceId = WorkspaceContext.getCurrentWorkspaceId();
         return ResponseEntity.ok(ApiResponse.ok(
-                knowledgeGraphService.searchEntities(workspaceId, q)));
+                knowledgeGraphService.searchMetrics(workspaceId, q)));
     }
 
     @PostMapping("/rebuild")

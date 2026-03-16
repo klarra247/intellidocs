@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class EntityNormalizationServiceTest {
+class MetricNormalizationServiceTest {
 
-    private EntityNormalizationService service;
+    private MetricNormalizationService service;
 
     @BeforeEach
     void setUp() {
-        service = new EntityNormalizationService();
+        service = new MetricNormalizationService();
     }
 
     @Test

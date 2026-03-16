@@ -12,23 +12,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class KgExtractionAsyncExecutor {
 
-    private final EntityExtractionService entityExtractionService;
-    private final RelationExtractionService relationExtractionService;
+    private final MetricExtractionService metricExtractionService;
 
     @Async
-    public void extractAndBuildRelations(UUID documentId, UUID workspaceId) {
+    public void extractMetrics(UUID documentId, UUID workspaceId) {
         try {
-            log.info("[KG] Starting async entity extraction for document: {}", documentId);
-            entityExtractionService.extractEntities(documentId);
-
-            log.info("[KG] Starting rule-based relation extraction for workspace: {}", workspaceId);
-            relationExtractionService.extractRuleBasedRelations(workspaceId);
-
-            relationExtractionService.extractLlmBasedRelations(workspaceId);
-
-            log.info("[KG] KG extraction completed for document: {}", documentId);
+            log.info("[KG] Starting async metric extraction for document: {}", documentId);
+            metricExtractionService.extractMetrics(documentId);
+            log.info("[KG] Metric extraction completed for document: {}", documentId);
         } catch (Exception e) {
-            log.error("[KG] KG extraction failed for document: {}", documentId, e);
+            log.error("[KG] Metric extraction failed for document: {}", documentId, e);
         }
     }
 }

@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
-public class EntityNormalizationService {
+public class MetricNormalizationService {
 
     private static final Map<String, String> ALIAS_MAP = new LinkedHashMap<>();
 
