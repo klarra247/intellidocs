@@ -114,6 +114,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:dev-secret-key-change-in-production-min-256-bits-required-here}
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days
 
   # Google OAuth
   auth:
