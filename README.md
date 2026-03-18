@@ -1,164 +1,211 @@
 # IntelliDocs
 
-SMB를 위한 Document Intelligence SaaS — 문서를 올리고, 그냥 물어보세요.
+> 여러 문서를 올리고, 그냥 물어보세요 — AI가 분석하고, 비교하고, 정리합니다.
+
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![License](https://img.shields.io/badge/License-MIT-blue)
+
+**배포**: [https://intellidocs.org](https://intellidocs.org)
+
+<!-- DEMO GIF HERE -->
+
+---
+
+## 프로젝트 소개
+
+IntelliDocs는 **멀티 문서 AI 분석 SaaS 플랫폼**입니다.
+재무/법무/기획팀이 여러 문서(PDF, Excel, Word)를 올리면 AI Agent가 자율적으로 분석·비교·정리합니다.
+단순 챗봇이 아닌 **9개 Tool을 활용하는 Agent 기반 자율 분석**, 문서 간 **수치 불일치 자동 탐지**, **Knowledge Graph 시각화**가 핵심 차별점입니다.
+
+---
 
 ## 주요 기능
 
-- **문서 업로드 & 자동 파싱** — PDF, XLSX, DOCX, TXT, MD 지원. 업로드 즉시 비동기 파싱 → SSE로 실시간 진행률 표시
-- **하이브리드 검색** — Elasticsearch BM25 (키워드) + Qdrant 벡터 (의미) 검색을 RRF로 융합
-- **AI 에이전트 채팅** — LangChain4j 기반 RAG Agent가 7개 도구를 활용해 문서 기반 답변 생성, SSE 스트리밍
-- **표 구조 추출** — 테이블 데이터를 마크다운 표로 정리, CSV 다운로드 지원
-- **차트 시각화** — 수치 데이터 기반 자동 차트 생성 (Recharts)
+### 📄 문서 업로드 & AI 분석
+PDF/Excel/Word 업로드 → 자동 파싱 → 하이브리드 검색(ES BM25 + Qdrant 벡터) → AI Agent가 자연어로 답변.
+SSE 스트리밍으로 실시간 응답.
+
+<!-- Screenshot: document-upload -->
+
+### 📊 데이터 시각화
+수치 데이터를 표·차트로 자동 생성. CSV 다운로드 지원.
+
+<!-- Screenshot: chart-visualization -->
+
+### ⚠️ 수치 불일치 탐지
+같은 항목이 문서마다 다른 수치를 가지면 자동으로 경고. 허용 오차(tolerance) 설정 가능.
+
+<!-- Screenshot: discrepancy-detection -->
+
+### 📋 리포트 PDF 생성
+"분석 리포트 만들어줘" → 표지 + 요약 + 분석 + 출처 포함 PDF 자동 생성.
+
+<!-- Screenshot: report-pdf -->
+
+### 🔍 문서 뷰어 + 출처 추적
+AI 답변의 출처 클릭 → 원본 문서 해당 페이지로 바로 이동.
+
+<!-- Screenshot: document-viewer -->
+
+### 🔄 문서 버전 관리 + Diff
+새 버전 업로드 시 자동 연결. 1분기 → 2분기 뭐가 바뀌었는지 자동 비교.
+
+<!-- Screenshot: version-diff -->
+
+### 🕸️ Knowledge Graph
+문서 간 공통 지표를 시각적 그래프로 연결. React Flow 기반 인터랙티브 탐색.
+
+<!-- Screenshot: knowledge-graph -->
+
+### 👥 팀 워크스페이스
+이메일 초대, 역할(Owner/Admin/Member) 관리, 채팅 세션 공유, 메시지 코멘트, 문서 리뷰 상태 관리.
+
+<!-- Screenshot: team-workspace -->
+
+### 🔔 알림 시스템
+코멘트, 세션 공유, 리뷰 요청, 문서 인덱싱 완료 등 10종 인앱 알림. 벨 아이콘 + 전체 알림 페이지.
+
+<!-- Screenshot: notifications -->
+
+### 🔐 인증
+JWT Access/Refresh Token Rotation + Google OAuth 로그인.
+
+---
 
 ## 기술 스택
 
-| 레이어 | 기술 |
-|--------|------|
-| Frontend | Next.js 14 (App Router), Tailwind CSS |
-| Main API | Spring Boot 3.x, Java 21, LangChain4j |
-| Parsing Service | Python FastAPI, PyMuPDF, openpyxl |
-| Keyword Search | Elasticsearch 8.x (BM25 + Nori) |
-| Semantic Search | Qdrant (Vector DB, Voyage AI embeddings) |
-| Cache | Redis 7.x |
+| 영역 | 기술 |
+|------|------|
+| Backend | Spring Boot 3.x, Java 21, LangChain4j |
+| AI/LLM | OpenAI GPT-4.1-mini, text-embedding-3-small |
+| Document Parsing | Python FastAPI, PyMuPDF, openpyxl, python-docx |
+| Search | Elasticsearch 8.x (BM25 + Nori) + Qdrant (Vector), RRF Fusion |
+| Frontend | Next.js 14, Tailwind CSS, Zustand, Recharts, React Flow |
+| Database | PostgreSQL 16, Redis 7.x |
 | Message Queue | RabbitMQ 3.13 |
-| Database | PostgreSQL 16 |
-| Reverse Proxy | Nginx |
-| LLM | Claude API (Anthropic) / OpenAI |
+| Auth | JWT (Access + Refresh Rotation), Google OAuth |
+| Infra | Docker Compose, AWS EC2, Nginx, Let's Encrypt SSL |
 
-## 아키텍처
+---
+
+## 시스템 아키텍처
 
 ```
-                        ┌─── Nginx (:80) ───┐
-                        │                    │
-                  /api/*│                    │/*
-                        ▼                    ▼
-                  Spring Boot          Next.js
-                    (:8080)             (:3000)
-                   ┌──┴──┐
-                   │     │
-              ┌────┘     └────┐
-              ▼               ▼
-         PostgreSQL      RabbitMQ ──► Python Parser
-           Redis                        (:8000)
-        Elasticsearch
-           Qdrant
+                         ┌─── Nginx (:80/:443) ───┐
+                         │                         │
+                   /api/*│                         │/*
+                         ▼                         ▼
+                   Spring Boot               Next.js
+                     (:8080)                  (:3000)
+                        │
+        ┌───────┬───────┼───────┬───────┬───────┐
+        ▼       ▼       ▼       ▼       ▼       ▼
+    Document  Search  Agent  Report  Discre-  Notifi-
+    Service   Service Service Service pancy   cation
+        │       │       │               │
+        │   ┌───┴───┐   │               │
+        │   ▼       ▼   ▼               │
+        │  ES    Qdrant LangChain4j     │
+        │ (BM25) (Vec)  (9 Tools)       │
+        │                               │
+        ▼                               │
+    RabbitMQ ──────► Python Parser      │
+                      (:8000)           │
+        │                               │
+        └───────────────┬───────────────┘
+                        ▼
+                   PostgreSQL
+                     Redis
 ```
 
-업로드된 문서는 Python Parser가 청킹 → Spring Boot가 ES/Qdrant에 인덱싱 → 사용자 질문 시 하이브리드 검색(BM25+벡터) + LLM Agent가 답변 생성.
+문서 업로드 → RabbitMQ → Python Parser가 파싱/청킹 → Spring Boot가 ES+Qdrant에 인덱싱 → 사용자 질문 시 하이브리드 검색 + AI Agent가 답변 생성.
 
-## 로컬 개발
-
-### 사전 준비
-
-- Docker Desktop
-- Java 21, Node.js 20, Python 3.11
-- LLM API 키 (Anthropic 또는 OpenAI)
-
-### 인프라 실행
-
-```bash
-docker compose -f docker-compose.infra.yml up -d
-bash infra/verify.sh
-```
-
-### 백엔드
-
-```bash
-cd backend
-# application.yml 설정 (gitignored)
-./gradlew bootRun
-```
-
-### 파싱 서비스
-
-```bash
-cd parsing-service
-pip install -r requirements.txt
-uvicorn app.main:app --port 8000
-```
-
-### 프론트엔드
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 프로덕션 배포 (Docker Compose)
-
-```bash
-# 1. 환경변수 설정
-cp .env.example .env
-# .env 파일 편집 — DB_PASSWORD, REDIS_PASSWORD, RABBITMQ_PASSWORD, API 키 입력
-
-# 2. 배포
-bash scripts/deploy.sh
-```
-
-자세한 EC2 배포 가이드: [docs/deploy-ec2.md](docs/deploy-ec2.md)
+---
 
 ## 프로젝트 구조
 
 ```
 intellidocs/
-├── backend/                  # Spring Boot API (Java 21, Gradle)
-│   ├── Dockerfile
+├── backend/                    # Spring Boot API
 │   └── src/main/java/com/intellidocs/
-│       ├── config/           # Spring 설정 (RabbitMQ, Redis, Qdrant, ES)
-│       ├── common/           # ApiResponse, 예외 처리
 │       ├── domain/
-│       │   ├── document/     # 문서 업로드/관리, SSE
-│       │   ├── agent/        # RAG Agent (LangChain4j)
-│       │   ├── search/       # 하이브리드 검색
-│       │   └── chat/         # 채팅 세션/메시지
-│       └── infrastructure/   # RabbitMQ 리스너
-├── parsing-service/          # Python FastAPI Parser
-│   ├── Dockerfile
-│   └── app/
-│       ├── parsers/          # PDF, XLSX, DOCX, TXT 파서
-│       └── chunking/         # 문서 청킹
-├── frontend/                 # Next.js 14
-│   ├── Dockerfile
-│   ├── app/                  # App Router 페이지
-│   ├── components/           # React 컴포넌트
-│   ├── stores/               # Zustand 상태 관리
-│   └── lib/                  # API 클라이언트, SSE
+│       │   ├── agent/          # AI Agent + 9 Tools
+│       │   ├── document/       # 업로드/파싱/버전관리
+│       │   ├── search/         # 하이브리드 검색
+│       │   ├── chat/           # 채팅 세션/코멘트/핀
+│       │   ├── report/         # 리포트 PDF 생성
+│       │   ├── discrepancy/    # 수치 불일치 탐지
+│       │   ├── diff/           # 버전 Diff 엔진
+│       │   ├── knowledgegraph/ # Knowledge Graph
+│       │   ├── notification/   # 알림 시스템
+│       │   ├── auth/           # JWT + OAuth
+│       │   └── workspace/      # 팀 워크스페이스
+│       ├── config/             # Security, Async, CORS
+│       └── infrastructure/     # ES, Qdrant, Redis, RabbitMQ
+├── parsing-service/            # Python FastAPI Parser
+├── frontend/                   # Next.js 14
+│   ├── app/                    # App Router 페이지
+│   ├── components/             # React 컴포넌트
+│   ├── stores/                 # Zustand 상태 관리
+│   └── lib/                    # API 클라이언트, SSE
 ├── infra/
-│   ├── postgres/init.sql     # DB 스키마
-│   ├── elasticsearch/        # ES + Nori 플러그인
-│   ├── rabbitmq/             # 큐/익스체인지 정의
-│   └── nginx/nginx.conf      # 리버스 프록시
-├── scripts/deploy.sh         # 배포 자동화
-├── docker-compose.yml        # 프로덕션 (9 서비스)
-├── docker-compose.infra.yml  # 인프라만 (개발용)
-└── .env.example              # 환경변수 템플릿
+│   ├── postgres/               # DB 스키마 + 마이그레이션
+│   ├── elasticsearch/          # ES + Nori 플러그인
+│   ├── rabbitmq/               # 큐/익스체인지 정의
+│   └── nginx/                  # 리버스 프록시
+├── docker-compose.yml          # 프로덕션 (9 서비스)
+├── docker-compose.infra.yml    # 인프라만 (개발용)
+└── .env.example                # 환경변수 템플릿
 ```
 
-## API 엔드포인트
+---
 
-| Method | Path | 설명 |
-|--------|------|------|
-| POST | `/api/v1/documents/upload` | 문서 업로드 (multipart) |
-| GET | `/api/v1/documents` | 문서 목록 조회 |
-| GET | `/api/v1/documents/{id}` | 문서 상세 조회 |
-| DELETE | `/api/v1/documents/{id}` | 문서 삭제 |
-| GET | `/api/v1/documents/{id}/status` | 파싱 진행 SSE 스트림 |
-| POST | `/api/v1/search` | 하이브리드 검색 |
-| POST | `/api/v1/agent/chat` | AI 채팅 (동기) |
-| POST | `/api/v1/agent/chat/stream` | AI 채팅 SSE 스트림 |
-| GET | `/api/v1/agent/chat/history` | 채팅 히스토리 조회 |
+## 로컬 실행
 
-## 서비스 포트
+### 사전 준비
+- Docker Desktop
+- OpenAI API 키
 
-| Service | Port |
-|---------|------|
-| Nginx (프로덕션) | 80 |
-| Spring Boot API | 8080 |
-| Python Parser | 8000 |
-| Next.js Frontend | 3000 |
-| PostgreSQL | 5432 |
-| Elasticsearch | 9200 |
-| Qdrant REST / gRPC | 6333 / 6334 |
-| Redis | 6379 |
-| RabbitMQ AMQP / UI | 5672 / 15672 |
+### 실행
+
+```bash
+# 1. 클론
+git clone https://github.com/klarra247/intellidocs.git
+cd intellidocs
+
+# 2. 환경변수
+cp .env.example .env
+# .env에서 OPENAI_API_KEY, JWT_SECRET, DB_PASSWORD 등 설정
+
+# 3. 전체 스택 실행
+docker compose up -d --build
+
+# 4. 접속
+# http://localhost (Nginx → Frontend)
+# http://localhost/api (Nginx → API)
+```
+
+---
+
+## 핵심 설계 결정
+
+### Hybrid Search (ES + Qdrant + RRF)
+키워드 정확도(BM25)와 의미 검색(Vector)을 RRF(Reciprocal Rank Fusion)로 결합. 단일 검색 대비 재현율과 정확도 모두 향상.
+
+### AI Agent vs 단순 RAG
+질문 유형에 따라 9개 Tool(문서 검색, 수치 비교, 계산, 리포트 생성 등) 중 적절한 조합을 Agent가 자율 선택. 단순 검색→응답 파이프라인보다 복잡한 분석 질문에 강점.
+
+### 채팅 세션 공유: 읽기 전용
+공유된 세션에서 다른 멤버는 열람만 가능하고 질문은 생성자만 가능. RAG 컨텍스트 오염 방지.
+
+### Knowledge Graph: PostgreSQL 기반
+Neo4j 없이 `document_metrics` 테이블로 지표 중심 그래프를 구현. 인프라 복잡도를 줄이면서 문서 간 공통 지표 연결을 달성.
+
+---
+
+## 라이선스
+
+MIT License

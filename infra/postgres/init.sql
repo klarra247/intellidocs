@@ -197,12 +197,11 @@ CREATE INDEX idx_chat_sessions_workspace_shared ON chat_sessions(workspace_id, i
 CREATE TABLE chat_messages (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     session_id      UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
-    role            VARCHAR(50) NOT NULL,     -- user | assistant
+    role            VARCHAR(50) NOT NULL,     -- USER | ASSISTANT
     content         TEXT NOT NULL,
-    table_data      JSONB,                    -- 표 형태 응답 데이터
     source_chunks   JSONB,                    -- 참조한 청크 목록
     selected_documents JSONB,                 -- USER 메시지의 선택된 문서 스냅샷
-    tool_calls      JSONB,                    -- Agent가 호출한 Tool 기록
+    confidence      DOUBLE PRECISION,         -- RRF 기반 응답 신뢰도 [0,1]
     is_pinned       BOOLEAN NOT NULL DEFAULT FALSE,
     pinned_by       UUID REFERENCES users(id),
     pinned_at       TIMESTAMP,
