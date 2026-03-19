@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useVersionStore } from '@/stores/versionStore';
 import { Upload, Loader2 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface VersionUploadButtonProps {
 export default function VersionUploadButton({ documentId }: VersionUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploading, uploadNewVersion } = useVersionStore();
+  const [hovered, setHovered] = useState(false);
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -36,7 +37,14 @@ export default function VersionUploadButton({ documentId }: VersionUploadButtonP
       <button
         onClick={handleClick}
         disabled={uploading}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-[12px] font-medium text-slate-600 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="w-full flex items-center justify-center gap-2 rounded-[8px] px-4 py-2.5 text-[12px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          border: `1px dashed ${hovered && !uploading ? 'var(--accent)' : 'var(--border-strong)'}`,
+          backgroundColor: hovered && !uploading ? 'var(--accent-light)' : 'var(--bg-secondary)',
+          color: hovered && !uploading ? 'var(--accent)' : 'var(--text-secondary)',
+        }}
       >
         {uploading ? (
           <>

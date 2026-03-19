@@ -13,11 +13,11 @@ const INITIAL_COUNT = 10;
 function directionDisplay(direction: string) {
   switch (direction) {
     case 'INCREASED':
-      return { icon: '▲', color: 'text-green-600' };
+      return { icon: '\u25B2', color: 'var(--success)' };
     case 'DECREASED':
-      return { icon: '▼', color: 'text-red-600' };
+      return { icon: '\u25BC', color: 'var(--error)' };
     default:
-      return { icon: '―', color: 'text-gray-400' };
+      return { icon: '\u2015', color: 'var(--text-tertiary)' };
   }
 }
 
@@ -28,11 +28,13 @@ function formatPercent(value: number): string {
 
 export default function NumericChangesTable({ changes, onClickChange }: NumericChangesTableProps) {
   const [showAll, setShowAll] = useState(false);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [hoveredMore, setHoveredMore] = useState(false);
 
   if (changes.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
-        <p className="text-[12px] text-slate-400">수치 변경 없음</p>
+        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>수치 변경 없음</p>
       </div>
     );
   }
@@ -42,10 +44,13 @@ export default function NumericChangesTable({ changes, onClickChange }: NumericC
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div
+        className="overflow-x-auto rounded-[6px]"
+        style={{ border: '1px solid var(--border)' }}
+      >
         <table className="w-full min-w-[560px] text-[12px]">
           <thead>
-            <tr className="bg-slate-50 text-slate-500">
+            <tr style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
               <th className="px-3 py-2 text-left font-medium">항목</th>
               <th className="px-3 py-2 text-left font-medium">기간</th>
               <th className="px-3 py-2 text-right font-medium">이전 값</th>
@@ -61,13 +66,20 @@ export default function NumericChangesTable({ changes, onClickChange }: NumericC
                 <tr
                   key={i}
                   onClick={() => onClickChange?.(c)}
-                  className="border-t border-slate-100 text-slate-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onMouseEnter={() => setHoveredRow(i)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  className="cursor-pointer transition-colors"
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    backgroundColor: hoveredRow === i ? 'var(--bg-secondary)' : 'transparent',
+                  }}
                 >
                   <td className="px-3 py-2 font-medium truncate max-w-[140px]">
                     {c.field}
                   </td>
-                  <td className="px-3 py-2 text-slate-500">{c.period || '-'}</td>
-                  <td className="px-3 py-2 text-right font-mono text-slate-500">
+                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.period || '-'}</td>
+                  <td className="px-3 py-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
                     {c.sourceValue}
                   </td>
                   <td className="px-3 py-2 text-right font-mono">
@@ -76,7 +88,7 @@ export default function NumericChangesTable({ changes, onClickChange }: NumericC
                   <td className="px-3 py-2 text-right font-mono">
                     {formatPercent(c.changePercent)}
                   </td>
-                  <td className={`px-2 py-2 text-center ${dir.color}`}>
+                  <td className="px-2 py-2 text-center" style={{ color: dir.color }}>
                     {dir.icon}
                   </td>
                 </tr>
@@ -89,7 +101,14 @@ export default function NumericChangesTable({ changes, onClickChange }: NumericC
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-2 w-full rounded-lg border border-slate-200 py-2 text-[12px] font-medium text-slate-500 hover:bg-slate-50 transition-colors"
+          onMouseEnter={() => setHoveredMore(true)}
+          onMouseLeave={() => setHoveredMore(false)}
+          className="mt-2 w-full rounded-[6px] py-2 text-[12px] font-medium transition-colors"
+          style={{
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            backgroundColor: hoveredMore ? 'var(--bg-secondary)' : 'transparent',
+          }}
         >
           {showAll ? '접기' : `${changes.length - INITIAL_COUNT}건 더 보기`}
         </button>

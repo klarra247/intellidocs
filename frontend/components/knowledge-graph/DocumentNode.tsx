@@ -27,24 +27,39 @@ function DocumentNodeComponent({ data }: NodeProps & { data: DocumentNodeData })
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-slate-300 !w-2 !h-2" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: '#d4d4d0', width: 8, height: 8 }}
+      />
       <div
-        className={`
-          min-w-[130px] rounded-xl border-2 border-slate-300 bg-white px-3 py-2
-          shadow-sm transition-all duration-150 cursor-pointer
-          ${data.selected ? 'ring-2 ring-primary-400 ring-offset-1' : ''}
-          ${data.dimmed ? 'opacity-30' : 'hover:shadow-md'}
-        `}
+        style={{
+          minWidth: 130,
+          borderRadius: 8,
+          border: data.selected ? '1px solid #2383e2' : '1px solid #e9e9e7',
+          background: '#ffffff',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          padding: '6px 12px',
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          opacity: data.dimmed ? 0.3 : 1,
+          outline: data.selected ? '2px solid #2383e2' : 'none',
+          outlineOffset: data.selected ? 1 : 0,
+        }}
       >
         <div className="flex items-center gap-1.5">
-          <Icon className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" strokeWidth={2} />
-          <span className="text-xs font-medium text-slate-700 leading-tight">{label}</span>
+          <Icon style={{ height: 14, width: 14, flexShrink: 0, color: '#b4b4b0' }} strokeWidth={2} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#37352f', lineHeight: 1.3 }}>{label}</span>
         </div>
         {data.fileType && (
-          <p className="mt-0.5 text-[10px] text-slate-400 pl-5">{data.fileType}</p>
+          <p style={{ marginTop: 2, fontSize: 10, color: '#b4b4b0', paddingLeft: 20 }}>{data.fileType}</p>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-300 !w-2 !h-2" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: '#d4d4d0', width: 8, height: 8 }}
+      />
     </>
   );
 }

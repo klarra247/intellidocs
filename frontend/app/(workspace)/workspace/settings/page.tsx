@@ -17,6 +17,7 @@ type TabId = (typeof tabs)[number]['id'];
 
 export default function WorkspaceSettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('general');
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const { currentWorkspace, fetchWorkspaceDetail, workspaceDetail } = useWorkspaceStore();
   const router = useRouter();
 
@@ -34,25 +35,39 @@ export default function WorkspaceSettingsPage() {
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-lg font-bold text-slate-900">워크스페이스 설정</h1>
-        <p className="mt-1 text-[13px] text-slate-500">{currentWorkspace.name}</p>
+        <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+          워크스페이스 설정
+        </h1>
+        <p className="mt-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          {currentWorkspace.name}
+        </p>
 
         {/* Tabs */}
-        <div className="mt-6 border-b border-slate-200">
+        <div className="mt-6" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex gap-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`pb-2.5 text-[13px] font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-b-2 border-primary-600 text-primary-700'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const isHovered = hoveredTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  onMouseEnter={() => setHoveredTab(tab.id)}
+                  onMouseLeave={() => setHoveredTab(null)}
+                  className="pb-2.5 text-[13px] font-medium transition-colors"
+                  style={{
+                    color: isActive
+                      ? 'var(--accent)'
+                      : isHovered
+                        ? 'var(--text-primary)'
+                        : 'var(--text-secondary)',
+                    borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

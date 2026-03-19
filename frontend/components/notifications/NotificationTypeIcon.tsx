@@ -13,17 +13,17 @@ import {
 } from 'lucide-react';
 import type { NotificationType } from '@/lib/types';
 
-const typeConfig: Record<NotificationType, { icon: typeof FileText; bg: string; iconColor: string }> = {
-  DOCUMENT_INDEXED:       { icon: FileText,       bg: 'bg-green-100',  iconColor: 'text-green-600' },
-  DISCREPANCY_FOUND:      { icon: AlertTriangle,  bg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
-  SESSION_SHARED:         { icon: Link2,          bg: 'bg-blue-100',   iconColor: 'text-blue-600' },
-  COMMENT_ADDED:          { icon: MessageCircle,  bg: 'bg-purple-100', iconColor: 'text-purple-600' },
-  DOC_COMMENT_ADDED:      { icon: MessageCircle,  bg: 'bg-purple-100', iconColor: 'text-purple-600' },
-  MESSAGE_PINNED:         { icon: Pin,            bg: 'bg-amber-100',  iconColor: 'text-amber-600' },
-  REVIEW_REQUESTED:       { icon: Eye,            bg: 'bg-orange-100', iconColor: 'text-orange-600' },
-  REVIEW_COMPLETED:       { icon: CheckCircle2,   bg: 'bg-green-100',  iconColor: 'text-green-600' },
-  WORKSPACE_INVITATION:   { icon: Mail,           bg: 'bg-blue-100',   iconColor: 'text-blue-600' },
-  VERSION_DIFF_COMPLETED: { icon: GitCompare,     bg: 'bg-cyan-100',   iconColor: 'text-cyan-600' },
+const typeConfig: Record<NotificationType, { icon: typeof FileText }> = {
+  DOCUMENT_INDEXED:       { icon: FileText },
+  DISCREPANCY_FOUND:      { icon: AlertTriangle },
+  SESSION_SHARED:         { icon: Link2 },
+  COMMENT_ADDED:          { icon: MessageCircle },
+  DOC_COMMENT_ADDED:      { icon: MessageCircle },
+  MESSAGE_PINNED:         { icon: Pin },
+  REVIEW_REQUESTED:       { icon: Eye },
+  REVIEW_COMPLETED:       { icon: CheckCircle2 },
+  WORKSPACE_INVITATION:   { icon: Mail },
+  VERSION_DIFF_COMPLETED: { icon: GitCompare },
 };
 
 interface Props {
@@ -34,12 +34,26 @@ interface Props {
 export default function NotificationTypeIcon({ type, size = 'sm' }: Props) {
   const config = typeConfig[type] ?? typeConfig.DOCUMENT_INDEXED;
   const Icon = config.icon;
-  const dim = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
-  const iconDim = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
+  const containerSize = size === 'sm' ? '32px' : '40px';
+  const iconSize = size === 'sm' ? '16px' : '20px';
 
   return (
-    <div className={`flex ${dim} shrink-0 items-center justify-center rounded-full ${config.bg}`}>
-      <Icon className={`${iconDim} ${config.iconColor}`} strokeWidth={2} />
+    <div
+      style={{
+        width: containerSize,
+        height: containerSize,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '9999px',
+        background: 'var(--bg-secondary)',
+      }}
+    >
+      <Icon
+        style={{ width: iconSize, height: iconSize, color: 'var(--text-secondary)' }}
+        strokeWidth={2}
+      />
     </div>
   );
 }

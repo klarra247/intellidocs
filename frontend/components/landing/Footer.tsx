@@ -2,27 +2,36 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#070b14] border-t border-white/[0.04]">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-6">
+    <footer
+      style={{
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border)',
+      }}
+    >
+      <div className="mx-auto max-w-[1100px] px-6 py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-5">
             <Link
               href="/"
-              className="text-lg font-extrabold text-white tracking-tight"
+              className="text-[15px] font-bold"
+              style={{ color: 'var(--text-primary)' }}
             >
-              Intelli<span className="text-emerald-400">Docs</span>
+              IntelliDocs
             </Link>
-            <span className="text-sm text-slate-600">
+            <span className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
               © 2026 IntelliDocs
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <a
               href="https://github.com/klarra247/intellidocs"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-[13px] transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
             >
               GitHub
             </a>

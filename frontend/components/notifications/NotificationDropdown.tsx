@@ -29,14 +29,41 @@ export default function NotificationDropdown({ onClose }: Props) {
   };
 
   return (
-    <div className="absolute right-0 top-full z-50 mt-1 w-96 rounded-xl border border-slate-200 bg-white shadow-xl animate-scale-in">
+    <div
+      className="absolute right-0 top-full z-50 mt-1 w-96 animate-scale-in"
+      style={{
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border)',
+        borderRadius: '8px',
+        boxShadow: 'var(--shadow-md)',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h3 className="text-sm font-bold text-slate-800">알림</h3>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border)',
+          padding: '12px 16px',
+        }}
+      >
+        <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>알림</h3>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllRead}
-            className="flex items-center gap-1 text-[12px] font-medium text-primary-600 hover:text-primary-700"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'var(--accent)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+            }}
           >
             <CheckCheck className="h-3.5 w-3.5" />
             모두 읽음
@@ -45,18 +72,36 @@ export default function NotificationDropdown({ onClose }: Props) {
       </div>
 
       {/* List */}
-      <div className="max-h-[400px] overflow-y-auto">
+      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
         {loading && notifications.length === 0 ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0' }}>
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '9999px',
+                border: '2px solid var(--border)',
+                borderTopColor: 'var(--accent)',
+                animation: 'spin 0.7s linear infinite',
+              }}
+            />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-            <Bell className="h-8 w-8 mb-2 text-slate-300" />
-            <p className="text-sm">새로운 알림이 없습니다</p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '40px 0',
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            <Bell style={{ width: '32px', height: '32px', marginBottom: '8px', color: 'var(--text-tertiary)' }} />
+            <p style={{ fontSize: '13px', margin: 0 }}>새로운 알림이 없습니다</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div style={{ borderTop: 'none' }}>
             {notifications.slice(0, 10).map((n) => (
               <NotificationItem
                 key={n.id}
@@ -71,10 +116,24 @@ export default function NotificationDropdown({ onClose }: Props) {
 
       {/* Footer */}
       {notifications.length > 0 && (
-        <div className="border-t border-slate-100">
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <button
             onClick={handleViewAll}
-            className="w-full py-2.5 text-center text-[13px] font-medium text-primary-600 hover:bg-slate-50 transition-colors rounded-b-xl"
+            style={{
+              width: '100%',
+              padding: '10px 0',
+              textAlign: 'center',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--accent)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              borderRadius: '0 0 8px 8px',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             모든 알림 보기
           </button>

@@ -14,32 +14,29 @@ interface MetricNodeData {
   size: 'sm' | 'md' | 'lg';
 }
 
-const sizeStyles = {
-  sm: 'min-w-[120px] max-w-[150px] px-3 py-2',
-  md: 'min-w-[150px] max-w-[180px] px-3.5 py-2.5',
-  lg: 'min-w-[180px] max-w-[210px] px-4 py-3',
+const sizeDimensions = {
+  sm: { minWidth: 120, maxWidth: 150, padding: '8px 12px' },
+  md: { minWidth: 150, maxWidth: 180, padding: '10px 14px' },
+  lg: { minWidth: 180, maxWidth: 210, padding: '12px 16px' },
 };
 
-function getChangeStyle(change: MetricChange | null) {
-  if (!change) return 'bg-gray-50 border-gray-300';
+function getLeftBorderStyle(change: MetricChange | null): string | undefined {
+  if (!change) return undefined;
   switch (change.direction) {
-    case 'increase':
-      return 'bg-green-50 border-green-400';
-    case 'decrease':
-      return 'bg-red-50 border-red-400';
-    default:
-      return 'bg-gray-50 border-gray-300';
+    case 'increase': return '3px solid #4dab9a';
+    case 'decrease': return '3px solid #e03e3e';
+    default: return undefined;
   }
 }
 
 function ChangeIcon({ direction }: { direction?: string }) {
   switch (direction) {
     case 'increase':
-      return <TrendingUp className="h-3 w-3 text-green-600" />;
+      return <TrendingUp style={{ height: 12, width: 12, color: '#4dab9a' }} />;
     case 'decrease':
-      return <TrendingDown className="h-3 w-3 text-red-600" />;
+      return <TrendingDown style={{ height: 12, width: 12, color: '#e03e3e' }} />;
     default:
-      return <Minus className="h-3 w-3 text-gray-400" />;
+      return <Minus style={{ height: 12, width: 12, color: '#b4b4b0' }} />;
   }
 }
 
@@ -57,37 +54,55 @@ function formatSummary(occurrences: MetricOccurrence[], change: MetricChange | n
   return `${occurrences.length}개 문서`;
 }
 
+function getSummaryColor(change: MetricChange | null): string {
+  if (change?.direction === 'increase') return '#4dab9a';
+  if (change?.direction === 'decrease') return '#e03e3e';
+  return '#787774';
+}
+
 function MetricNode({ data }: { data: MetricNodeData }) {
   const { label, occurrences = [], change, selected, dimmed, size } = data;
-  const changeStyle = getChangeStyle(change);
   const summary = formatSummary(occurrences, change);
+  const dims = sizeDimensions[size];
+  const leftBorder = getLeftBorderStyle(change);
 
   return (
     <div
-      className={`rounded-xl border-2 text-center shadow-sm transition-all duration-150 ${changeStyle} ${sizeStyles[size]} ${
-        selected ? 'ring-2 ring-primary-500 ring-offset-1' : ''
-      } ${dimmed ? 'opacity-30' : 'opacity-100'}`}
+      style={{
+        minWidth: dims.minWidth,
+        maxWidth: dims.maxWidth,
+        padding: dims.padding,
+        borderRadius: 8,
+        border: selected ? '1px solid #2383e2' : '1px solid #e9e9e7',
+        borderLeft: leftBorder ?? (selected ? '1px solid #2383e2' : '1px solid #e9e9e7'),
+        background: '#f7f7f5',
+        textAlign: 'center',
+        transition: 'all 0.15s',
+        opacity: dimmed ? 0.3 : 1,
+        outline: selected ? '2px solid #2383e2' : 'none',
+        outlineOffset: selected ? 1 : 0,
+        cursor: 'pointer',
+      }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-transparent !border-0 !w-3 !h-3" />
-      <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-0 !w-3 !h-3" />
+      <Handle type="target" position={Position.Top} style={{ background: 'transparent', border: 'none', width: 12, height: 12 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none', width: 12, height: 12 }} />
 
       <div className="flex items-center justify-center gap-1">
         {change && <ChangeIcon direction={change.direction} />}
-        <span className="text-xs font-bold text-slate-800 truncate">{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#37352f' }} className="truncate">{label}</span>
       </div>
 
       {summary && (
-        <p className={`mt-0.5 text-[10px] leading-tight truncate ${
-          change?.direction === 'increase' ? 'text-green-700' :
-          change?.direction === 'decrease' ? 'text-red-700' :
-          'text-slate-500'
-        }`}>
+        <p
+          style={{ marginTop: 2, fontSize: 10, lineHeight: 1.3, color: getSummaryColor(change) }}
+          className="truncate"
+        >
           {summary}
         </p>
       )}
 
       {occurrences.length > 1 && (
-        <p className="mt-0.5 text-[9px] text-slate-400">
+        <p style={{ marginTop: 2, fontSize: 9, color: '#b4b4b0' }}>
           {occurrences.length}개 문서
         </p>
       )}

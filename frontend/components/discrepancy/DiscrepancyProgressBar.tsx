@@ -12,19 +12,23 @@ export default function DiscrepancyProgressBar() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-[12px]">
-        <span className={isFailed ? 'text-red-600' : 'text-slate-600'}>
+        <span style={{ color: isFailed ? 'var(--error)' : 'var(--text-secondary)' }}>
           {activeJob.message}
         </span>
         {!isFailed && (
-          <span className="text-slate-400">{activeJob.progress}%</span>
+          <span style={{ color: 'var(--text-tertiary)' }}>{activeJob.progress}%</span>
         )}
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full"
+        style={{ background: 'var(--bg-active)' }}
+      >
         <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            isFailed ? 'bg-red-400' : 'bg-primary-500'
-          }`}
-          style={{ width: `${isFailed ? 100 : activeJob.progress}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${isFailed ? 100 : activeJob.progress}%`,
+            background: isFailed ? 'var(--error)' : 'var(--accent)',
+          }}
         />
       </div>
     </div>

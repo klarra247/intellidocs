@@ -9,7 +9,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: [
-          'Plus Jakarta Sans',
+          'Pretendard Variable',
+          'Pretendard',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',
@@ -17,23 +18,60 @@ const config: Config = {
         ],
       },
       colors: {
+        /* Design system colors via CSS vars */
+        surface: {
+          DEFAULT: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          hover: 'var(--bg-hover)',
+          active: 'var(--bg-active)',
+        },
+        content: {
+          DEFAULT: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          light: 'var(--accent-light)',
+        },
+        status: {
+          success: 'var(--success)',
+          warning: 'var(--warning)',
+          error: 'var(--error)',
+          info: 'var(--info)',
+        },
+        line: {
+          DEFAULT: 'var(--border)',
+          strong: 'var(--border-strong)',
+        },
+
+        /* Keep primary alias for existing component compat */
         primary: {
-          50: '#eff6ff',
+          50: 'var(--accent-light)',
           100: '#dbeafe',
           200: '#bfdbfe',
           300: '#93c5fd',
           400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          500: 'var(--accent)',
+          600: 'var(--accent)',
+          700: 'var(--accent-hover)',
           800: '#1e40af',
           900: '#1e3a8a',
         },
       },
       boxShadow: {
-        'card': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        'card-hover': '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
-        'modal': '0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08)',
+        'card': 'var(--shadow-sm)',
+        'card-hover': 'var(--shadow-md)',
+        'modal': 'var(--shadow-lg)',
+      },
+      borderRadius: {
+        'card': '8px',
+        'button': '6px',
+        'badge': '4px',
+      },
+      letterSpacing: {
+        'heading': '-0.02em',
       },
     },
   },

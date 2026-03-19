@@ -11,19 +11,21 @@ interface TextChangesListProps {
 
 const INITIAL_COUNT = 10;
 
-const typeConfig: Record<string, { border: string; icon: typeof PlusCircle; iconColor: string; label: string }> = {
-  ADDED: { border: 'border-l-green-500', icon: PlusCircle, iconColor: 'text-green-500', label: '추가' },
-  REMOVED: { border: 'border-l-red-500', icon: MinusCircle, iconColor: 'text-red-500', label: '삭제' },
-  MODIFIED: { border: 'border-l-yellow-500', icon: PenLine, iconColor: 'text-yellow-500', label: '수정' },
+const typeConfig: Record<string, { borderColor: string; icon: typeof PlusCircle; iconColor: string; label: string }> = {
+  ADDED: { borderColor: 'var(--success)', icon: PlusCircle, iconColor: 'var(--success)', label: '추가' },
+  REMOVED: { borderColor: 'var(--error)', icon: MinusCircle, iconColor: 'var(--error)', label: '삭제' },
+  MODIFIED: { borderColor: 'var(--warning)', icon: PenLine, iconColor: 'var(--warning)', label: '수정' },
 };
 
 export default function TextChangesList({ changes, onClickChange }: TextChangesListProps) {
   const [showAll, setShowAll] = useState(false);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [hoveredMore, setHoveredMore] = useState(false);
 
   if (changes.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
-        <p className="text-[12px] text-slate-400">내용 변경 없음</p>
+        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>내용 변경 없음</p>
       </div>
     );
   }
@@ -39,21 +41,28 @@ export default function TextChangesList({ changes, onClickChange }: TextChangesL
           <div
             key={i}
             onClick={() => onClickChange?.(c)}
-            className={`rounded-lg border border-slate-200 border-l-[3px] ${config.border} px-3 py-2.5 hover:bg-slate-50 cursor-pointer transition-colors`}
+            onMouseEnter={() => setHoveredIdx(i)}
+            onMouseLeave={() => setHoveredIdx(null)}
+            className="rounded-[6px] px-3 py-2.5 cursor-pointer transition-colors"
+            style={{
+              border: '1px solid var(--border)',
+              borderLeft: `3px solid ${config.borderColor}`,
+              backgroundColor: hoveredIdx === i ? 'var(--bg-secondary)' : 'transparent',
+            }}
           >
             <div className="flex items-center gap-1.5">
-              <config.icon className={`h-3.5 w-3.5 ${config.iconColor}`} />
-              <span className="text-[11px] font-medium text-slate-500">{config.label}</span>
+              <config.icon className="h-3.5 w-3.5" style={{ color: config.iconColor }} />
+              <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{config.label}</span>
               {c.targetPageNumber != null && (
-                <span className="text-[10px] text-slate-400 ml-auto">
+                <span className="text-[10px] ml-auto" style={{ color: 'var(--text-tertiary)' }}>
                   p.{c.targetPageNumber}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[13px] font-medium text-slate-800">
+            <p className="mt-1 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
               {c.sectionTitle}
             </p>
-            <p className="mt-0.5 text-[12px] text-slate-500 line-clamp-2">
+            <p className="mt-0.5 text-[12px] line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
               {c.summary}
             </p>
           </div>
@@ -63,7 +72,14 @@ export default function TextChangesList({ changes, onClickChange }: TextChangesL
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="w-full rounded-lg border border-slate-200 py-2 text-[12px] font-medium text-slate-500 hover:bg-slate-50 transition-colors"
+          onMouseEnter={() => setHoveredMore(true)}
+          onMouseLeave={() => setHoveredMore(false)}
+          className="w-full rounded-[6px] py-2 text-[12px] font-medium transition-colors"
+          style={{
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            backgroundColor: hoveredMore ? 'var(--bg-secondary)' : 'transparent',
+          }}
         >
           {showAll ? '접기' : `${changes.length - INITIAL_COUNT}건 더 보기`}
         </button>

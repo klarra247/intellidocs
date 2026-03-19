@@ -41,7 +41,10 @@ export default function SourceBadgeGroup({ sources }: SourceBadgeGroupProps) {
       {hiddenCount > 0 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+          className="inline-flex items-center text-[11px] transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
         >
           {expanded ? '접기' : `+${hiddenCount} 더보기`}
         </button>

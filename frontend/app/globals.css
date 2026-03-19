@@ -2,19 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+/* ═══════════════════════════════════════════
+   Design System — CSS Variables
+   ═══════════════════════════════════════════ */
+:root {
+  /* Background */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f5;
+  --bg-hover: #f0f0ee;
+  --bg-active: #ebebea;
+
+  /* Text */
+  --text-primary: #37352f;
+  --text-secondary: #787774;
+  --text-tertiary: #b4b4b0;
+
+  /* Accent */
+  --accent: #2383e2;
+  --accent-hover: #1a73d1;
+  --accent-light: #e8f0fe;
+
+  /* Status */
+  --success: #4dab9a;
+  --warning: #cb912f;
+  --error: #e03e3e;
+  --info: #529cca;
+
+  /* Border */
+  --border: #e9e9e7;
+  --border-strong: #d4d4d0;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', 'Pretendard Variable', Pretendard,
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Pretendard Variable', Pretendard, -apple-system,
+      BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color: var(--text-primary);
+    background: var(--bg-primary);
   }
 }
 
-/* Scrollbar */
+/* ═══════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -22,14 +61,16 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-tertiary);
 }
 
-/* Animations */
+/* ═══════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════ */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -91,7 +132,7 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-hover) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
@@ -132,17 +173,6 @@
   animation: slide-in-left 0.2s ease-out;
 }
 
-/* Excel table styling */
-.excel-table th {
-  @apply sticky top-0 z-10 bg-slate-100 text-left text-[11px] font-semibold text-slate-600;
-}
-.excel-table td {
-  @apply text-[12px] text-slate-700;
-}
-.excel-table tr:nth-child(even) td {
-  @apply bg-slate-50/50;
-}
-
 /* Stagger delays */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
@@ -151,9 +181,28 @@
 .stagger-5 { animation-delay: 0.25s; }
 .stagger-6 { animation-delay: 0.3s; }
 
+/* ═══════════════════════════════════════════
+   Component Styles
+   ═══════════════════════════════════════════ */
+
+/* Excel table styling */
+.excel-table th {
+  @apply sticky top-0 z-10 text-left text-[11px] font-semibold;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.excel-table td {
+  @apply text-[12px];
+  color: var(--text-primary);
+}
+.excel-table tr:nth-child(even) td {
+  background: var(--bg-secondary);
+  opacity: 0.5;
+}
+
 /* Upload zone animated border */
 .upload-zone-active {
-  background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb) border-box;
+  background: linear-gradient(90deg, var(--accent), #6366f1, var(--accent)) border-box;
   background-size: 200% 100%;
   animation: border-dance 1.5s linear infinite;
 }
@@ -164,15 +213,19 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
-/* === Chat Markdown Prose === */
+/* ═══════════════════════════════════════════
+   Chat Markdown Prose
+   ═══════════════════════════════════════════ */
 .prose-chat {
-  @apply text-slate-800;
+  color: var(--text-primary);
 }
 .prose-chat strong {
-  @apply font-semibold text-slate-900;
+  @apply font-semibold;
+  color: var(--text-primary);
 }
 .prose-chat em {
-  @apply italic text-slate-600;
+  @apply italic;
+  color: var(--text-secondary);
 }
 .prose-chat ul {
   @apply my-2 ml-4 list-disc space-y-1;
@@ -184,48 +237,91 @@
   @apply text-[13px];
 }
 .prose-chat code {
-  @apply rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-medium text-slate-700;
+  @apply rounded px-1.5 py-0.5 text-[12px] font-medium;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 .prose-chat pre {
-  @apply my-2 overflow-x-auto rounded-lg bg-slate-900 p-3;
+  @apply my-2 overflow-x-auto rounded-lg p-3;
+  background: #1e1e1e;
 }
 .prose-chat pre code {
   @apply bg-transparent p-0 text-slate-100;
 }
 .prose-chat blockquote {
-  @apply my-2 border-l-2 border-primary-300 pl-3 text-slate-600;
+  @apply my-2 border-l-2 pl-3;
+  border-color: var(--accent);
+  color: var(--text-secondary);
 }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
-  @apply mt-3 mb-1.5 font-semibold text-slate-900;
+  @apply mt-3 mb-1.5 font-semibold;
+  color: var(--text-primary);
 }
 .prose-chat h1 { @apply text-[16px]; }
 .prose-chat h2 { @apply text-[15px]; }
 .prose-chat h3 { @apply text-[14px]; }
 .prose-chat a {
-  @apply text-primary-600 underline decoration-primary-300 hover:text-primary-700;
+  color: var(--accent);
+  @apply underline;
+}
+.prose-chat a:hover {
+  color: var(--accent-hover);
 }
 
-/* === Chunk Preview Markdown === */
+/* Chat tables */
+.prose-chat table {
+  @apply w-full border-collapse;
+}
+.prose-chat th {
+  @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.prose-chat td {
+  @apply px-3 py-2 text-[12px];
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+}
+.prose-chat tbody tr:nth-child(even) {
+  background: var(--bg-secondary);
+  opacity: 0.5;
+}
+.prose-chat tbody tr:hover {
+  background: var(--accent-light);
+}
+
+/* ═══════════════════════════════════════════
+   Chunk Preview Markdown
+   ═══════════════════════════════════════════ */
 .chunk-preview-content {
-  @apply text-[12px] leading-relaxed text-slate-700;
+  @apply text-[12px] leading-relaxed;
+  color: var(--text-primary);
 }
 .chunk-preview-content p {
   @apply mb-1.5 last:mb-0;
 }
 .chunk-preview-content strong {
-  @apply font-semibold text-slate-800;
+  @apply font-semibold;
+  color: var(--text-primary);
 }
 .chunk-preview-content table {
   @apply w-full border-collapse text-[11px];
 }
 .chunk-preview-content th {
-  @apply bg-amber-100/60 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700 border-b border-amber-200/80;
+  @apply px-2 py-1.5 text-left text-[11px] font-semibold;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
 }
 .chunk-preview-content td {
-  @apply px-2 py-1.5 text-[11px] text-slate-600 border-b border-amber-100/60;
+  @apply px-2 py-1.5 text-[11px];
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
 }
 .chunk-preview-content tbody tr:nth-child(even) {
-  @apply bg-amber-50/30;
+  background: var(--bg-secondary);
+  opacity: 0.3;
 }
 .chunk-preview-content ul {
   @apply my-1 ml-3 list-disc space-y-0.5;
@@ -234,27 +330,14 @@
   @apply my-1 ml-3 list-decimal space-y-0.5;
 }
 .chunk-preview-content code {
-  @apply rounded bg-amber-100/60 px-1 py-0.5 text-[11px] font-medium text-slate-700;
+  @apply rounded px-1 py-0.5 text-[11px] font-medium;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
-/* Table styling inside chat */
-.prose-chat table {
-  @apply w-full border-collapse;
-}
-.prose-chat th {
-  @apply bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200;
-}
-.prose-chat td {
-  @apply px-3 py-2 text-[12px] text-slate-700 border-b border-slate-100;
-}
-.prose-chat tbody tr:nth-child(even) {
-  @apply bg-slate-50/50;
-}
-.prose-chat tbody tr:hover {
-  @apply bg-primary-50/30;
-}
-
-/* React Flow overrides */
+/* ═══════════════════════════════════════════
+   React Flow overrides
+   ═══════════════════════════════════════════ */
 .react-flow__node {
   cursor: pointer !important;
 }

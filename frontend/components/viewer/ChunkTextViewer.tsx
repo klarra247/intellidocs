@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MessageSquarePlus } from 'lucide-react';
@@ -54,7 +54,7 @@ export default function ChunkTextViewer() {
       {/* Empty state */}
       {visibleChunks.length === 0 && !chunksLoading && (
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-[13px] text-slate-400">표시할 청크가 없습니다</p>
+          <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>표시할 청크가 없습니다</p>
         </div>
       )}
     </div>
@@ -70,6 +70,8 @@ interface ChunkCardProps {
 
 function ChunkCard({ chunk, isHighlighted }: ChunkCardProps) {
   const highlightRef = useRef<HTMLDivElement>(null);
+  const [commentBtnHover, setCommentBtnHover] = useState(false);
+  const [cardHovered, setCardHovered] = useState(false);
 
   useEffect(() => {
     if (isHighlighted && highlightRef.current) {
@@ -97,26 +99,41 @@ function ChunkCard({ chunk, isHighlighted }: ChunkCardProps) {
   return (
     <div
       ref={isHighlighted ? highlightRef : undefined}
-      className={`group/chunk relative rounded-lg border p-4 transition-colors ${
+      className="relative rounded-[6px] p-4 transition-colors"
+      style={
         isHighlighted
-          ? 'animate-highlight-pulse border-yellow-400 bg-yellow-200/60 ring-2 ring-yellow-400'
-          : 'border-slate-200 bg-white shadow-card'
-      }`}
+          ? {
+              border: '1px solid var(--warning)',
+              backgroundColor: 'color-mix(in srgb, var(--warning) 20%, transparent)',
+              boxShadow: '0 0 0 2px var(--warning)',
+              animation: 'highlight-pulse 2s ease-in-out',
+            }
+          : {
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--bg-primary)',
+              boxShadow: 'var(--shadow-sm)',
+            }
+      }
+      onMouseEnter={() => setCardHovered(true)}
+      onMouseLeave={() => setCardHovered(false)}
     >
       {/* Header */}
-      <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-500">
+      <div className="mb-2 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         <span>{typeIcon}</span>
         {chunk.sectionTitle && (
-          <span className="font-medium text-slate-700">
+          <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
             {chunk.sectionTitle}
           </span>
         )}
         {chunk.pageNumber != null && (
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+          <span
+            className="rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+          >
             p.{chunk.pageNumber}
           </span>
         )}
-        <span className="ml-auto text-[10px] text-slate-400">
+        <span className="ml-auto text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
           #{chunk.chunkIndex}
         </span>
       </div>
@@ -135,7 +152,16 @@ function ChunkCard({ chunk, isHighlighted }: ChunkCardProps) {
       {/* Add comment button (shown on hover) */}
       <button
         onClick={handleAddComment}
-        className="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-500 opacity-0 shadow-sm border border-slate-200 transition-all hover:bg-primary-50 hover:text-primary-600 group-hover/chunk:opacity-100"
+        className="absolute right-2 top-2 flex items-center gap-1 rounded-[6px] px-2 py-1 text-[10px] font-medium backdrop-blur-sm transition-all"
+        style={{
+          border: '1px solid var(--border)',
+          backgroundColor: commentBtnHover ? 'var(--accent-light)' : 'rgba(255,255,255,0.9)',
+          color: commentBtnHover ? 'var(--accent)' : 'var(--text-secondary)',
+          boxShadow: 'var(--shadow-sm)',
+          opacity: cardHovered ? 1 : 0,
+        }}
+        onMouseEnter={() => setCommentBtnHover(true)}
+        onMouseLeave={() => setCommentBtnHover(false)}
         title="이 위치에 코멘트 추가"
       >
         <MessageSquarePlus className="h-3 w-3" />
@@ -155,16 +181,28 @@ interface LoadMoreButtonProps {
 
 function LoadMoreButton({ direction, loading, onClick }: LoadMoreButtonProps) {
   const isBefore = direction === 'before';
+  const [hovered, setHovered] = useState(false);
 
   return (
     <div className={`flex justify-center ${isBefore ? 'mb-3' : 'mt-3'}`}>
       <button
         onClick={onClick}
         disabled={loading}
-        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
+        className="flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50"
+        style={{
+          border: '1px solid var(--border)',
+          backgroundColor: hovered ? 'var(--bg-hover)' : 'var(--bg-primary)',
+          color: hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {loading ? (
-          <div className="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-600" />
+          <div
+            className="h-3 w-3 animate-spin rounded-full"
+            style={{ border: '1px solid var(--border-strong)', borderTopColor: 'var(--text-secondary)' }}
+          />
         ) : isBefore ? (
           '\u25B2 더 불러오기'
         ) : (

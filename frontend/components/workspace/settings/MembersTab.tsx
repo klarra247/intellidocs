@@ -8,10 +8,10 @@ import { WorkspaceMember, WorkspaceMemberRole, WorkspaceInviteResponse } from '@
 import { workspacesApi } from '@/lib/api';
 import InviteMemberModal from './InviteMemberModal';
 
-const roleBadge: Record<string, string> = {
-  OWNER: 'bg-purple-100 text-purple-700',
-  ADMIN: 'bg-blue-100 text-blue-700',
-  MEMBER: 'bg-slate-100 text-slate-500',
+const roleBadgeStyles: Record<string, { backgroundColor: string; color: string }> = {
+  OWNER: { backgroundColor: '#f3e8ff', color: '#7c3aed' },
+  ADMIN: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)' },
+  MEMBER: { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' },
 };
 
 const roleLabel: Record<string, string> = {
@@ -27,6 +27,11 @@ export default function MembersTab() {
   const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
   const [pendingInvites, setPendingInvites] = useState<WorkspaceInviteResponse[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [inviteBtnHover, setInviteBtnHover] = useState(false);
+  const [hoveredMemberId, setHoveredMemberId] = useState<string | null>(null);
+  const [hoveredRemoveId, setHoveredRemoveId] = useState<string | null>(null);
+  const [hoveredInviteId, setHoveredInviteId] = useState<string | null>(null);
+  const [hoveredCancelId, setHoveredCancelId] = useState<string | null>(null);
 
   const myRole = workspaceDetail?.myRole;
   const canManage = myRole === 'OWNER' || myRole === 'ADMIN';
@@ -51,7 +56,10 @@ export default function MembersTab() {
   if (!workspaceDetail || !currentWorkspace) {
     return (
       <div className="flex justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2"
+          style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+        />
       </div>
     );
   }
@@ -82,13 +90,19 @@ export default function MembersTab() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className="text-[13px] text-slate-500">
+        <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           {workspaceDetail.members.length}명의 멤버
         </p>
         {canManage && (
           <button
             onClick={() => setShowInvite(true)}
-            className="rounded-lg bg-primary-600 px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700"
+            className="rounded-[8px] px-3.5 py-2 text-[13px] font-semibold transition-colors"
+            style={{
+              backgroundColor: inviteBtnHover ? 'var(--accent-hover)' : 'var(--accent)',
+              color: '#ffffff',
+            }}
+            onMouseEnter={() => setInviteBtnHover(true)}
+            onMouseLeave={() => setInviteBtnHover(false)}
           >
             멤버 초대
           </button>
@@ -101,14 +115,25 @@ export default function MembersTab() {
           const isOwner = member.role === 'OWNER';
           const canModify = canManage && !isMe && !isOwner;
           const isLoading = loadingMemberId === member.userId;
+          const isHovered = hoveredMemberId === member.userId;
+          const isRemoveHovered = hoveredRemoveId === member.userId;
 
           return (
             <div
               key={member.userId}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-50"
+              className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 transition-colors"
+              style={{ backgroundColor: isHovered ? 'var(--bg-hover)' : 'transparent' }}
+              onMouseEnter={() => setHoveredMemberId(member.userId)}
+              onMouseLeave={() => setHoveredMemberId(null)}
             >
               {/* Avatar */}
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[13px] font-medium text-slate-600">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-medium"
+                style={{
+                  backgroundColor: 'var(--bg-active)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 {member.profileImageUrl ? (
                   <img
                     src={member.profileImageUrl}
@@ -122,11 +147,21 @@ export default function MembersTab() {
 
               {/* Info */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-slate-900">
+                <p
+                  className="truncate text-[13px] font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {member.name}
-                  {isMe && <span className="ml-1 text-slate-400">(나)</span>}
+                  {isMe && (
+                    <span className="ml-1" style={{ color: 'var(--text-tertiary)' }}>(나)</span>
+                  )}
                 </p>
-                <p className="truncate text-[12px] text-slate-400">{member.email}</p>
+                <p
+                  className="truncate text-[12px]"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  {member.email}
+                </p>
               </div>
 
               {/* Role */}
@@ -135,13 +170,20 @@ export default function MembersTab() {
                   value={member.role}
                   onChange={(e) => handleRoleChange(member.userId, e.target.value as WorkspaceMemberRole)}
                   disabled={isLoading}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-[12px] font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                  className="rounded-[8px] px-2 py-1 text-[12px] font-medium focus:outline-none"
+                  style={{
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   <option value="ADMIN">관리자</option>
                   <option value="MEMBER">멤버</option>
                 </select>
               ) : (
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${roleBadge[member.role]}`}>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={roleBadgeStyles[member.role]}
+                >
                   {roleLabel[member.role]}
                 </span>
               )}
@@ -151,7 +193,13 @@ export default function MembersTab() {
                 <button
                   onClick={() => handleRemove(member)}
                   disabled={isLoading}
-                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                  className="rounded-[8px] p-1.5 transition-colors disabled:opacity-50"
+                  style={{
+                    color: isRemoveHovered ? 'var(--error)' : 'var(--text-tertiary)',
+                    backgroundColor: isRemoveHovered ? '#fef2f2' : 'transparent',
+                  }}
+                  onMouseEnter={() => setHoveredRemoveId(member.userId)}
+                  onMouseLeave={() => setHoveredRemoveId(null)}
                 >
                   {isLoading ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -168,31 +216,63 @@ export default function MembersTab() {
       {/* Pending invitations */}
       {canManage && pendingInvites.length > 0 && (
         <div className="mt-6">
-          <p className="text-[13px] font-medium text-slate-700">대기 중인 초대</p>
+          <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+            대기 중인 초대
+          </p>
           <div className="mt-2 space-y-1">
             {pendingInvites.map((inv) => {
               const isExpired = inv.status === 'EXPIRED' || new Date(inv.expiresAt) < new Date();
+              const isInvHovered = hoveredInviteId === inv.invitationId;
+              const isCancelHovered = hoveredCancelId === inv.invitationId;
               return (
                 <div
                   key={inv.invitationId}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${isExpired ? 'opacity-50' : 'hover:bg-slate-50'}`}
+                  className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 transition-colors"
+                  style={{
+                    opacity: isExpired ? 0.5 : 1,
+                    backgroundColor: !isExpired && isInvHovered ? 'var(--bg-hover)' : 'transparent',
+                  }}
+                  onMouseEnter={() => setHoveredInviteId(inv.invitationId)}
+                  onMouseLeave={() => setHoveredInviteId(null)}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: '#fffbeb' }}
+                  >
+                    <Clock className="h-3.5 w-3.5" style={{ color: 'var(--warning)' }} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-slate-900">{inv.email}</p>
-                    <p className="text-[11px] text-slate-400">
+                    <p
+                      className="truncate text-[13px] font-medium"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {inv.email}
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                       {isExpired ? '만료됨' : `${new Date(inv.expiresAt).toLocaleDateString('ko-KR')}까지`}
                     </p>
                   </div>
                   {isExpired ? (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-400">만료</span>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      만료
+                    </span>
                   ) : (
                     <button
                       onClick={() => handleCancelInvite(inv.invitationId)}
                       disabled={cancellingId === inv.invitationId}
-                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                      className="rounded-[8px] p-1.5 transition-colors disabled:opacity-50"
+                      style={{
+                        color: isCancelHovered ? 'var(--error)' : 'var(--text-tertiary)',
+                        backgroundColor: isCancelHovered ? '#fef2f2' : 'transparent',
+                      }}
+                      onMouseEnter={() => setHoveredCancelId(inv.invitationId)}
+                      onMouseLeave={() => setHoveredCancelId(null)}
                     >
                       {cancellingId === inv.invitationId ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

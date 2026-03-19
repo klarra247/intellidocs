@@ -13,10 +13,16 @@ function getPasswordStrength(pw: string): { label: string; color: string; width:
   if (/\d/.test(pw)) score++;
   if (/[@$!%*?&]/.test(pw)) score++;
 
-  if (score <= 1) return { label: '약함', color: 'bg-red-400', width: 'w-1/3' };
-  if (score <= 3) return { label: '보통', color: 'bg-amber-400', width: 'w-2/3' };
-  return { label: '강함', color: 'bg-emerald-400', width: 'w-full' };
+  if (score <= 1) return { label: '약함', color: 'var(--error)', width: '33%' };
+  if (score <= 3) return { label: '보통', color: 'var(--warning)', width: '66%' };
+  return { label: '강함', color: 'var(--success)', width: '100%' };
 }
+
+const inputStyle = {
+  border: '1px solid var(--border)',
+  color: 'var(--text-primary)',
+  background: 'var(--bg-primary)',
+};
 
 export default function RegisterForm() {
   const [name, setName] = useState('');
@@ -60,16 +66,28 @@ export default function RegisterForm() {
     }
   };
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.currentTarget.style.borderColor = passwordMismatch && e.currentTarget.id === 'confirm-password'
+      ? 'var(--error)' : 'var(--accent)';
+  };
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.currentTarget.style.borderColor = passwordMismatch && e.currentTarget.id === 'confirm-password'
+      ? 'var(--error)' : 'var(--border)';
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-600">
+        <div
+          className="rounded-[6px] px-3.5 py-2.5 text-[13px]"
+          style={{ background: '#fdf2f2', color: 'var(--error)' }}
+        >
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="name" className="block text-[13px] font-medium text-slate-700">
+        <label htmlFor="name" className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
           이름
         </label>
         <input
@@ -79,12 +97,15 @@ export default function RegisterForm() {
           onChange={(e) => setName(e.target.value)}
           placeholder="홍길동"
           autoComplete="name"
-          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+          className="w-full rounded-[6px] px-3 py-[10px] text-[14px] outline-none transition-colors"
+          style={inputStyle}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       </div>
 
       <div>
-        <label htmlFor="reg-email" className="block text-[13px] font-medium text-slate-700">
+        <label htmlFor="reg-email" className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
           이메일
         </label>
         <input
@@ -94,15 +115,18 @@ export default function RegisterForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
-          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+          className="w-full rounded-[6px] px-3 py-[10px] text-[14px] outline-none transition-colors"
+          style={inputStyle}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       </div>
 
       <div>
-        <label htmlFor="reg-password" className="block text-[13px] font-medium text-slate-700">
+        <label htmlFor="reg-password" className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
           비밀번호
         </label>
-        <div className="relative mt-1.5">
+        <div className="relative">
           <input
             id="reg-password"
             type={showPassword ? 'text' : 'password'}
@@ -110,28 +134,34 @@ export default function RegisterForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="영문, 숫자, 특수문자 포함 8자 이상"
             autoComplete="new-password"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+            className="w-full rounded-[6px] px-3 py-[10px] pr-10 text-[14px] outline-none transition-colors"
+            style={inputStyle}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
         {password && (
           <div className="mt-2 flex items-center gap-2">
-            <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-              <div className={`h-full rounded-full transition-all ${strength.color} ${strength.width}`} />
+            <div className="h-1 flex-1 rounded-full" style={{ background: 'var(--bg-hover)' }}>
+              <div className="h-full rounded-full transition-all" style={{ background: strength.color, width: strength.width }} />
             </div>
-            <span className="text-[11px] font-medium text-slate-500">{strength.label}</span>
+            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {strength.label}
+            </span>
           </div>
         )}
       </div>
 
       <div>
-        <label htmlFor="confirm-password" className="block text-[13px] font-medium text-slate-700">
+        <label htmlFor="confirm-password" className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
           비밀번호 확인
         </label>
         <input
@@ -141,21 +171,28 @@ export default function RegisterForm() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="비밀번호를 다시 입력해주세요"
           autoComplete="new-password"
-          className={`mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors ${
-            passwordMismatch
-              ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-              : 'border-slate-200 focus:border-primary-400 focus:ring-primary-100'
-          }`}
+          className="w-full rounded-[6px] px-3 py-[10px] text-[14px] outline-none transition-colors"
+          style={{
+            ...inputStyle,
+            borderColor: passwordMismatch ? 'var(--error)' : 'var(--border)',
+          }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
         {passwordMismatch && (
-          <p className="mt-1 text-[12px] text-red-500">비밀번호가 일치하지 않습니다</p>
+          <p className="mt-1 text-[12px]" style={{ color: 'var(--error)' }}>
+            비밀번호가 일치하지 않습니다
+          </p>
         )}
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-[6px] px-4 py-[10px] text-[14px] font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ background: 'var(--accent)' }}
+        onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--accent-hover)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--accent)')}
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         회원가입

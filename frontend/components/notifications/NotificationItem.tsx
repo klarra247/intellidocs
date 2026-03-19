@@ -69,35 +69,86 @@ export default function NotificationItem({ notification, variant = 'compact', on
   return (
     <button
       onClick={handleClick}
-      className={`flex w-full items-start gap-3 text-left transition-colors ${
-        isCompact ? 'px-3 py-2.5' : 'px-4 py-3'
-      } ${
-        notification.isRead
-          ? 'bg-white hover:bg-slate-50'
-          : 'bg-blue-50/50 hover:bg-blue-50'
-      }`}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        width: '100%',
+        alignItems: 'flex-start',
+        gap: '12px',
+        textAlign: 'left',
+        padding: isCompact ? '10px 12px' : '12px 16px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: '1px solid var(--border)',
+        cursor: 'pointer',
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      {/* Unread dot + type icon */}
-      <div className="flex shrink-0 flex-col items-center pt-1">
-        {!notification.isRead && (
-          <div className="mb-1 h-2 w-2 rounded-full bg-blue-500" />
-        )}
+      {/* Unread indicator bar */}
+      {!notification.isRead && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '4px',
+            background: 'var(--accent)',
+            borderRadius: '0 4px 4px 0',
+          }}
+        />
+      )}
+
+      {/* Type icon */}
+      <div style={{ flexShrink: 0, paddingTop: '2px' }}>
         <NotificationTypeIcon type={notification.type} size={isCompact ? 'sm' : 'md'} />
       </div>
 
       {/* Content */}
-      <div className="min-w-0 flex-1">
-        <p className={`font-medium text-slate-800 ${isCompact ? 'truncate text-[13px]' : 'text-sm'}`}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p
+          style={{
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            fontSize: isCompact ? '13px' : '14px',
+            margin: 0,
+            overflow: isCompact ? 'hidden' : undefined,
+            textOverflow: isCompact ? 'ellipsis' : undefined,
+            whiteSpace: isCompact ? 'nowrap' : undefined,
+          }}
+        >
           {notification.title}
         </p>
         {notification.message && (
-          <p className={`mt-0.5 text-slate-500 ${isCompact ? 'truncate text-[12px]' : 'text-[13px] line-clamp-2'}`}>
+          <p
+            style={{
+              marginTop: '2px',
+              color: 'var(--text-secondary)',
+              fontSize: isCompact ? '12px' : '13px',
+              margin: '2px 0 0 0',
+              overflow: isCompact ? 'hidden' : undefined,
+              textOverflow: isCompact ? 'ellipsis' : undefined,
+              whiteSpace: isCompact ? 'nowrap' : undefined,
+              display: !isCompact ? '-webkit-box' : undefined,
+              WebkitLineClamp: !isCompact ? 2 : undefined,
+              WebkitBoxOrient: !isCompact ? 'vertical' : undefined,
+            }}
+          >
             {notification.message}
           </p>
         )}
-        <p className={`mt-1 text-slate-400 ${isCompact ? 'text-[11px]' : 'text-[12px]'}`}>
+        <p
+          style={{
+            marginTop: '4px',
+            color: 'var(--text-tertiary)',
+            fontSize: isCompact ? '11px' : '12px',
+            margin: '4px 0 0 0',
+          }}
+        >
           {notification.senderName && (
-            <span className="font-medium text-slate-500">{notification.senderName} · </span>
+            <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{notification.senderName} · </span>
           )}
           {formatRelativeTime(notification.createdAt)}
         </p>

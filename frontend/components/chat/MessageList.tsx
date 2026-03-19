@@ -56,13 +56,16 @@ export default function MessageList() {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center animate-fade-in">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
-            <MessageSquare className="h-6 w-6 text-slate-400" />
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[8px]"
+            style={{ background: 'var(--bg-secondary)' }}
+          >
+            <MessageSquare className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
           </div>
-          <p className="text-[15px] font-medium text-slate-500">
+          <p className="text-[15px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             문서에 대해 질문하세요
           </p>
-          <p className="mt-1 text-[13px] text-slate-400">
+          <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
             업로드된 문서를 기반으로 AI가 답변합니다
           </p>
         </div>
@@ -99,9 +102,18 @@ export default function MessageList() {
         {/* Loading indicator — before any content or tools arrive */}
         {streaming && !streamingContent && activeTools.length === 0 && (
           <div className="flex justify-start animate-slide-up">
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-card">
-              <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
-              <span className="text-[13px] text-slate-500">AI가 생각 중...</span>
+            <div
+              className="inline-flex items-center gap-2 rounded-[8px] px-4 py-3"
+              style={{ border: '1px solid var(--border)' }}
+            >
+              <Loader2
+                className="h-4 w-4 animate-spin"
+                style={{ color: 'var(--accent)' }}
+                strokeWidth={1.6}
+              />
+              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                AI가 생각 중...
+              </span>
             </div>
           </div>
         )}

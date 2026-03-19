@@ -28,10 +28,21 @@ export default function ToolIndicator({ tools }: ToolIndicatorProps) {
         return (
           <div
             key={tool.tool}
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-700 animate-fade-in"
+            className="inline-flex items-center gap-2 rounded-[6px] px-3 py-2 text-[12px] animate-fade-in"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            {ToolIcon && <ToolIcon className="h-3.5 w-3.5" />}
+            <Loader2
+              className="h-3.5 w-3.5 animate-spin"
+              style={{ color: 'var(--accent)' }}
+              strokeWidth={1.6}
+            />
+            {ToolIcon && (
+              <ToolIcon
+                className="h-3.5 w-3.5"
+                style={{ color: 'var(--text-secondary)' }}
+                strokeWidth={1.6}
+              />
+            )}
             <span>{config?.label ?? tool.message ?? `${tool.tool} 실행 중...`}</span>
           </div>
         );

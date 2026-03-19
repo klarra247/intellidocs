@@ -28,7 +28,7 @@ const nodeTypes: NodeTypes = {
   document: DocumentNodeComponent,
 };
 
-const EDGE_STYLE = { stroke: '#94a3b8', strokeWidth: 1.5 };
+const EDGE_STYLE = { stroke: '#e9e9e7', strokeWidth: 1.5 };
 
 const METRIC_WIDTHS: Record<string, number> = { sm: 130, md: 160, lg: 190 };
 
@@ -140,14 +140,14 @@ export default function GraphCanvas({ className }: Props) {
         target: ge.target,
         type: 'default',
         style: {
-          stroke: EDGE_STYLE.stroke,
+          stroke: isDimmed ? EDGE_STYLE.stroke : '#787774',
           strokeWidth: isDimmed ? 1 : 1.5,
           opacity: isDimmed ? 0.15 : 1,
-          transition: 'opacity 0.15s, stroke-width 0.15s',
+          transition: 'opacity 0.15s, stroke-width 0.15s, stroke 0.15s',
         },
         label: ge.value || undefined,
-        labelStyle: { fontSize: 9, fill: '#64748b', opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.15s' },
-        labelBgStyle: { fill: '#f8fafc', stroke: '#e2e8f0', opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.15s' },
+        labelStyle: { fontSize: 9, fill: '#787774', opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.15s' },
+        labelBgStyle: { fill: '#f7f7f5', stroke: '#e9e9e7', opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.15s' },
         labelBgPadding: [3, 1] as [number, number],
       };
     });
@@ -212,7 +212,10 @@ export default function GraphCanvas({ className }: Props) {
   if (loading) {
     return (
       <div className={`flex items-center justify-center ${className}`}>
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2"
+          style={{ borderColor: '#e8f0fe', borderTopColor: '#2383e2' }}
+        />
       </div>
     );
   }
@@ -243,24 +246,25 @@ export default function GraphCanvas({ className }: Props) {
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e9e9e7" />
         <Controls
           showInteractive={false}
-          className="!bg-white !border-slate-200 !shadow-card [&>button]:!border-slate-200 [&>button]:!bg-white [&>button:hover]:!bg-slate-50"
+          style={{ background: 'var(--bg-primary, #ffffff)', border: '1px solid var(--border, #e9e9e7)' }}
+          className="[&>button]:!border-[#e9e9e7] [&>button]:!bg-white [&>button:hover]:!bg-[#f0f0ee]"
         />
         <MiniMap
           nodeStrokeWidth={3}
           nodeColor={(node) => {
             if (node.type === 'metric') {
               const change = (node.data as Record<string, unknown>)?.change as { direction?: string } | null;
-              if (change?.direction === 'increase') return '#86efac';
-              if (change?.direction === 'decrease') return '#fca5a5';
-              return '#e5e7eb';
+              if (change?.direction === 'increase') return '#4dab9a';
+              if (change?.direction === 'decrease') return '#e03e3e';
+              return '#e9e9e7';
             }
-            return '#e2e8f0'; // document
+            return '#e9e9e7'; // document
           }}
-          className="!bg-slate-50 !border-slate-200"
-          maskColor="rgba(0,0,0,0.05)"
+          style={{ background: '#f7f7f5', border: '1px solid #e9e9e7' }}
+          maskColor="rgba(0,0,0,0.04)"
         />
       </ReactFlow>
     </div>

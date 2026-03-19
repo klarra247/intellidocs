@@ -16,23 +16,36 @@ export default function SessionItem({ session, isActive, onClick, onShare, onUns
   return (
     <div
       onClick={onClick}
-      className={`group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 transition-colors ${
-        isActive
-          ? 'bg-primary-50 text-primary-700'
-          : 'text-slate-600 hover:bg-slate-50'
-      }`}
+      className="group flex cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2.5 transition-colors"
+      style={{
+        background: isActive ? 'var(--bg-active)' : 'transparent',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)';
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) e.currentTarget.style.background = 'transparent';
+      }}
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {session.isShared && (
-            <Share2 className="h-3 w-3 flex-shrink-0 text-primary-500" />
+            <Share2
+              className="h-3 w-3 flex-shrink-0"
+              strokeWidth={1.6}
+              style={{ color: 'var(--text-tertiary)' }}
+            />
           )}
-          <p className="truncate text-[13px] font-medium">
+          <p
+            className="truncate text-[13px]"
+            style={{ fontWeight: isActive ? 500 : 400 }}
+          >
             {session.title || '새 채팅'}
           </p>
         </div>
         {!session.isOwner && session.creatorName && (
-          <p className="mt-0.5 truncate text-[11px] text-slate-400">
+          <p className="mt-0.5 truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             {session.creatorName}
           </p>
         )}
@@ -40,9 +53,11 @@ export default function SessionItem({ session, isActive, onClick, onShare, onUns
 
       <div className="flex items-center gap-1">
         {session.unreadCount > 0 && (
-          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-500 px-1.5 text-[10px] font-semibold text-white">
-            {session.unreadCount > 99 ? '99+' : session.unreadCount}
-          </span>
+          <span
+            className="inline-flex h-[6px] w-[6px] flex-shrink-0 rounded-full"
+            style={{ background: 'var(--accent)' }}
+            title={`${session.unreadCount}개 읽지 않음`}
+          />
         )}
         <SessionContextMenu
           session={session}

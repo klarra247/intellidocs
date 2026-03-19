@@ -30,27 +30,43 @@ export default function SessionContextMenu({ session, onShare, onUnshare }: Sess
     <div ref={menuRef} className="relative">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="flex h-6 w-6 items-center justify-center rounded text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100"
+        className="flex h-6 w-6 items-center justify-center rounded-[4px] opacity-0 transition-opacity group-hover:opacity-100"
+        style={{ color: 'var(--text-tertiary)' }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
-        <MoreVertical className="h-3.5 w-3.5" />
+        <MoreVertical className="h-3.5 w-3.5" strokeWidth={1.6} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-7 z-50 w-36 rounded-lg border border-slate-200 bg-white py-1 shadow-lg animate-scale-in">
+        <div
+          className="absolute right-0 top-7 z-50 w-36 rounded-[6px] py-1 animate-scale-in"
+          style={{
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
           {session.isShared ? (
             <button
               onClick={(e) => { e.stopPropagation(); onUnshare(); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-slate-600 hover:bg-slate-50"
+              className="flex w-full items-center gap-2 px-3 py-2 text-[12px] transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <Lock className="h-3.5 w-3.5" />
+              <Lock className="h-3.5 w-3.5" strokeWidth={1.6} />
               공유 해제
             </button>
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); onShare(); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-slate-600 hover:bg-slate-50"
+              className="flex w-full items-center gap-2 px-3 py-2 text-[12px] transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <Share2 className="h-3.5 w-3.5" />
+              <Share2 className="h-3.5 w-3.5" strokeWidth={1.6} />
               공유하기
             </button>
           )}

@@ -2,30 +2,43 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, MessageSquare, FolderOpen, FileBarChart, Share2 } from 'lucide-react';
+import {
+  FileText,
+  MessageSquare,
+  Share2,
+  Bell,
+  Settings,
+} from 'lucide-react';
 import WorkspaceSwitcher from '@/components/workspace/WorkspaceSwitcher';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 const navItems = [
-  { href: '/workspace', label: '문서 관리', icon: FolderOpen },
+  { href: '/workspace', label: '문서', icon: FileText },
   { href: '/workspace/chat', label: 'AI 채팅', icon: MessageSquare },
-  { href: '/workspace/reports', label: '리포트', icon: FileBarChart },
-  { href: '/workspace/knowledge-graph', label: '지식 그래프', icon: Share2 },
+  { href: '/workspace/knowledge-graph', label: 'Knowledge Graph', icon: Share2 },
+  { href: '/workspace/notifications', label: '알림', icon: Bell },
+  { href: '/workspace/settings', label: '설정', icon: Settings, teamOnly: true },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
+  const isTeam = currentWorkspace?.type === 'TEAM';
 
   return (
-    <aside className="flex w-[220px] flex-col border-r border-slate-200/80 bg-white">
+    <aside
+      className="flex w-[240px] flex-col"
+      style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
+    >
       {/* Workspace Switcher */}
-      <div className="border-b border-slate-100 px-2.5 py-2.5">
+      <div className="px-3 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <WorkspaceSwitcher />
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 pt-2">
         <div className="space-y-0.5">
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {navItems.filter((item) => !('teamOnly' in item && item.teamOnly) || isTeam).map(({ href, label, icon: Icon }) => {
             const active =
               href === '/workspace'
                 ? pathname === '/workspace'
@@ -35,19 +48,23 @@ export default function Sidebar() {
               <Link
                 key={href}
                 href={href}
-                className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
-                  active
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                className="group flex items-center gap-2.5 rounded-[4px] px-2 py-1.5 text-[13px] transition-colors"
+                style={{
+                  background: active ? 'var(--bg-active)' : 'transparent',
+                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: active ? 500 : 400,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = 'var(--bg-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <Icon
-                  className={`h-[15px] w-[15px] transition-colors ${
-                    active
-                      ? 'text-primary-600'
-                      : 'text-slate-400 group-hover:text-slate-600'
-                  }`}
-                  strokeWidth={2}
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                  strokeWidth={active ? 2.2 : 1.8}
                 />
                 {label}
               </Link>
@@ -57,15 +74,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-100 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-5 w-5 items-center justify-center rounded bg-primary-600">
-            <FileText className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
-          </div>
-          <p className="text-[11px] font-medium text-slate-400">
-            IntelliDocs
-          </p>
-        </div>
+      <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <p className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+          IntelliDocs
+        </p>
       </div>
     </aside>
   );

@@ -24,33 +24,61 @@ export default function MetricDetailPanel() {
     );
 
     return (
-      <div className="w-[320px] border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h3 className="text-sm font-bold text-slate-800">{selectedNode.name}</h3>
-          <button onClick={close} className="rounded p-1 hover:bg-slate-100">
-            <X className="h-4 w-4 text-slate-400" />
+      <div
+        style={{
+          width: 320,
+          borderLeft: '1px solid #e9e9e7',
+          background: '#ffffff',
+          overflowY: 'auto',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #e9e9e7',
+            padding: '12px 16px',
+          }}
+        >
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#37352f' }}>{selectedNode.name}</h3>
+          <button
+            onClick={close}
+            style={{ borderRadius: 4, padding: 4, cursor: 'pointer', border: 'none', background: 'transparent' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0ee')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <X style={{ height: 16, width: 16, color: '#b4b4b0' }} />
           </button>
         </div>
 
         {/* Change summary */}
         {change && (
-          <div className={`mx-4 mt-3 rounded-lg px-3 py-2 text-center ${
-            change.direction === 'increase' ? 'bg-green-50' :
-            change.direction === 'decrease' ? 'bg-red-50' : 'bg-gray-50'
-          }`}>
+          <div
+            style={{
+              margin: '12px 16px 0',
+              borderRadius: 8,
+              padding: '8px 12px',
+              textAlign: 'center',
+              background: '#f7f7f5',
+            }}
+          >
             <div className="flex items-center justify-center gap-1.5">
               {change.direction === 'increase' ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp style={{ height: 16, width: 16, color: '#4dab9a' }} />
               ) : change.direction === 'decrease' ? (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown style={{ height: 16, width: 16, color: '#e03e3e' }} />
               ) : null}
-              <span className={`text-sm font-bold ${
-                change.direction === 'increase' ? 'text-green-700' :
-                change.direction === 'decrease' ? 'text-red-700' : 'text-slate-700'
-              }`}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: change.direction === 'increase' ? '#4dab9a' : change.direction === 'decrease' ? '#e03e3e' : '#37352f',
+                }}
+              >
                 {change.from} → {change.to}
                 {change.changePercent != null && (
-                  <span className="ml-1 text-xs font-medium">
+                  <span style={{ marginLeft: 4, fontSize: 12, fontWeight: 500 }}>
                     ({change.changePercent > 0 ? '+' : ''}{change.changePercent}%)
                   </span>
                 )}
@@ -60,15 +88,15 @@ export default function MetricDetailPanel() {
         )}
 
         {/* Occurrences table */}
-        <div className="px-4 mt-3">
-          <p className="text-[11px] font-medium text-slate-500 mb-2">문서별 값</p>
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
-            <table className="w-full text-xs">
+        <div style={{ padding: '12px 16px 0' }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: '#787774', marginBottom: 8 }}>문서별 값</p>
+          <div style={{ borderRadius: 8, border: '1px solid #e9e9e7', overflow: 'hidden' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <thead>
-                <tr className="bg-slate-50 text-slate-500">
-                  <th className="px-3 py-1.5 text-left font-medium">문서</th>
-                  <th className="px-3 py-1.5 text-left font-medium">기간</th>
-                  <th className="px-3 py-1.5 text-right font-medium">값</th>
+                <tr style={{ background: '#f7f7f5' }}>
+                  <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 500, color: '#787774' }}>문서</th>
+                  <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 500, color: '#787774' }}>기간</th>
+                  <th style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 500, color: '#787774' }}>값</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,9 +105,14 @@ export default function MetricDetailPanel() {
                   return (
                     <tr
                       key={i}
-                      className={`border-t border-slate-100 cursor-pointer transition-opacity ${
-                        isVisible ? 'hover:bg-slate-50' : 'opacity-40'
-                      }`}
+                      style={{
+                        borderTop: '1px solid #e9e9e7',
+                        cursor: 'pointer',
+                        opacity: isVisible ? 1 : 0.4,
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={(e) => { if (isVisible) (e.currentTarget as HTMLTableRowElement).style.background = '#f0f0ee'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                       onClick={() => {
                         if (occ.documentId) {
                           const highlight = occ.pageNumber
@@ -89,14 +122,14 @@ export default function MetricDetailPanel() {
                         }
                       }}
                     >
-                      <td className={`px-3 py-1.5 truncate max-w-[120px] ${isVisible ? 'text-slate-700' : 'text-slate-400'}`}>
+                      <td style={{ padding: '6px 12px', maxWidth: 120, color: isVisible ? '#37352f' : '#b4b4b0' }}>
                         <div className="flex items-center gap-1">
-                          <FileText className={`h-3 w-3 flex-shrink-0 ${isVisible ? 'text-slate-400' : 'text-slate-300'}`} />
+                          <FileText style={{ height: 12, width: 12, flexShrink: 0, color: isVisible ? '#b4b4b0' : '#d4d4d0' }} />
                           <span className="truncate">{occ.documentName || '?'}</span>
                         </div>
                       </td>
-                      <td className={`px-3 py-1.5 ${isVisible ? 'text-slate-500' : 'text-slate-300'}`}>{occ.period || '-'}</td>
-                      <td className={`px-3 py-1.5 text-right font-medium ${isVisible ? 'text-slate-800' : 'text-slate-400'}`}>
+                      <td style={{ padding: '6px 12px', color: isVisible ? '#787774' : '#b4b4b0' }}>{occ.period || '-'}</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 500, color: isVisible ? '#37352f' : '#b4b4b0' }}>
                         {occ.value || '-'}
                       </td>
                     </tr>
@@ -107,7 +140,7 @@ export default function MetricDetailPanel() {
           </div>
         </div>
 
-        <div className="h-4" />
+        <div style={{ height: 16 }} />
       </div>
     );
   }
@@ -133,67 +166,125 @@ export default function MetricDetailPanel() {
     const realDocId = docId.replace(/^doc_/, '');
 
     return (
-      <div className="w-[320px] border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <div
+        style={{
+          width: 320,
+          borderLeft: '1px solid #e9e9e7',
+          background: '#ffffff',
+          overflowY: 'auto',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #e9e9e7',
+            padding: '12px 16px',
+          }}
+        >
           <div className="flex items-center gap-2 min-w-0">
-            <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <h3 className="text-sm font-bold text-slate-800 truncate">{selectedNode.name}</h3>
+            <FileText style={{ height: 16, width: 16, color: '#b4b4b0', flexShrink: 0 }} />
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#37352f' }} className="truncate">{selectedNode.name}</h3>
           </div>
-          <button onClick={close} className="rounded p-1 hover:bg-slate-100">
-            <X className="h-4 w-4 text-slate-400" />
+          <button
+            onClick={close}
+            style={{ borderRadius: 4, padding: 4, cursor: 'pointer', border: 'none', background: 'transparent' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0ee')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <X style={{ height: 16, width: 16, color: '#b4b4b0' }} />
           </button>
         </div>
 
         {/* File info */}
         <div className="px-4 mt-3 flex items-center gap-2">
           {selectedNode.fileType && (
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+            <span
+              style={{
+                borderRadius: 4,
+                background: '#f7f7f5',
+                padding: '2px 6px',
+                fontSize: 10,
+                fontWeight: 500,
+                color: '#787774',
+                border: '1px solid #e9e9e7',
+              }}
+            >
               {selectedNode.fileType}
             </span>
           )}
-          <span className="text-[11px] text-slate-400">
+          <span style={{ fontSize: 11, color: '#b4b4b0' }}>
             지표 {connectedMetrics.length}개
           </span>
         </div>
 
         {/* Metric list */}
-        <div className="px-4 mt-3">
-          <p className="text-[11px] font-medium text-slate-500 mb-2">추출된 지표</p>
+        <div style={{ padding: '12px 16px 0' }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: '#787774', marginBottom: 8 }}>추출된 지표</p>
           <div className="space-y-1.5">
             {metricValues.map((mv, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50 cursor-pointer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderRadius: 8,
+                  border: '1px solid #e9e9e7',
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0ee')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 onClick={() => {
                   const metricNode = connectedMetrics[i];
                   if (metricNode) useGraphStore.getState().selectNode(metricNode);
                 }}
               >
                 <div>
-                  <p className="text-xs font-medium text-slate-700">{mv.name}</p>
-                  <p className="text-[10px] text-slate-400">{mv.period}</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: '#37352f' }}>{mv.name}</p>
+                  <p style={{ fontSize: 10, color: '#b4b4b0' }}>{mv.period}</p>
                 </div>
-                <span className="text-xs font-bold text-slate-800">{mv.value}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#37352f' }}>{mv.value}</span>
               </div>
             ))}
             {metricValues.length === 0 && (
-              <p className="text-xs text-slate-400 py-2">추출된 지표 없음</p>
+              <p style={{ fontSize: 12, color: '#b4b4b0', padding: '8px 0' }}>추출된 지표 없음</p>
             )}
           </div>
         </div>
 
         {/* Open document button */}
-        <div className="px-4 mt-4">
+        <div style={{ padding: '16px 16px 0' }}>
           <button
             onClick={() => openViewer(realDocId)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            style={{
+              display: 'flex',
+              width: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              borderRadius: 8,
+              border: '1px solid #e9e9e7',
+              padding: '8px 12px',
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#787774',
+              background: 'transparent',
+              cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0ee')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink style={{ height: 14, width: 14 }} />
             문서 열기
           </button>
         </div>
 
-        <div className="h-4" />
+        <div style={{ height: 16 }} />
       </div>
     );
   }

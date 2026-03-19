@@ -7,73 +7,81 @@ interface UploadProgressProps {
   entry: UploadingFile;
 }
 
-const statusConfig = {
-  uploading: {
-    barColor: 'bg-primary-500',
-    textColor: 'text-slate-600',
-    icon: Loader2,
-    iconClass: 'text-primary-500 animate-spin',
-  },
-  processing: {
-    barColor: 'bg-primary-500 animate-progress-pulse',
-    textColor: 'text-slate-600',
-    icon: Loader2,
-    iconClass: 'text-primary-500 animate-spin',
-  },
-  done: {
-    barColor: 'bg-emerald-500',
-    textColor: 'text-emerald-600',
-    icon: CheckCircle2,
-    iconClass: 'text-emerald-500 animate-check-pop',
-  },
-  error: {
-    barColor: 'bg-red-500',
-    textColor: 'text-red-600',
-    icon: XCircle,
-    iconClass: 'text-red-500',
-  },
-};
-
 export default function UploadProgress({ entry }: UploadProgressProps) {
-  const config = statusConfig[entry.status];
-  const Icon = config.icon;
+  const isDone = entry.status === 'done';
+  const isError = entry.status === 'error';
 
   return (
-    <div className="animate-slide-up rounded-lg border border-slate-150 bg-white px-4 py-3 shadow-card">
+    <div
+      className="animate-fade-in rounded-[6px] px-4 py-3"
+      style={{
+        border: '1px solid var(--border)',
+        background: 'var(--bg-primary)',
+      }}
+    >
       <div className="flex items-center gap-3">
         {/* File icon */}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50">
-          <FileText className="h-4 w-4 text-slate-400" strokeWidth={2} />
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px]"
+          style={{ background: 'var(--bg-secondary)' }}
+        >
+          <FileText className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.8} />
         </div>
 
         {/* Info */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <p className="truncate text-[13px] font-medium text-slate-800">
+            <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
               {entry.filename}
             </p>
             <div className="ml-2 flex items-center gap-1.5">
-              <Icon className={`h-4 w-4 ${config.iconClass}`} strokeWidth={2} />
-              <span className={`text-xs font-medium ${config.textColor}`}>
-                {entry.status === 'done'
-                  ? '완료'
-                  : entry.status === 'error'
-                    ? '실패'
-                    : `${entry.progress}%`}
+              {isDone ? (
+                <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--success)' }} strokeWidth={2} />
+              ) : isError ? (
+                <XCircle className="h-4 w-4" style={{ color: 'var(--error)' }} strokeWidth={2} />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent)' }} strokeWidth={2} />
+              )}
+              <span
+                className="text-[12px] font-medium"
+                style={{
+                  color: isDone
+                    ? 'var(--success)'
+                    : isError
+                      ? 'var(--error)'
+                      : 'var(--text-secondary)',
+                }}
+              >
+                {isDone ? '완료' : isError ? '실패' : `${entry.progress}%`}
               </span>
             </div>
           </div>
 
           {/* Progress bar */}
-          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="mt-1.5 h-1 overflow-hidden rounded-full"
+            style={{ background: 'var(--bg-active)' }}
+          >
             <div
-              className={`h-full rounded-full transition-all duration-500 ease-out ${config.barColor}`}
-              style={{ width: `${entry.status === 'error' ? 100 : entry.progress}%` }}
+              className="h-full rounded-full transition-all duration-500 ease-out"
+              style={{
+                width: `${isError ? 100 : entry.progress}%`,
+                background: isDone
+                  ? 'var(--success)'
+                  : isError
+                    ? 'var(--error)'
+                    : 'var(--accent)',
+              }}
             />
           </div>
 
           {/* Status message */}
-          <p className={`mt-1 text-[11px] ${config.textColor}`}>
+          <p
+            className="mt-1 text-[11px]"
+            style={{
+              color: isError ? 'var(--error)' : 'var(--text-tertiary)',
+            }}
+          >
             {entry.message}
           </p>
         </div>

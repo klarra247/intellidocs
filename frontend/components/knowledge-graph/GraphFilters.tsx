@@ -73,22 +73,63 @@ export default function GraphFilters() {
   const indexedDocs = documents.filter((d) => d.status === 'INDEXED');
 
   return (
-    <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2.5">
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        borderBottom: '1px solid #e9e9e7',
+        background: '#ffffff',
+        padding: '10px 16px',
+      }}
+    >
       {/* Search */}
       <div className="relative" ref={resultsRef}>
-        <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-          <Search className="h-3.5 w-3.5 text-slate-400" />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 8,
+            border: '1px solid #e9e9e7',
+            background: '#f7f7f5',
+            padding: '6px 10px',
+          }}
+        >
+          <Search style={{ height: 14, width: 14, color: '#b4b4b0' }} />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder="지표 검색..."
-            className="w-[180px] bg-transparent text-xs text-slate-700 placeholder:text-slate-400 outline-none"
+            style={{
+              width: 180,
+              background: 'transparent',
+              fontSize: 12,
+              color: '#37352f',
+              outline: 'none',
+              border: 'none',
+            }}
+            className="placeholder:text-[#b4b4b0]"
           />
         </div>
         {showResults && searchResults.length > 0 && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-[280px] rounded-lg border border-slate-200 bg-white py-1 shadow-modal">
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '100%',
+              zIndex: 50,
+              marginTop: 4,
+              width: 280,
+              borderRadius: 8,
+              border: '1px solid #e9e9e7',
+              background: '#ffffff',
+              padding: '4px 0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}
+          >
             {searchResults.slice(0, 8).map((node) => (
               <button
                 key={node.id}
@@ -97,11 +138,23 @@ export default function GraphFilters() {
                   setShowResults(false);
                   focusNode(node.id);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 12px',
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f7f5')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <span className="text-xs font-medium text-slate-700 truncate">{node.name}</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#37352f' }} className="truncate">{node.name}</span>
                 {node.occurrences && node.occurrences.length > 0 && (
-                  <span className="ml-auto text-[10px] text-slate-400">
+                  <span style={{ marginLeft: 'auto', fontSize: 10, color: '#b4b4b0' }}>
                     {node.occurrences.length}개 문서
                   </span>
                 )}
@@ -114,18 +167,55 @@ export default function GraphFilters() {
       {/* Change Direction Filter */}
       <div className="flex items-center gap-1 ml-2">
         {[
-          { key: null, label: '전체', activeColor: '' },
-          { key: 'increase', label: '증가 ▲', activeColor: 'border-green-400 bg-green-50 text-green-700' },
-          { key: 'decrease', label: '감소 ▼', activeColor: 'border-red-400 bg-red-50 text-red-700' },
-        ].map(({ key, label, activeColor }) => {
+          { key: null, label: '전체' },
+          { key: 'increase', label: '증가 ▲' },
+          { key: 'decrease', label: '감소 ▼' },
+        ].map(({ key, label }) => {
           const active = filters.changeDirection === key;
+
+          let activeStyle: React.CSSProperties = {};
+          if (active) {
+            if (key === null) {
+              activeStyle = {
+                background: '#ebebea',
+                border: '1px solid #d4d4d0',
+                color: '#37352f',
+              };
+            } else if (key === 'increase') {
+              activeStyle = {
+                background: '#f7f7f5',
+                borderLeft: '3px solid #4dab9a',
+                border: '1px solid #e9e9e7',
+                borderLeftWidth: 3,
+                color: '#37352f',
+              };
+            } else if (key === 'decrease') {
+              activeStyle = {
+                background: '#f7f7f5',
+                borderLeft: '3px solid #e03e3e',
+                border: '1px solid #e9e9e7',
+                borderLeftWidth: 3,
+                color: '#37352f',
+              };
+            }
+          }
+
           return (
             <button
               key={label}
               onClick={() => setFilter({ changeDirection: key })}
-              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all ${
-                active ? (activeColor || 'border-primary-400 bg-primary-50 text-primary-700') : 'border-slate-200 bg-white text-slate-400'
-              }`}
+              style={{
+                borderRadius: 20,
+                border: '1px solid #e9e9e7',
+                padding: '2px 10px',
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                background: active ? undefined : '#ffffff',
+                color: active ? undefined : '#b4b4b0',
+                ...activeStyle,
+              }}
             >
               {label}
             </button>
@@ -134,12 +224,23 @@ export default function GraphFilters() {
       </div>
 
       {/* Multi-Doc Only Checkbox */}
-      <label className="flex items-center gap-1.5 ml-2 text-[11px] text-slate-500 cursor-pointer select-none">
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginLeft: 8,
+          fontSize: 11,
+          color: '#787774',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
         <input
           type="checkbox"
           checked={filters.multiDocOnly}
           onChange={(e) => setFilter({ multiDocOnly: e.target.checked })}
-          className="h-3.5 w-3.5 rounded border-slate-300 text-primary-600"
+          style={{ height: 14, width: 14, borderRadius: 4, border: '1px solid #d4d4d0' }}
         />
         2개+ 문서
       </label>
@@ -149,45 +250,102 @@ export default function GraphFilters() {
         <div className="relative ml-1" ref={docFilterRef}>
           <button
             onClick={() => setShowDocFilter(!showDocFilter)}
-            className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all ${
-              filters.documentIds.length > 0
-                ? 'border-primary-300 bg-primary-50 text-primary-700'
-                : 'border-slate-200 text-slate-500 hover:bg-slate-50'
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              borderRadius: 8,
+              border: filters.documentIds.length > 0 ? '1px solid #d4d4d0' : '1px solid #e9e9e7',
+              padding: '4px 10px',
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              background: filters.documentIds.length > 0 ? '#f7f7f5' : '#ffffff',
+              color: filters.documentIds.length > 0 ? '#37352f' : '#787774',
+            }}
+            onMouseEnter={(e) => { if (filters.documentIds.length === 0) e.currentTarget.style.background = '#f7f7f5'; }}
+            onMouseLeave={(e) => { if (filters.documentIds.length === 0) e.currentTarget.style.background = '#ffffff'; }}
           >
-            <FileText className="h-3 w-3" />
+            <FileText style={{ height: 12, width: 12 }} />
             문서{filters.documentIds.length > 0 && ` (${filters.documentIds.length})`}
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown style={{ height: 12, width: 12 }} />
           </button>
           {showDocFilter && (
-            <div className="absolute left-0 top-full z-50 mt-1 w-[260px] rounded-lg border border-slate-200 bg-white py-1 shadow-modal">
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100">
-                <span className="text-[11px] font-medium text-slate-500">문서 필터</span>
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: '100%',
+                zIndex: 50,
+                marginTop: 4,
+                width: 260,
+                borderRadius: 8,
+                border: '1px solid #e9e9e7',
+                background: '#ffffff',
+                padding: '4px 0',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 12px',
+                  borderBottom: '1px solid #e9e9e7',
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 500, color: '#787774' }}>문서 필터</span>
                 {filters.documentIds.length > 0 && (
                   <button
                     onClick={() => setFilter({ documentIds: [] })}
-                    className="text-[11px] text-primary-600 hover:text-primary-700"
+                    style={{ fontSize: 11, color: '#2383e2', background: 'none', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#1a73d1')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#2383e2')}
                   >
                     전체 선택
                   </button>
                 )}
               </div>
-              <div className="max-h-[200px] overflow-y-auto py-1">
+              <div style={{ maxHeight: 200, overflowY: 'auto', padding: '4px 0' }}>
                 {indexedDocs.map((doc) => {
                   const selected = filters.documentIds.length === 0 || filters.documentIds.includes(doc.id);
                   return (
                     <button
                       key={doc.id}
                       onClick={() => toggleDocumentId(doc.id)}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                      style={{
+                        display: 'flex',
+                        width: '100%',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 12px',
+                        textAlign: 'left',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f7f5')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <div className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
-                        selected ? 'border-primary-500 bg-primary-500' : 'border-slate-300'
-                      }`}>
-                        {selected && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+                      <div
+                        style={{
+                          display: 'flex',
+                          height: 14,
+                          width: 14,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 4,
+                          border: selected ? '1px solid #2383e2' : '1px solid #d4d4d0',
+                          background: selected ? '#2383e2' : 'transparent',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {selected && <Check style={{ height: 10, width: 10, color: '#ffffff' }} strokeWidth={3} />}
                       </div>
-                      <span className="text-xs text-slate-700 truncate">{doc.originalFilename}</span>
-                      <span className="ml-auto text-[10px] text-slate-400">{doc.fileType}</span>
+                      <span style={{ fontSize: 12, color: '#37352f' }} className="truncate">{doc.originalFilename}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 10, color: '#b4b4b0' }}>{doc.fileType}</span>
                     </button>
                   );
                 })}
@@ -198,13 +356,29 @@ export default function GraphFilters() {
       )}
 
       {/* Rebuild */}
-      <div className="ml-auto">
+      <div style={{ marginLeft: 'auto' }}>
         <button
           onClick={rebuildGraph}
           disabled={rebuilding}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 8,
+            border: '1px solid #e9e9e7',
+            padding: '6px 12px',
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#787774',
+            background: 'transparent',
+            cursor: rebuilding ? 'not-allowed' : 'pointer',
+            opacity: rebuilding ? 0.5 : 1,
+            transition: 'background 0.1s',
+          }}
+          onMouseEnter={(e) => { if (!rebuilding) e.currentTarget.style.background = '#f0f0ee'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${rebuilding ? 'animate-spin' : ''}`} />
+          <RefreshCw style={{ height: 14, width: 14 }} className={rebuilding ? 'animate-spin' : ''} />
           {rebuilding ? '재구축 중...' : '재구축'}
         </button>
       </div>

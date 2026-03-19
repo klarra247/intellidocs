@@ -43,27 +43,84 @@ export default function CreateWorkspaceModal({ onClose }: CreateWorkspaceModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="modal-backdrop absolute inset-0 bg-slate-900/30 animate-fade-in" onClick={onClose} />
-      <div className="animate-scale-in relative mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-modal">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Backdrop */}
+      <div
+        className="animate-fade-in"
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+        }}
+      />
+
+      {/* Modal */}
+      <div
+        className="animate-scale-in"
+        style={{
+          position: 'relative',
+          margin: '0 16px',
+          width: '100%',
+          maxWidth: '448px',
+          borderRadius: '12px',
+          background: 'var(--bg-primary)',
+          padding: '24px',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          style={{
+            position: 'absolute',
+            right: '12px',
+            top: '12px',
+            borderRadius: '4px',
+            padding: '6px',
+            color: 'var(--text-tertiary)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <X className="h-4 w-4" />
         </button>
 
-        <h3 className="text-[15px] font-semibold text-slate-900">새 워크스페이스 만들기</h3>
-        <p className="mt-1 text-[13px] text-slate-500">팀원들과 문서를 공유할 워크스페이스를 만드세요.</p>
+        <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+          새 워크스페이스 만들기
+        </h3>
+        <p style={{ marginTop: '4px', fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+          팀원들과 문서를 공유할 워크스페이스를 만드세요.
+        </p>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
+            <div
+              style={{
+                borderRadius: '6px',
+                background: '#fdf2f2',
+                padding: '10px 16px',
+                fontSize: '13px',
+                color: 'var(--error)',
+              }}
+            >
+              {error}
+            </div>
           )}
 
           <div>
-            <label htmlFor="ws-name" className="block text-[13px] font-medium text-slate-700">
-              이름 <span className="text-red-500">*</span>
+            <label
+              htmlFor="ws-name"
+              style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}
+            >
+              이름 <span style={{ color: 'var(--error)' }}>*</span>
             </label>
             <input
               id="ws-name"
@@ -71,13 +128,29 @@ export default function CreateWorkspaceModal({ onClose }: CreateWorkspaceModalPr
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="프로젝트 워크스페이스"
-              className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
               autoFocus
+              style={{
+                width: '100%',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-primary)',
+                padding: '8px 14px',
+                fontSize: '14px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                transition: 'border-color 0.15s',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
             />
           </div>
 
           <div>
-            <label htmlFor="ws-desc" className="block text-[13px] font-medium text-slate-700">
+            <label
+              htmlFor="ws-desc"
+              style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}
+            >
               설명
             </label>
             <input
@@ -86,22 +159,64 @@ export default function CreateWorkspaceModal({ onClose }: CreateWorkspaceModalPr
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="워크스페이스에 대한 간단한 설명 (선택)"
-              className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+              style={{
+                width: '100%',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-primary)',
+                padding: '8px 14px',
+                fontSize: '14px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                transition: 'border-color 0.15s',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
             />
           </div>
 
-          <div className="flex gap-2.5 pt-1">
+          <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              style={{
+                flex: 1,
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               취소
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                borderRadius: '6px',
+                border: 'none',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#ffffff',
+                background: 'var(--accent)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.5 : 1,
+                transition: 'opacity 0.15s',
+              }}
             >
               {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               만들기

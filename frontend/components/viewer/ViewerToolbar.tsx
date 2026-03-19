@@ -78,10 +78,17 @@ export default function ViewerToolbar() {
   }, [scale, setScale]);
 
   return (
-    <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
+    <div
+      className="flex items-center gap-2 px-4 py-2"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
       {/* Filename */}
       <span
-        className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-800"
+        className="min-w-0 flex-1 truncate text-[13px] font-semibold"
+        style={{ color: 'var(--text-primary)' }}
         title={filename}
       >
         {filename}
@@ -94,55 +101,100 @@ export default function ViewerToolbar() {
           <button
             onClick={handlePrevPage}
             disabled={currentPage <= 1}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="p-1 transition-colors disabled:opacity-30"
+            style={{ borderRadius: '4px', color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              }
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-0.5 text-[12px] text-slate-600">
+          <div
+            className="flex items-center gap-0.5 text-[12px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <input
               type="text"
               defaultValue={currentPage}
               key={currentPage}
               onKeyDown={handlePageInput}
-              className="w-8 rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-center text-[12px] text-slate-700 focus:border-primary-400 focus:outline-none"
+              className="w-8 px-1 py-0.5 text-center text-[12px] focus:outline-none"
+              style={{
+                borderRadius: '4px',
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
               aria-label="Current page"
             />
-            <span className="text-slate-400">/</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>/</span>
             <span>{totalPages}</span>
           </div>
 
           <button
             onClick={handleNextPage}
             disabled={currentPage >= totalPages}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="p-1 transition-colors disabled:opacity-30"
+            style={{ borderRadius: '4px', color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              }
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
 
           {/* Divider */}
-          <div className="mx-1 h-4 w-px bg-slate-200" />
+          <div
+            className="mx-1 h-4 w-px"
+            style={{ backgroundColor: 'var(--border)' }}
+          />
 
           {/* Zoom controls */}
           <button
             onClick={handleZoomOut}
             disabled={scale <= MIN_SCALE}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="p-1 transition-colors disabled:opacity-30"
+            style={{ borderRadius: '4px', color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              }
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Zoom out"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
 
-          <span className="min-w-[40px] text-center text-[12px] font-medium text-slate-600">
+          <span
+            className="min-w-[40px] text-center text-[12px] font-medium"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {Math.round(scale * 100)}%
           </span>
 
           <button
             onClick={handleZoomIn}
             disabled={scale >= MAX_SCALE}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="p-1 transition-colors disabled:opacity-30"
+            style={{ borderRadius: '4px', color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              }
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Zoom in"
           >
             <ZoomIn className="h-4 w-4" />
@@ -157,11 +209,22 @@ export default function ViewerToolbar() {
             <button
               key={idx}
               onClick={() => setActiveSheet(idx)}
-              className={`whitespace-nowrap rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                activeSheet === idx
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-              }`}
+              className="whitespace-nowrap px-2.5 py-1 text-[11px] font-medium transition-colors"
+              style={{
+                borderRadius: '4px',
+                backgroundColor: activeSheet === idx ? 'var(--bg-active)' : 'transparent',
+                color: activeSheet === idx ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}
+              onMouseEnter={(e) => {
+                if (activeSheet !== idx) {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeSheet !== idx) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
             >
               {sheet.sheetName}
             </button>
@@ -172,11 +235,17 @@ export default function ViewerToolbar() {
       {/* Review controls (team workspace only) */}
       {isTeam && documentId && !directFileUrl && (
         <div className="flex items-center gap-1">
-          <div className="mx-1 h-4 w-px bg-slate-200" />
+          <div
+            className="mx-1 h-4 w-px"
+            style={{ backgroundColor: 'var(--border)' }}
+          />
           {reviewStatus === 'NONE' && (
             <button
               onClick={() => requestReview(documentId)}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+              className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium transition-colors"
+              style={{ borderRadius: '6px', color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               title="리뷰 요청"
             >
               <Send className="h-3.5 w-3.5" />
@@ -188,7 +257,10 @@ export default function ViewerToolbar() {
               <ReviewStatusBadge status={reviewStatus} />
               <button
                 onClick={() => submitReview(documentId, 'APPROVED')}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-emerald-600 hover:bg-emerald-50"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium transition-colors"
+                style={{ borderRadius: '6px', color: 'var(--success)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(77,171,154,0.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 title="승인"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -196,7 +268,10 @@ export default function ViewerToolbar() {
               </button>
               <button
                 onClick={() => submitReview(documentId, 'REJECTED')}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium transition-colors"
+                style={{ borderRadius: '6px', color: 'var(--error)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(224,62,62,0.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 title="반려"
               >
                 <XCircle className="h-3.5 w-3.5" />
@@ -209,7 +284,10 @@ export default function ViewerToolbar() {
               <ReviewStatusBadge status={reviewStatus} />
               <button
                 onClick={() => requestReview(documentId)}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium transition-colors"
+                style={{ borderRadius: '6px', color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 title="다시 리뷰 요청"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -223,7 +301,16 @@ export default function ViewerToolbar() {
       {/* Close button */}
       <button
         onClick={closeViewer}
-        className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        className="ml-1 p-1 transition-colors"
+        style={{ borderRadius: '4px', color: 'var(--text-tertiary)' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+          e.currentTarget.style.color = 'var(--text-secondary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = 'var(--text-tertiary)';
+        }}
         aria-label="Close viewer"
       >
         <X className="h-4 w-4" />

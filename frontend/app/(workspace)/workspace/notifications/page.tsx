@@ -47,19 +47,36 @@ export default function NotificationsPage() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div style={{ maxWidth: '768px', margin: '0 auto', padding: '32px 24px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">알림</h1>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>알림</h1>
           {unreadCount > 0 && (
-            <p className="mt-1 text-sm text-slate-500">미읽음 {unreadCount}개</p>
+            <p style={{ marginTop: '4px', fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+              미읽음 {unreadCount}개
+            </p>
           )}
         </div>
         {unreadCount > 0 && (
           <button
             onClick={() => markAllAsRead()}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              padding: '6px 12px',
+              fontSize: '14px',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <CheckCheck className="h-4 w-4" />
             모두 읽음
@@ -68,16 +85,36 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-1.5 mb-4">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
         {FILTER_OPTIONS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => { setFilter(key); setPage(0); }}
-            className={`rounded-full px-3 py-1 text-[13px] font-medium transition-colors ${
-              filter === key
-                ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-            }`}
+            style={{
+              borderRadius: '9999px',
+              padding: '4px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+              ...(filter === key
+                ? {
+                    background: 'var(--bg-active)',
+                    color: 'var(--text-primary)',
+                    border: 'none',
+                  }
+                : {
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border)',
+                  }),
+            }}
+            onMouseEnter={(e) => {
+              if (filter !== key) e.currentTarget.style.background = 'var(--bg-hover)';
+            }}
+            onMouseLeave={(e) => {
+              if (filter !== key) e.currentTarget.style.background = 'transparent';
+            }}
           >
             {label}
           </button>
@@ -85,19 +122,48 @@ export default function NotificationsPage() {
       </div>
 
       {/* List */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div
+        style={{
+          borderRadius: '8px',
+          border: '1px solid var(--border)',
+          background: 'var(--bg-primary)',
+          overflow: 'hidden',
+        }}
+      >
         {loading && notifications.length === 0 ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '9999px',
+                border: '2px solid var(--border)',
+                borderTopColor: 'var(--accent)',
+                animation: 'spin 0.7s linear infinite',
+              }}
+            />
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-            <Bell className="h-12 w-12 mb-3 text-slate-300" />
-            <p className="text-sm font-medium">새로운 알림이 없습니다</p>
-            <p className="mt-1 text-[13px]">활동이 생기면 여기에 표시됩니다</p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '64px 0',
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            <Bell style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text-tertiary)' }} />
+            <p style={{ fontSize: '14px', fontWeight: 500, margin: '0 0 4px 0', color: 'var(--text-tertiary)' }}>
+              새로운 알림이 없습니다
+            </p>
+            <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-tertiary)' }}>
+              활동이 생기면 여기에 표시됩니다
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div>
             {filteredNotifications.map((n) => (
               <NotificationItem key={n.id} notification={n} variant="full" />
             ))}
@@ -107,21 +173,49 @@ export default function NotificationsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              padding: '6px',
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              cursor: page === 0 ? 'not-allowed' : 'pointer',
+              opacity: page === 0 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { if (page !== 0) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm text-slate-600">
+          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
             {page + 1} / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              padding: '6px',
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer',
+              opacity: page >= totalPages - 1 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { if (page < totalPages - 1) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>

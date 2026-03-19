@@ -13,7 +13,10 @@ const GraphCanvas = dynamic(() => import('@/components/knowledge-graph/GraphCanv
   ssr: false,
   loading: () => (
     <div className="flex flex-1 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2"
+        style={{ borderColor: '#e8f0fe', borderTopColor: '#2383e2' }}
+      />
     </div>
   ),
 });

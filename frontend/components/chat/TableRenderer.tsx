@@ -67,7 +67,10 @@ export default function TableRenderer({ children }: TableRendererProps) {
   };
 
   return (
-    <div className="my-3 overflow-hidden rounded-lg border border-slate-200 shadow-card">
+    <div
+      className="my-3 overflow-hidden rounded-[6px]"
+      style={{ border: '1px solid var(--border)' }}
+    >
       {/* Table — always in DOM, hidden when chart is shown */}
       <div className={showChart ? 'hidden' : ''}>
         <div className="overflow-x-auto">
@@ -85,21 +88,27 @@ export default function TableRenderer({ children }: TableRendererProps) {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-3 py-1.5">
+      <div
+        className="flex items-center justify-between px-3 py-1.5"
+        style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+      >
         <div>
           {chartable && (
             <button
               onClick={() => setShowChart((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+              className="inline-flex items-center gap-1.5 rounded-[4px] px-2 py-1 text-[11px] font-medium transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               {showChart ? (
                 <>
-                  <Table2 className="h-3 w-3" />
+                  <Table2 className="h-3 w-3" strokeWidth={1.6} />
                   표 보기
                 </>
               ) : (
                 <>
-                  <BarChart3 className="h-3 w-3" />
+                  <BarChart3 className="h-3 w-3" strokeWidth={1.6} />
                   차트 보기
                 </>
               )}
@@ -108,9 +117,12 @@ export default function TableRenderer({ children }: TableRendererProps) {
         </div>
         <button
           onClick={handleDownloadCsv}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+          className="inline-flex items-center gap-1.5 rounded-[4px] px-2 py-1 text-[11px] font-medium transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          <Download className="h-3 w-3" />
+          <Download className="h-3 w-3" strokeWidth={1.6} />
           CSV 다운로드
         </button>
       </div>

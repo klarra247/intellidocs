@@ -21,7 +21,7 @@ export default function VersionTimeline({ documentId }: VersionTimelineProps) {
   if (loading && versions.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
       </div>
     );
   }
@@ -29,10 +29,11 @@ export default function VersionTimeline({ documentId }: VersionTimelineProps) {
   if (error) {
     return (
       <div className="px-4 py-6 text-center">
-        <p className="text-[12px] text-red-500">{error}</p>
+        <p className="text-[12px]" style={{ color: 'var(--error)' }}>{error}</p>
         <button
           onClick={() => fetchVersions(documentId)}
-          className="mt-2 text-[12px] text-primary-600 hover:underline"
+          className="mt-2 text-[12px] hover:underline"
+          style={{ color: 'var(--accent)' }}
         >
           다시 시도
         </button>
@@ -50,13 +51,16 @@ export default function VersionTimeline({ documentId }: VersionTimelineProps) {
       {diffJob && <DiffProgressBar />}
 
       {sorted.length === 0 ? (
-        <p className="text-[12px] text-slate-400 text-center py-4">
+        <p className="text-[12px] text-center py-4" style={{ color: 'var(--text-tertiary)' }}>
           버전 정보가 없습니다
         </p>
       ) : (
         <div className="relative ml-3">
           {/* Timeline line */}
-          <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-200" />
+          <div
+            className="absolute left-[7px] top-2 bottom-2 w-[2px]"
+            style={{ backgroundColor: 'var(--border)' }}
+          />
 
           <div className="space-y-0">
             {sorted.map((version, idx) => {

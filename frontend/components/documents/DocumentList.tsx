@@ -31,23 +31,19 @@ export default function DocumentList() {
     return (
       <div>
         <SectionHeader count={0} />
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="mt-2">
+          {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-xl border border-slate-100 bg-white p-4"
+              className="flex items-center gap-3 px-3 py-2.5"
+              style={{ borderBottom: '1px solid var(--border)' }}
             >
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 animate-shimmer rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-3/4 animate-shimmer rounded" />
-                  <div className="h-3 w-1/2 animate-shimmer rounded" />
-                </div>
+              <div className="h-[18px] w-[18px] animate-shimmer rounded" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-2/5 animate-shimmer rounded" />
+                <div className="h-3 w-1/4 animate-shimmer rounded" />
               </div>
-              <div className="mt-3 flex justify-between">
-                <div className="h-5 w-16 animate-shimmer rounded-full" />
-                <div className="h-4 w-12 animate-shimmer rounded" />
-              </div>
+              <div className="h-3 w-16 animate-shimmer rounded" />
             </div>
           ))}
         </div>
@@ -58,14 +54,18 @@ export default function DocumentList() {
   // Error
   if (error) {
     return (
-      <div className="animate-fade-in rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-        <p className="text-[13px] font-medium text-red-700">{error}</p>
+      <div
+        className="animate-fade-in rounded-[6px] px-4 py-3"
+        style={{ background: '#fdf2f2', color: 'var(--error)' }}
+      >
+        <p className="text-[13px] font-medium">{error}</p>
         <button
           onClick={() => {
             clearError();
             fetchDocuments();
           }}
-          className="mt-2 text-[12px] font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700"
+          className="mt-1.5 text-[12px] font-medium underline underline-offset-2"
+          style={{ color: 'var(--error)' }}
         >
           다시 시도
         </button>
@@ -76,17 +76,24 @@ export default function DocumentList() {
   // Empty state
   if (documents.length === 0) {
     return (
-      <div className="animate-fade-in flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-white py-16">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+      <div
+        className="animate-fade-in flex flex-col items-center rounded-[6px] py-16"
+        style={{ border: '1px dashed var(--border)' }}
+      >
+        <div
+          className="flex h-12 w-12 items-center justify-center rounded-[8px]"
+          style={{ background: 'var(--bg-secondary)' }}
+        >
           <FolderOpen
-            className="h-6 w-6 text-slate-300"
+            className="h-5 w-5"
+            style={{ color: 'var(--text-tertiary)' }}
             strokeWidth={1.5}
           />
         </div>
-        <p className="mt-4 text-sm font-semibold text-slate-500">
+        <p className="mt-4 text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           업로드된 문서가 없습니다
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
           위 영역에 파일을 드래그하여 시작하세요
         </p>
       </div>
@@ -97,7 +104,10 @@ export default function DocumentList() {
     <div>
       <SectionHeader count={documents.length} />
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        className="mt-2 rounded-[6px]"
+        style={{ border: '1px solid var(--border)', background: 'var(--bg-primary)' }}
+      >
         {documents.map((doc, i) => (
           <DocumentCard key={doc.id} document={doc} index={i} />
         ))}
@@ -118,9 +128,14 @@ export default function DocumentList() {
 function SectionHeader({ count }: { count: number }) {
   return (
     <div className="flex items-center gap-2">
-      <h3 className="text-[13px] font-semibold text-slate-700">내 문서</h3>
+      <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+        내 문서
+      </h3>
       {count > 0 && (
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+        <span
+          className="rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium"
+          style={{ background: 'var(--bg-active)', color: 'var(--text-secondary)' }}
+        >
           {count}
         </span>
       )}

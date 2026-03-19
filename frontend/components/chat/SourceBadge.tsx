@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
 import { ChatSource } from '@/lib/types';
 import { useViewerStore } from '@/stores/viewerStore';
 
@@ -52,43 +51,61 @@ export default function SourceBadge({ source }: SourceBadgeProps) {
         onClick={handleClick}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-          isActive
-            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-400 ring-offset-1'
-            : 'bg-primary-50 text-primary-700 hover:bg-primary-100 hover:shadow-sm'
-        } ${hasChunkIndex ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
+        className="inline-flex items-center gap-1 text-[11px] transition-colors"
+        style={{
+          color: 'var(--accent)',
+          fontWeight: isActive ? 500 : 400,
+          cursor: hasChunkIndex ? 'pointer' : 'default',
+          opacity: hasChunkIndex ? 1 : 0.6,
+          textDecoration: 'none',
+        }}
+        onMouseOver={(e) => {
+          if (hasChunkIndex) (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+        }}
+        onMouseOut={(e) => {
+          (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+        }}
       >
-        <FileText className="h-3 w-3 shrink-0" />
         {labelText}
       </span>
 
       {showTooltip && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-modal animate-scale-in">
-          <p className="text-[11px] font-semibold text-slate-700">
+        <div
+          className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-[6px] p-3 animate-scale-in"
+          style={{
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             {source.filename}
           </p>
           {source.sectionTitle && (
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
               § {source.sectionTitle}
             </p>
           )}
           {source.pageRange && (
-            <p className="mt-0.5 text-[11px] text-slate-400">
+            <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
               {source.pageRange}
             </p>
           )}
-          <p className="mt-1 text-[10px] text-slate-400">
+          <p className="mt-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
             {hasChunkIndex ? '클릭하여 원문 보기' : '원문 보기 불가'}
           </p>
           {source.relevanceScore > 0 && (
             <div className="mt-2 flex items-center gap-1.5">
-              <div className="h-1 flex-1 rounded-full bg-slate-100">
+              <div className="h-1 flex-1 rounded-full" style={{ background: 'var(--bg-active)' }}>
                 <div
-                  className="h-1 rounded-full bg-primary-400"
-                  style={{ width: `${Math.min(source.relevanceScore * 100, 100)}%` }}
+                  className="h-1 rounded-full"
+                  style={{
+                    width: `${Math.min(source.relevanceScore * 100, 100)}%`,
+                    background: 'var(--accent)',
+                  }}
                 />
               </div>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                 {(source.relevanceScore * 100).toFixed(0)}%
               </span>
             </div>

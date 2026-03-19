@@ -39,13 +39,20 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-600">
+        <div
+          className="rounded-[6px] px-3.5 py-2.5 text-[13px]"
+          style={{ background: '#fdf2f2', color: 'var(--error)' }}
+        >
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="email" className="block text-[13px] font-medium text-slate-700">
+        <label
+          htmlFor="email"
+          className="block text-[13px] font-medium mb-1.5"
+          style={{ color: 'var(--text-primary)' }}
+        >
           이메일
         </label>
         <input
@@ -55,15 +62,26 @@ export default function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
-          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+          className="w-full rounded-[6px] px-3 py-[10px] text-[14px] outline-none transition-colors"
+          style={{
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            background: 'var(--bg-primary)',
+          }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-[13px] font-medium text-slate-700">
+        <label
+          htmlFor="password"
+          className="block text-[13px] font-medium mb-1.5"
+          style={{ color: 'var(--text-primary)' }}
+        >
           비밀번호
         </label>
-        <div className="relative mt-1.5">
+        <div className="relative">
           <input
             id="password"
             type={showPassword ? 'text' : 'password'}
@@ -71,12 +89,20 @@ export default function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             autoComplete="current-password"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+            className="w-full rounded-[6px] px-3 py-[10px] pr-10 text-[14px] outline-none transition-colors"
+            style={{
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              background: 'var(--bg-primary)',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -86,7 +112,10 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-[6px] px-4 py-[10px] text-[14px] font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ background: 'var(--accent)' }}
+        onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--accent-hover)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--accent)')}
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         로그인

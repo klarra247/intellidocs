@@ -7,18 +7,6 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { Workspace, PendingInvitation } from '@/lib/types';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 
-const roleBadge: Record<string, string> = {
-  OWNER: 'bg-purple-100 text-purple-700',
-  ADMIN: 'bg-blue-100 text-blue-700',
-  MEMBER: 'bg-slate-100 text-slate-500',
-};
-
-const roleLabel: Record<string, string> = {
-  OWNER: '소유자',
-  ADMIN: '관리자',
-  MEMBER: '멤버',
-};
-
 export default function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -47,29 +35,41 @@ export default function WorkspaceSwitcher() {
         {/* Trigger */}
         <button
           onClick={() => setOpen(!open)}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-slate-50"
+          className="flex w-full items-center gap-2.5 rounded-[4px] px-2 py-1.5 text-left transition-colors"
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-50">
+          <div
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px]"
+            style={{ background: 'var(--accent-light)' }}
+          >
             {isTeam ? (
-              <Users className="h-3.5 w-3.5 text-primary-600" strokeWidth={2.5} />
+              <Users className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
             ) : (
-              <FolderOpen className="h-3.5 w-3.5 text-primary-600" strokeWidth={2.5} />
+              <FolderOpen className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold text-slate-900">
+            <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
               {currentWorkspace.name}
             </p>
-            <p className="text-[11px] text-slate-400">
-              {isTeam ? `팀 · ${currentWorkspace.memberCount}명` : '개인'}
-            </p>
           </div>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+            style={{ color: 'var(--text-tertiary)' }}
+          />
         </button>
 
         {/* Dropdown */}
         {open && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 animate-scale-in rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+          <div
+            className="absolute left-0 right-0 top-full z-50 mt-1 animate-scale-in rounded-[8px] py-1.5"
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--bg-primary)',
+              boxShadow: 'var(--shadow-md)',
+            }}
+          >
             <div className="max-h-[240px] overflow-y-auto px-1.5">
               {workspaces.map((ws) => (
                 <WorkspaceItem
@@ -87,9 +87,9 @@ export default function WorkspaceSwitcher() {
             {/* Pending invitations */}
             {pendingInvitations.length > 0 && (
               <>
-                <div className="mx-1.5 my-1 border-t border-slate-100" />
+                <div className="mx-1.5 my-1" style={{ borderTop: '1px solid var(--border)' }} />
                 <div className="px-1.5">
-                  <p className="px-2.5 py-1 text-[11px] font-medium text-slate-400">
+                  <p className="px-2 py-1 text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
                     대기 중인 초대 ({pendingInvitations.length})
                   </p>
                   {pendingInvitations.map((inv) => (
@@ -107,7 +107,7 @@ export default function WorkspaceSwitcher() {
               </>
             )}
 
-            <div className="mx-1.5 my-1 border-t border-slate-100" />
+            <div className="mx-1.5 my-1" style={{ borderTop: '1px solid var(--border)' }} />
 
             <div className="px-1.5">
               <button
@@ -115,7 +115,10 @@ export default function WorkspaceSwitcher() {
                   setOpen(false);
                   setShowCreate(true);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                className="flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-[13px] transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>새 워크스페이스</span>
@@ -127,7 +130,10 @@ export default function WorkspaceSwitcher() {
                     setOpen(false);
                     router.push('/workspace/settings');
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                  className="flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-[13px] transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <Settings className="h-3.5 w-3.5" />
                   <span>워크스페이스 설정</span>
@@ -159,28 +165,37 @@ function WorkspaceItem({
   return (
     <button
       onClick={onSelect}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
-        isCurrent ? 'bg-primary-50' : 'hover:bg-slate-50'
-      }`}
+      className="flex w-full items-center gap-2.5 rounded-[4px] px-2 py-1.5 text-left transition-colors"
+      style={{ background: isCurrent ? 'var(--bg-active)' : 'transparent' }}
+      onMouseEnter={(e) => {
+        if (!isCurrent) e.currentTarget.style.background = 'var(--bg-hover)';
+      }}
+      onMouseLeave={(e) => {
+        if (!isCurrent) e.currentTarget.style.background = 'transparent';
+      }}
     >
-      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-        isCurrent ? 'bg-primary-100' : 'bg-slate-100'
-      }`}>
+      <div
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px]"
+        style={{ background: isCurrent ? 'var(--accent-light)' : 'var(--bg-secondary)' }}
+      >
         {isTeam ? (
-          <Users className={`h-3 w-3 ${isCurrent ? 'text-primary-600' : 'text-slate-500'}`} />
+          <Users className="h-3 w-3" style={{ color: isCurrent ? 'var(--accent)' : 'var(--text-tertiary)' }} />
         ) : (
-          <FolderOpen className={`h-3 w-3 ${isCurrent ? 'text-primary-600' : 'text-slate-500'}`} />
+          <FolderOpen className="h-3 w-3" style={{ color: isCurrent ? 'var(--accent)' : 'var(--text-tertiary)' }} />
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-[13px] font-medium ${isCurrent ? 'text-primary-700' : 'text-slate-700'}`}>
+        <p
+          className="truncate text-[13px]"
+          style={{
+            color: isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: isCurrent ? 500 : 400,
+          }}
+        >
           {workspace.name}
         </p>
       </div>
-      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${roleBadge[workspace.role]}`}>
-        {roleLabel[workspace.role]}
-      </span>
-      {isCurrent && <Check className="h-3.5 w-3.5 shrink-0 text-primary-600" />}
+      {isCurrent && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent)' }} />}
     </button>
   );
 }
@@ -209,27 +224,38 @@ function PendingInvitationItem({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg px-2.5 py-2">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-50">
-        <Mail className="h-3 w-3 text-amber-500" />
+    <div className="flex items-center gap-2 rounded-[4px] px-2 py-1.5">
+      <div
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px]"
+        style={{ background: '#fef3c7' }}
+      >
+        <Mail className="h-3 w-3" style={{ color: 'var(--warning)' }} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-medium text-slate-700">{invitation.workspaceName}</p>
-        <p className="truncate text-[11px] text-slate-400">{invitation.inviterName}님의 초대</p>
+        <p className="truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+          {invitation.workspaceName}
+        </p>
+        <p className="truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          {invitation.inviterName}님의 초대
+        </p>
       </div>
       {loading ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
       ) : (
         <div className="flex gap-1">
           <button
             onClick={handleDecline}
-            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             거절
           </button>
           <button
             onClick={handleAccept}
-            className="rounded bg-primary-50 px-1.5 py-0.5 text-[11px] font-medium text-primary-600 transition-colors hover:bg-primary-100"
+            className="rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium transition-colors"
+            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
           >
             수락
           </button>

@@ -136,19 +136,32 @@ export default function ChunkPreview() {
   };
 
   return (
-    <div className="border-t border-slate-200 bg-white">
+    <div
+      style={{
+        borderTop: '1px solid var(--border)',
+        backgroundColor: 'var(--bg-primary)',
+      }}
+    >
       {/* Header */}
       <button
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-slate-50 transition-colors"
+        className="flex w-full items-center gap-2 px-4 py-2 text-left transition-colors"
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
-        <span className="text-[13px] font-semibold text-slate-700">
+        <span
+          className="text-[13px] font-medium"
+          style={{ color: 'var(--text-primary)' }}
+        >
           AI가 참조한 원문
         </span>
 
         {/* Section info */}
         {(sectionTitle || pageNumber) && (
-          <span className="text-[11px] text-slate-400">
+          <span
+            className="text-[11px]"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
             {sectionTitle && <span>{sectionTitle}</span>}
             {sectionTitle && pageNumber && <span> &middot; </span>}
             {pageNumber && <span>p.{pageNumber}</span>}
@@ -157,14 +170,20 @@ export default function ChunkPreview() {
 
         {/* Loading spinner */}
         {chunkLoading && (
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-slate-200 border-t-primary-500" />
+          <div
+            className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px]"
+            style={{
+              borderColor: 'var(--border)',
+              borderTopColor: 'var(--accent)',
+            }}
+          />
         )}
 
-        <span className="ml-auto">
+        <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>
           {expanded ? (
-            <ChevronDown className="h-4 w-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4" />
           ) : (
-            <ChevronUp className="h-4 w-4 text-slate-400" />
+            <ChevronUp className="h-4 w-4" />
           )}
         </span>
       </button>
@@ -175,16 +194,32 @@ export default function ChunkPreview() {
           {/* Source page navigation pills */}
           {hasPages && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-slate-400">참조 페이지</span>
+              <span
+                className="text-[11px]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                참조 페이지
+              </span>
               {sourcePages.map((page) => (
                 <button
                   key={page}
                   onClick={() => handlePageNav(page)}
-                  className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                    currentPage === page
-                      ? 'bg-primary-100 text-primary-700 ring-1 ring-primary-300'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                  }`}
+                  className="px-2 py-0.5 text-[11px] font-medium transition-colors"
+                  style={{
+                    borderRadius: '4px',
+                    backgroundColor: currentPage === page ? 'var(--bg-active)' : 'var(--bg-secondary)',
+                    color: currentPage === page ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentPage !== page) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentPage !== page) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                    }
+                  }}
                 >
                   p.{page}
                 </button>
@@ -195,7 +230,13 @@ export default function ChunkPreview() {
           {/* Chunk text — rendered as markdown */}
           {chunkLoading ? (
             <div className="flex items-center justify-center py-4">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-primary-500" />
+              <div
+                className="h-4 w-4 animate-spin rounded-full border-2"
+                style={{
+                  borderColor: 'var(--border)',
+                  borderTopColor: 'var(--accent)',
+                }}
+              />
             </div>
           ) : hasContent && (() => {
             const raw = chunkText!;
@@ -205,7 +246,14 @@ export default function ChunkPreview() {
               : addEllipsis(raw);
             return (
               <div>
-                <div className="chunk-preview-content max-h-[240px] overflow-y-auto rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2">
+                <div
+                  className="chunk-preview-content max-h-[240px] overflow-y-auto px-3 py-2"
+                  style={{
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg-secondary)',
+                  }}
+                >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {normalizeChunkToMarkdown(displayText)}
                   </ReactMarkdown>
@@ -213,7 +261,10 @@ export default function ChunkPreview() {
                 {isLong && (
                   <button
                     onClick={() => setShowFull(!showFull)}
-                    className="mt-1.5 text-[12px] font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                    className="mt-1.5 text-[12px] font-medium transition-colors"
+                    style={{ color: 'var(--accent)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--accent)')}
                   >
                     {showFull ? '접기' : '더 보기'}
                   </button>

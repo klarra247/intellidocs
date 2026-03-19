@@ -21,9 +21,8 @@ export default function Home() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Show dark bg while checking auth to avoid flash
   if (isLoading || isAuthenticated) {
-    return <div className="min-h-screen bg-[#0a0f1e]" />;
+    return <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }} />;
   }
 
   return (

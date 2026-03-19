@@ -17,8 +17,8 @@ export interface TableData {
 export type ChartType = 'line' | 'bar' | 'pie';
 
 const COLORS = [
-  '#6366f1', '#06b6d4', '#f59e0b', '#ef4444', '#10b981',
-  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#3b82f6',
+  '#2383e2', '#4dab9a', '#cb912f', '#e03e3e', '#787774',
+  '#37352f', '#b4b4b0', '#2383e2', '#4dab9a', '#cb912f',
 ];
 
 /* ── 숫자 파싱 ─────────────────────────────────────── */
@@ -212,9 +212,9 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
 
   const tooltipStyle = {
     fontSize: 12,
-    borderRadius: 8,
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    borderRadius: 6,
+    border: '1px solid #e9e9e7',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
   };
 
   const showToggle = numericHeaders.length >= 5;
@@ -225,14 +225,14 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
       <div className="h-[300px] w-full py-2">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: hasDualAxis ? 20 : 20, bottom: 5, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e9e9e7" />
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#b4b4b0" />
 
             {/* 왼쪽 Y축 (금액) */}
             <YAxis
               yAxisId="left"
               tick={{ fontSize: 11 }}
-              stroke="#94a3b8"
+              stroke="#b4b4b0"
               tickFormatter={formatAmount}
             />
 
@@ -242,7 +242,7 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
                 yAxisId="right"
                 orientation="right"
                 tick={{ fontSize: 11 }}
-                stroke="#94a3b8"
+                stroke="#b4b4b0"
                 tickFormatter={formatRatio}
               />
             )}
@@ -256,7 +256,7 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
                 const label = col ? legendName(col.header, col.axis) : value;
                 const hidden = hiddenKeys.has(value);
                 return (
-                  <span style={{ color: hidden ? '#cbd5e1' : undefined, cursor: showToggle ? 'pointer' : undefined }}>
+                  <span style={{ color: hidden ? '#b4b4b0' : undefined, cursor: showToggle ? 'pointer' : undefined }}>
                     {label}
                   </span>
                 );
@@ -297,7 +297,7 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
               cy="50%"
               outerRadius={100}
               label={renderPieLabel}
-              labelLine={{ stroke: '#94a3b8' }}
+              labelLine={{ stroke: '#b4b4b0' }}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -316,13 +316,13 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
     <div className="h-[300px] w-full py-2">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 5, right: hasDualAxis ? 20 : 20, bottom: 5, left: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e9e9e7" />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#b4b4b0" />
 
           <YAxis
             yAxisId="left"
             tick={{ fontSize: 11 }}
-            stroke="#94a3b8"
+            stroke="#b4b4b0"
             tickFormatter={formatAmount}
           />
 
@@ -331,7 +331,7 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
               yAxisId="right"
               orientation="right"
               tick={{ fontSize: 11 }}
-              stroke="#94a3b8"
+              stroke="#b4b4b0"
               tickFormatter={formatRatio}
             />
           )}
@@ -345,7 +345,7 @@ export default function ChartRenderer({ tableData }: ChartRendererProps) {
               const label = col ? legendName(col.header, col.axis) : value;
               const hidden = hiddenKeys.has(value);
               return (
-                <span style={{ color: hidden ? '#cbd5e1' : undefined, cursor: showToggle ? 'pointer' : undefined }}>
+                <span style={{ color: hidden ? '#b4b4b0' : undefined, cursor: showToggle ? 'pointer' : undefined }}>
                   {label}
                 </span>
               );

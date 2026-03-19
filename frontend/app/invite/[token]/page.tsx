@@ -27,6 +27,9 @@ export default function InvitePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<'accepted' | 'declined' | null>(null);
+  const [declineHover, setDeclineHover] = useState(false);
+  const [acceptHover, setAcceptHover] = useState(false);
+  const [backHover, setBackHover] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -88,46 +91,79 @@ export default function InvitePage() {
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: 'var(--bg-secondary)' }}
+      >
+        <div
+          className="h-8 w-8 animate-spin rounded-full"
+          style={{ border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }}
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
+    <div
+      className="flex min-h-screen items-center justify-center p-4"
+      style={{ backgroundColor: 'var(--bg-secondary)' }}
+    >
+      <div
+        className="w-full max-w-sm rounded-[12px] p-8"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
         {loading ? (
           <div className="flex flex-col items-center py-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
-            <p className="mt-3 text-[13px] text-slate-500">초대 정보 확인 중...</p>
+            <div
+              className="h-8 w-8 animate-spin rounded-full"
+              style={{ border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }}
+            />
+            <p className="mt-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>초대 정보 확인 중...</p>
           </div>
         ) : result === 'accepted' ? (
           <div className="flex flex-col items-center py-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
-              <CheckCircle className="h-6 w-6 text-green-500" />
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--success) 10%, var(--bg-primary))' }}
+            >
+              <CheckCircle className="h-6 w-6" style={{ color: 'var(--success)' }} />
             </div>
-            <h2 className="mt-4 text-[16px] font-bold text-slate-900">초대를 수락했습니다</h2>
-            <p className="mt-1.5 text-[13px] text-slate-500">워크스페이스로 이동합니다...</p>
+            <h2 className="mt-4 text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>초대를 수락했습니다</h2>
+            <p className="mt-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>워크스페이스로 이동합니다...</p>
           </div>
         ) : result === 'declined' ? (
           <div className="flex flex-col items-center py-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-              <XCircle className="h-6 w-6 text-slate-400" />
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'var(--bg-secondary)' }}
+            >
+              <XCircle className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
             </div>
-            <h2 className="mt-4 text-[16px] font-bold text-slate-900">초대를 거절했습니다</h2>
-            <p className="mt-1.5 text-[13px] text-slate-500">메인 페이지로 이동합니다...</p>
+            <h2 className="mt-4 text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>초대를 거절했습니다</h2>
+            <p className="mt-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>메인 페이지로 이동합니다...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center py-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <AlertCircle className="h-6 w-6 text-red-500" />
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--error) 8%, var(--bg-primary))' }}
+            >
+              <AlertCircle className="h-6 w-6" style={{ color: 'var(--error)' }} />
             </div>
-            <h2 className="mt-4 text-[16px] font-bold text-slate-900">초대 오류</h2>
-            <p className="mt-1.5 text-center text-[13px] text-slate-500">{error}</p>
+            <h2 className="mt-4 text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>초대 오류</h2>
+            <p className="mt-1.5 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>{error}</p>
             <button
               onClick={() => router.push('/workspace')}
-              className="mt-5 rounded-lg bg-primary-600 px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700"
+              className="mt-5 rounded-[6px] px-6 py-2.5 text-[13px] font-semibold transition-colors"
+              style={{
+                backgroundColor: backHover ? 'var(--accent-hover)' : 'var(--accent)',
+                color: '#fff',
+              }}
+              onMouseEnter={() => setBackHover(true)}
+              onMouseLeave={() => setBackHover(false)}
             >
               메인으로 돌아가기
             </button>
@@ -135,26 +171,32 @@ export default function InvitePage() {
         ) : invitation ? (
           <>
             <div className="flex flex-col items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50">
-                <Users className="h-6 w-6 text-primary-600" />
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--accent-light)' }}
+              >
+                <Users className="h-6 w-6" style={{ color: 'var(--accent)' }} />
               </div>
-              <h2 className="mt-4 text-[16px] font-bold text-slate-900">워크스페이스 초대</h2>
+              <h2 className="mt-4 text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>워크스페이스 초대</h2>
             </div>
 
-            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+            <div
+              className="mt-5 rounded-[8px] p-4"
+              style={{ backgroundColor: 'var(--bg-secondary)' }}
+            >
               <div className="space-y-2.5">
                 <div>
-                  <p className="text-[11px] font-medium uppercase text-slate-400">워크스페이스</p>
-                  <p className="mt-0.5 text-[14px] font-semibold text-slate-900">{invitation.workspaceName}</p>
+                  <p className="text-[11px] font-medium uppercase" style={{ color: 'var(--text-tertiary)' }}>워크스페이스</p>
+                  <p className="mt-0.5 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{invitation.workspaceName}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium uppercase text-slate-400">초대자</p>
-                  <p className="mt-0.5 text-[14px] text-slate-700">{invitation.inviterName}</p>
-                  <p className="text-[12px] text-slate-400">{invitation.inviterEmail}</p>
+                  <p className="text-[11px] font-medium uppercase" style={{ color: 'var(--text-tertiary)' }}>초대자</p>
+                  <p className="mt-0.5 text-[14px]" style={{ color: 'var(--text-primary)' }}>{invitation.inviterName}</p>
+                  <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{invitation.inviterEmail}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium uppercase text-slate-400">역할</p>
-                  <p className="mt-0.5 text-[14px] text-slate-700">{roleLabel[invitation.role] ?? invitation.role}</p>
+                  <p className="text-[11px] font-medium uppercase" style={{ color: 'var(--text-tertiary)' }}>역할</p>
+                  <p className="mt-0.5 text-[14px]" style={{ color: 'var(--text-primary)' }}>{roleLabel[invitation.role] ?? invitation.role}</p>
                 </div>
               </div>
             </div>
@@ -163,14 +205,27 @@ export default function InvitePage() {
               <button
                 onClick={handleDecline}
                 disabled={actionLoading}
-                className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                className="flex-1 rounded-[6px] px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-50"
+                style={{
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                  backgroundColor: declineHover ? 'var(--bg-hover)' : 'var(--bg-primary)',
+                }}
+                onMouseEnter={() => setDeclineHover(true)}
+                onMouseLeave={() => setDeclineHover(false)}
               >
                 거절
               </button>
               <button
                 onClick={handleAccept}
                 disabled={actionLoading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[6px] px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-50"
+                style={{
+                  backgroundColor: acceptHover ? 'var(--accent-hover)' : 'var(--accent)',
+                  color: '#fff',
+                }}
+                onMouseEnter={() => setAcceptHover(true)}
+                onMouseLeave={() => setAcceptHover(false)}
               >
                 {actionLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 수락

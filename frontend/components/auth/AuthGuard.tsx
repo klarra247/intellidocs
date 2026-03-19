@@ -18,8 +18,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
-          <p className="text-sm text-slate-500">로딩 중...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>로딩 중...</p>
         </div>
       </div>
     );

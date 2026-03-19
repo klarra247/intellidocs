@@ -13,9 +13,6 @@ import {
   Eye,
   Plus,
   Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
   MessageCircle,
 } from 'lucide-react';
 import { useViewerStore } from '@/stores/viewerStore';
@@ -23,63 +20,24 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useAuthStore } from '@/stores/authStore';
 import ReviewStatusBadge from '@/components/viewer/ReviewStatusBadge';
 
-// File type → icon + color
-const fileTypeConfig: Record<
-  FileType,
-  { icon: typeof FileText; bg: string; iconColor: string }
-> = {
-  PDF: { icon: FileText, bg: 'bg-red-50', iconColor: 'text-red-500' },
-  DOCX: { icon: FileType2, bg: 'bg-blue-50', iconColor: 'text-blue-500' },
-  XLSX: {
-    icon: FileSpreadsheet,
-    bg: 'bg-emerald-50',
-    iconColor: 'text-emerald-500',
-  },
-  TXT: { icon: File, bg: 'bg-slate-50', iconColor: 'text-slate-500' },
-  MD: { icon: FileText, bg: 'bg-purple-50', iconColor: 'text-purple-500' },
+const fileTypeIcon: Record<FileType, typeof FileText> = {
+  PDF: FileText,
+  DOCX: FileType2,
+  XLSX: FileSpreadsheet,
+  TXT: File,
+  MD: FileText,
 };
 
-// Status → badge config
 const statusConfig: Record<
   DocumentStatus,
-  { label: string; bg: string; text: string; icon: typeof Clock }
+  { label: string; dotColor: string; spinning?: boolean }
 > = {
-  UPLOADING: {
-    label: '업로드 중',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    icon: Loader2,
-  },
-  PARSING: {
-    label: '파싱 중',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    icon: Loader2,
-  },
-  PARSED: {
-    label: '파싱 완료',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    icon: Clock,
-  },
-  INDEXING: {
-    label: '인덱싱 중',
-    bg: 'bg-violet-50',
-    text: 'text-violet-700',
-    icon: Loader2,
-  },
-  INDEXED: {
-    label: '준비 완료',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    icon: CheckCircle2,
-  },
-  FAILED: {
-    label: '실패',
-    bg: 'bg-red-50',
-    text: 'text-red-700',
-    icon: XCircle,
-  },
+  UPLOADING: { label: '업로드 중', dotColor: 'var(--warning)', spinning: true },
+  PARSING: { label: '파싱 중', dotColor: 'var(--warning)', spinning: true },
+  PARSED: { label: '파싱 완료', dotColor: 'var(--accent)' },
+  INDEXING: { label: '인덱싱 중', dotColor: 'var(--warning)', spinning: true },
+  INDEXED: { label: '준비 완료', dotColor: 'var(--success)' },
+  FAILED: { label: '실패', dotColor: 'var(--error)' },
 };
 
 interface DocumentCardProps {
@@ -98,14 +56,10 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
   const isMyDoc = !document.uploaderId || document.uploaderId === currentUser?.id;
   const canDelete = !isTeam || isMyDoc || currentWorkspace?.role === 'OWNER' || currentWorkspace?.role === 'ADMIN';
 
-  const ftConfig = fileTypeConfig[document.fileType] ?? fileTypeConfig.TXT;
+  const FileIcon = fileTypeIcon[document.fileType] ?? fileTypeIcon.TXT;
   const stConfig = statusConfig[document.status];
-  const StatusIcon = stConfig.icon;
-  const FileIcon = ftConfig.icon;
 
-  const isProcessing = ['UPLOADING', 'PARSING', 'INDEXING'].includes(
-    document.status,
-  );
+  const isProcessing = ['UPLOADING', 'PARSING', 'INDEXING'].includes(document.status);
   const isReady = document.status === 'INDEXED';
 
   const handleCardClick = () => {
@@ -142,117 +96,157 @@ export default function DocumentCard({ document, index = 0 }: DocumentCardProps)
   return (
     <div
       onClick={handleCardClick}
-      className={`animate-slide-up group relative rounded-xl border bg-white p-4 shadow-card transition-all duration-200 stagger-${Math.min(index + 1, 6)} ${
-        isReady
-          ? 'cursor-pointer border-slate-200/80 hover:border-primary-200 hover:shadow-card-hover'
-          : 'border-slate-200/60'
+      className={`group flex items-center gap-3 rounded-[6px] px-3 py-2.5 transition-colors animate-fade-in ${
+        isReady ? 'cursor-pointer' : ''
       }`}
-      style={{ opacity: 0 }}
+      style={{ borderBottom: '1px solid var(--border)' }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      {/* Version badge */}
-      {document.versionNumber != null && document.versionNumber > 1 && (
-        <span className="absolute -top-1 -left-1 rounded-full bg-primary-100 text-primary-700 text-[10px] font-bold px-1.5 py-0.5 z-10">
-          v{document.versionNumber}
-        </span>
-      )}
+      {/* File icon */}
+      <FileIcon
+        className="h-[18px] w-[18px] shrink-0"
+        style={{ color: 'var(--text-tertiary)' }}
+        strokeWidth={1.8}
+      />
 
-      {/* Top row: icon + name + delete */}
-      <div className="flex items-start gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ftConfig.bg}`}
-        >
-          <FileIcon
-            className={`h-[18px] w-[18px] ${ftConfig.iconColor}`}
-            strokeWidth={2}
-          />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-slate-800">
+      {/* Name + meta */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p
+            className="truncate text-[13px] font-medium"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {document.originalFilename}
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
-            {document.fileType}
-            {document.fileSize != null && ` \u00b7 ${formatFileSize(document.fileSize)}`}
-          </p>
+          {document.versionNumber != null && document.versionNumber > 1 && (
+            <span
+              className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium"
+              style={{ background: 'var(--bg-active)', color: 'var(--text-secondary)' }}
+            >
+              v{document.versionNumber}
+            </span>
+          )}
         </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-0.5">
-          {isReady && (
+        <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          <span>{document.fileType}</span>
+          {document.fileSize != null && (
             <>
-              <input
-                ref={versionInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf,.docx,.xlsx,.txt,.md"
-                onClick={(e) => e.stopPropagation()}
-                onChange={handleVersionFileChange}
-              />
-              <button
-                onClick={handleVersionUpload}
-                className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-emerald-50 hover:text-emerald-500 group-hover:opacity-100"
-                title="새 버전 추가"
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-              </button>
+              <span>·</span>
+              <span>{formatFileSize(document.fileSize)}</span>
             </>
           )}
-          {isReady && (
-            <button
-              onClick={handlePreview}
-              className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-primary-50 hover:text-primary-500 group-hover:opacity-100"
-              title="미리보기"
-            >
-              <Eye className="h-3.5 w-3.5" strokeWidth={2} />
-            </button>
-          )}
-          {canDelete && (
-            <button
-              onClick={handleDelete}
-              className="rounded-lg p-1.5 text-slate-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-              title="삭제"
-            >
-              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-            </button>
+          {document.createdAt && (
+            <>
+              <span>·</span>
+              <span>{formatRelativeDate(document.createdAt)}</span>
+            </>
           )}
         </div>
       </div>
 
-      {/* Bottom row: status + review badge + metadata */}
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${stConfig.bg} ${stConfig.text}`}
+      {/* Status */}
+      <div className="flex items-center gap-2 shrink-0">
+        <ReviewStatusBadge status={document.reviewStatus} size="sm" />
+        {(document.unresolvedCommentCount ?? 0) > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const viewer = useViewerStore.getState();
+              viewer.openViewer(document.id);
+              setTimeout(() => viewer.setActiveTab('comments'), 200);
+            }}
+            className="flex items-center gap-0.5 text-[11px] font-medium transition-colors"
+            style={{ color: 'var(--warning)' }}
           >
-            <StatusIcon
-              className={`h-3 w-3 ${isProcessing ? 'animate-spin' : ''}`}
-              strokeWidth={2}
+            <MessageCircle className="h-3 w-3" />
+            {document.unresolvedCommentCount}
+          </button>
+        )}
+        <div className="flex items-center gap-1.5">
+          {isProcessing ? (
+            <Loader2
+              className="h-3 w-3 animate-spin"
+              style={{ color: stConfig.dotColor }}
             />
+          ) : (
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full"
+              style={{ background: stConfig.dotColor }}
+            />
+          )}
+          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             {stConfig.label}
           </span>
-          <ReviewStatusBadge status={document.reviewStatus} size="sm" />
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          {(document.unresolvedCommentCount ?? 0) > 0 && (
+      {/* Actions */}
+      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 shrink-0">
+        {isReady && (
+          <>
+            <input
+              ref={versionInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.docx,.xlsx,.txt,.md"
+              onClick={(e) => e.stopPropagation()}
+              onChange={handleVersionFileChange}
+            />
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const viewer = useViewerStore.getState();
-                viewer.openViewer(document.id);
-                setTimeout(() => viewer.setActiveTab('comments'), 200);
+              onClick={handleVersionUpload}
+              className="rounded-[4px] p-1.5 transition-colors"
+              style={{ color: 'var(--text-tertiary)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--bg-active)';
+                e.currentTarget.style.color = 'var(--text-primary)';
               }}
-              className="flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-600 hover:bg-orange-200 transition-colors"
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+              title="새 버전 추가"
             >
-              <MessageCircle className="h-3 w-3" />
-              {document.unresolvedCommentCount}
+              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
             </button>
-          )}
-          <span className="text-[11px] text-slate-300">
-            {document.createdAt ? formatRelativeDate(document.createdAt) : ''}
-          </span>
-        </div>
+          </>
+        )}
+        {isReady && (
+          <button
+            onClick={handlePreview}
+            className="rounded-[4px] p-1.5 transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-active)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+            }}
+            title="미리보기"
+          >
+            <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            className="rounded-[4px] p-1.5 transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-active)';
+              e.currentTarget.style.color = 'var(--error)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+            }}
+            title="삭제"
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+        )}
       </div>
     </div>
   );

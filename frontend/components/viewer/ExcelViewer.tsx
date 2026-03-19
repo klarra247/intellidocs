@@ -14,7 +14,7 @@ export default function ExcelViewer() {
   if (sheet.rows.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-[13px] text-slate-400">이 시트에 데이터가 없습니다</p>
+        <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>이 시트에 데이터가 없습니다</p>
       </div>
     );
   }
@@ -23,15 +23,26 @@ export default function ExcelViewer() {
     <div className="h-full w-full overflow-auto">
       <table className="excel-table w-full border-collapse text-[12px]">
         <thead>
-          <tr className="sticky top-0 z-10 bg-slate-100">
+          <tr className="sticky top-0 z-10" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             {/* Row number column header */}
-            <th className="w-10 border-b border-r border-slate-200 px-2 py-2 text-right text-[11px] font-semibold text-slate-400">
+            <th
+              className="w-10 px-2 py-2 text-right text-[11px] font-semibold"
+              style={{
+                borderBottom: '1px solid var(--border)',
+                borderRight: '1px solid var(--border)',
+                color: 'var(--text-tertiary)',
+              }}
+            >
               #
             </th>
             {sheet.headers.map((header, i) => (
               <th
                 key={i}
-                className="min-w-[120px] border-b border-slate-200 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600"
+                className="min-w-[120px] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider"
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                }}
               >
                 {header}
               </th>
@@ -42,16 +53,20 @@ export default function ExcelViewer() {
           {sheet.rows.map((row, rowIdx) => (
             <tr
               key={rowIdx}
-              className={rowIdx % 2 === 1 ? 'bg-slate-50/50' : ''}
+              style={rowIdx % 2 === 1 ? { backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 50%, transparent)' } : undefined}
             >
               {/* Row number */}
-              <td className="w-10 border-r border-slate-100 pr-2 text-right text-xs text-slate-400">
+              <td
+                className="w-10 pr-2 text-right text-xs"
+                style={{ borderRight: '1px solid var(--border)', color: 'var(--text-tertiary)' }}
+              >
                 {rowIdx + 1}
               </td>
               {row.map((cell, cellIdx) => (
                 <td
                   key={cellIdx}
-                  className="min-w-[120px] border-b border-slate-100 px-3 py-2 text-slate-700"
+                  className="min-w-[120px] px-3 py-2"
+                  style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-primary)' }}
                 >
                   {cell}
                 </td>
@@ -63,7 +78,14 @@ export default function ExcelViewer() {
 
       {/* Truncation notices */}
       {(sheet.truncatedRows || sheet.truncatedCols) && (
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-center text-[12px] text-slate-500">
+        <div
+          className="px-4 py-3 text-center text-[12px]"
+          style={{
+            borderTop: '1px solid var(--border)',
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-secondary)',
+          }}
+        >
           {sheet.truncatedRows && (
             <p>
               전체 {sheet.totalRows}행 중 {sheet.rows.length}행만 표시됩니다

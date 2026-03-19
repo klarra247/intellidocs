@@ -7,17 +7,24 @@ interface DiffSummaryCardProps {
 }
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorMap: Record<string, string> = {
-    green: 'text-green-600 border-green-200 bg-green-50',
-    red: 'text-red-600 border-red-200 bg-red-50',
-    yellow: 'text-yellow-600 border-yellow-200 bg-yellow-50',
-    gray: 'text-slate-500 border-slate-200 bg-slate-50',
+  const colorMap: Record<string, { text: string; border: string; bg: string }> = {
+    green: { text: 'var(--success)', border: 'var(--success)', bg: 'var(--success)' },
+    red: { text: 'var(--error)', border: 'var(--error)', bg: 'var(--error)' },
+    yellow: { text: 'var(--warning)', border: 'var(--warning)', bg: 'var(--warning)' },
+    gray: { text: 'var(--text-secondary)', border: 'var(--border)', bg: 'var(--bg-secondary)' },
   };
 
   const styles = colorMap[color] ?? colorMap.gray;
 
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${styles}`}>
+    <div
+      className="rounded-[8px] px-3 py-2.5"
+      style={{
+        border: `1px solid ${styles.border}`,
+        backgroundColor: color === 'gray' ? styles.bg : `color-mix(in srgb, ${styles.bg} 12%, var(--bg-primary))`,
+        color: styles.text,
+      }}
+    >
       <p className="text-[11px] font-medium opacity-70">{label}</p>
       <p className="mt-0.5 text-lg font-bold">{value}</p>
     </div>

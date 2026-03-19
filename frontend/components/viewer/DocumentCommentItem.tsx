@@ -13,6 +13,12 @@ interface DocumentCommentItemProps {
 export default function DocumentCommentItem({ comment }: DocumentCommentItemProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [hovered, setHovered] = useState(false);
+  const [editBtnHover, setEditBtnHover] = useState(false);
+  const [deleteBtnHover, setDeleteBtnHover] = useState(false);
+  const [saveBtnHover, setSaveBtnHover] = useState(false);
+  const [cancelBtnHover, setCancelBtnHover] = useState(false);
+  const [locationHover, setLocationHover] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const updateComment = useDocumentCommentStore((s) => s.updateComment);
@@ -83,7 +89,15 @@ export default function DocumentCommentItem({ comment }: DocumentCommentItemProp
   const hasLocation = comment.pageNumber != null || comment.chunkIndex != null;
 
   return (
-    <div className={`group px-4 py-3 hover:bg-slate-50 animate-fade-in ${comment.resolved ? 'opacity-60' : ''}`}>
+    <div
+      className="px-4 py-3 animate-fade-in"
+      style={{
+        backgroundColor: hovered ? 'var(--bg-hover)' : 'transparent',
+        opacity: comment.resolved ? 0.6 : 1,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           {/* Resolve checkbox */}
@@ -91,30 +105,46 @@ export default function DocumentCommentItem({ comment }: DocumentCommentItemProp
             type="checkbox"
             checked={comment.resolved}
             onChange={handleResolveToggle}
-            className="h-3.5 w-3.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+            className="h-3.5 w-3.5 rounded"
+            style={{ accentColor: 'var(--accent)' }}
             title={comment.resolved ? '미해결로 변경' : '해결됨으로 표시'}
           />
           {/* Avatar */}
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700">
+          <div
+            className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold"
+            style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+          >
             {comment.userName.charAt(0).toUpperCase()}
           </div>
-          <span className="text-[12px] font-medium text-slate-700">{comment.userName}</span>
-          <span className="text-[11px] text-slate-400">{timeAgo(comment.createdAt)}</span>
+          <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{comment.userName}</span>
+          <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{timeAgo(comment.createdAt)}</span>
           {comment.updatedAt !== comment.createdAt && (
-            <span className="text-[10px] text-slate-400">(수정됨)</span>
+            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>(수정됨)</span>
           )}
         </div>
         {comment.isOwner && !editing && (
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex items-center gap-1" style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s' }}>
             <button
               onClick={() => { setEditing(true); setEditContent(comment.content); }}
-              className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+              className="flex h-5 w-5 items-center justify-center rounded-[4px]"
+              style={{
+                color: editBtnHover ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                backgroundColor: editBtnHover ? 'var(--bg-active)' : 'transparent',
+              }}
+              onMouseEnter={() => setEditBtnHover(true)}
+              onMouseLeave={() => setEditBtnHover(false)}
             >
               <Pencil className="h-3 w-3" />
             </button>
             <button
               onClick={() => deleteComment(comment.id)}
-              className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-red-100 hover:text-red-500"
+              className="flex h-5 w-5 items-center justify-center rounded-[4px]"
+              style={{
+                color: deleteBtnHover ? 'var(--error)' : 'var(--text-tertiary)',
+                backgroundColor: deleteBtnHover ? 'color-mix(in srgb, var(--error) 10%, transparent)' : 'transparent',
+              }}
+              onMouseEnter={() => setDeleteBtnHover(true)}
+              onMouseLeave={() => setDeleteBtnHover(false)}
             >
               <Trash2 className="h-3 w-3" />
             </button>
@@ -127,7 +157,13 @@ export default function DocumentCommentItem({ comment }: DocumentCommentItemProp
         <div className="mt-1.5 ml-9">
           <button
             onClick={handleLocationClick}
-            className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-200 transition-colors"
+            className="inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+            style={{
+              backgroundColor: locationHover ? 'var(--bg-active)' : 'var(--bg-secondary)',
+              color: 'var(--text-secondary)',
+            }}
+            onMouseEnter={() => setLocationHover(true)}
+            onMouseLeave={() => setLocationHover(false)}
           >
             {comment.pageNumber != null && <span>p.{comment.pageNumber}</span>}
             {comment.pageNumber != null && comment.chunkIndex != null && <span>/</span>}
@@ -144,26 +180,46 @@ export default function DocumentCommentItem({ comment }: DocumentCommentItemProp
             onChange={(e) => setEditContent(e.target.value.slice(0, 2000))}
             onKeyDown={handleKeyDown}
             rows={2}
-            className="w-full resize-none rounded-lg border border-primary-300 bg-white px-3 py-2 text-[13px] leading-relaxed text-slate-800 outline-none focus:ring-2 focus:ring-primary-100"
+            className="w-full resize-none rounded-[6px] px-3 py-2 text-[13px] leading-relaxed outline-none"
+            style={{
+              border: '1px solid var(--accent)',
+              backgroundColor: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+            }}
             autoFocus
           />
           <div className="mt-1 flex items-center gap-1">
             <button
               onClick={handleSave}
-              className="flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium text-primary-600 hover:bg-primary-50"
+              className="flex h-6 items-center gap-1 rounded-[4px] px-2 text-[11px] font-medium"
+              style={{
+                color: 'var(--accent)',
+                backgroundColor: saveBtnHover ? 'var(--accent-light)' : 'transparent',
+              }}
+              onMouseEnter={() => setSaveBtnHover(true)}
+              onMouseLeave={() => setSaveBtnHover(false)}
             >
               <Check className="h-3 w-3" /> 저장
             </button>
             <button
               onClick={() => { setEditing(false); setEditContent(comment.content); }}
-              className="flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium text-slate-500 hover:bg-slate-100"
+              className="flex h-6 items-center gap-1 rounded-[4px] px-2 text-[11px] font-medium"
+              style={{
+                color: 'var(--text-secondary)',
+                backgroundColor: cancelBtnHover ? 'var(--bg-hover)' : 'transparent',
+              }}
+              onMouseEnter={() => setCancelBtnHover(true)}
+              onMouseLeave={() => setCancelBtnHover(false)}
             >
               <X className="h-3 w-3" /> 취소
             </button>
           </div>
         </div>
       ) : (
-        <p className={`mt-1 ml-9 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-600 ${comment.resolved ? 'line-through' : ''}`}>
+        <p
+          className={`mt-1 ml-9 whitespace-pre-wrap text-[13px] leading-relaxed ${comment.resolved ? 'line-through' : ''}`}
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {comment.content}
         </p>
       )}

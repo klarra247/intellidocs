@@ -1,33 +1,34 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { FileText, MessageSquare, FileBarChart, Settings, Bell } from 'lucide-react';
+import { FileText, MessageSquare, FileBarChart, Settings, Bell, Share2 } from 'lucide-react';
 import UserMenu from '@/components/auth/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
 const pageConfig: Record<string, { title: string; icon: typeof FileText }> = {
-  '/workspace': { title: '문서 관리', icon: FileText },
+  '/workspace': { title: '문서', icon: FileText },
   '/workspace/chat': { title: 'AI 채팅', icon: MessageSquare },
   '/workspace/reports': { title: '리포트', icon: FileBarChart },
   '/workspace/settings': { title: '워크스페이스 설정', icon: Settings },
   '/workspace/notifications': { title: '알림', icon: Bell },
+  '/workspace/knowledge-graph': { title: 'Knowledge Graph', icon: Share2 },
 };
 
 export default function Header() {
   const pathname = usePathname();
   const config = pageConfig[pathname];
-  const Icon = config?.icon;
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-slate-200/80 bg-white px-6">
-      <div className="flex items-center gap-3">
-        {Icon && (
-          <Icon className="h-4 w-4 text-slate-400" strokeWidth={2} />
-        )}
-        <h2 className="text-sm font-semibold text-slate-700">
-          {config?.title ?? 'IntelliDocs'}
-        </h2>
-      </div>
+    <header
+      className="flex h-12 items-center justify-between px-6"
+      style={{
+        background: 'var(--bg-primary)',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      <h2 className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
+        {config?.title ?? 'IntelliDocs'}
+      </h2>
       <div className="flex items-center gap-2">
         <NotificationBell />
         <UserMenu />

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, Info, X } from 'lucide-react';
 import { useDiscrepancyStore } from '@/stores/discrepancyStore';
+import { useEffect } from 'react';
 
 export default function DiscrepancyAlertBanner() {
   const {
@@ -12,6 +13,9 @@ export default function DiscrepancyAlertBanner() {
     openDetail,
     dismissAlert,
   } = useDiscrepancyStore();
+
+  const [detailHover, setDetailHover] = useState(false);
+  const [dismissHover, setDismissHover] = useState(false);
 
   useEffect(() => {
     fetchAutoLatest();
@@ -28,22 +32,21 @@ export default function DiscrepancyAlertBanner() {
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
-        hasHighSeverity
-          ? 'bg-amber-50 border border-amber-200'
-          : 'bg-blue-50 border border-blue-200'
-      }`}
+      className="flex items-center gap-3 rounded-[8px] px-4 py-3"
+      style={{
+        background: hasHighSeverity ? 'var(--bg-secondary)' : 'var(--accent-light)',
+        border: `1px solid ${hasHighSeverity ? 'var(--warning)' : 'var(--accent)'}`,
+      }}
     >
       {hasHighSeverity ? (
-        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+        <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: 'var(--warning)' }} />
       ) : (
-        <Info className="h-4 w-4 shrink-0 text-blue-500" />
+        <Info className="h-4 w-4 shrink-0" style={{ color: 'var(--accent)' }} />
       )}
 
       <p
-        className={`flex-1 text-[13px] ${
-          hasHighSeverity ? 'text-amber-800' : 'text-blue-800'
-        }`}
+        className="flex-1 text-[13px]"
+        style={{ color: hasHighSeverity ? 'var(--text-primary)' : 'var(--accent)' }}
       >
         {hasHighSeverity
           ? `${summary.discrepanciesFound}건의 수치 불일치가 발견되었습니다`
@@ -52,22 +55,31 @@ export default function DiscrepancyAlertBanner() {
 
       <button
         onClick={() => openDetail(latestAutoResult)}
-        className={`shrink-0 text-[12px] font-medium underline underline-offset-2 ${
-          hasHighSeverity
-            ? 'text-amber-700 hover:text-amber-900'
-            : 'text-blue-700 hover:text-blue-900'
-        }`}
+        onMouseEnter={() => setDetailHover(true)}
+        onMouseLeave={() => setDetailHover(false)}
+        className="shrink-0 text-[12px] font-medium underline underline-offset-2"
+        style={{
+          color: hasHighSeverity
+            ? detailHover ? 'var(--text-primary)' : 'var(--warning)'
+            : detailHover ? 'var(--accent-hover)' : 'var(--accent)',
+        }}
       >
         상세 보기
       </button>
 
       <button
         onClick={dismissAlert}
-        className={`shrink-0 rounded-md p-1 ${
-          hasHighSeverity
-            ? 'text-amber-400 hover:bg-amber-100 hover:text-amber-600'
-            : 'text-blue-400 hover:bg-blue-100 hover:text-blue-600'
-        }`}
+        onMouseEnter={() => setDismissHover(true)}
+        onMouseLeave={() => setDismissHover(false)}
+        className="shrink-0 rounded-[6px] p-1"
+        style={{
+          color: hasHighSeverity
+            ? dismissHover ? 'var(--warning)' : 'var(--text-tertiary)'
+            : dismissHover ? 'var(--accent)' : 'var(--text-tertiary)',
+          background: dismissHover
+            ? hasHighSeverity ? 'var(--bg-hover)' : 'var(--accent-light)'
+            : 'transparent',
+        }}
       >
         <X className="h-3.5 w-3.5" />
       </button>

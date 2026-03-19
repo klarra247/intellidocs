@@ -21,6 +21,8 @@ export default function ReportGenerateModal() {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [closeHover, setCloseHover] = useState(false);
+  const [cancelHover, setCancelHover] = useState(false);
 
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -35,9 +37,8 @@ export default function ReportGenerateModal() {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [setModalOpen]);
 
-  // --- Validation ---
   const getValidationError = (): string | null => {
-    if (!title.trim()) return null; // 제목 미입력은 버튼 비활성화로 처리
+    if (!title.trim()) return null;
     if (indexedDocs.length === 0) return '분석 가능한 문서가 없습니다. 문서를 업로드하고 파싱이 완료된 후 시도해 주세요.';
     if (selectedDocs.length === 0) return '분석할 문서를 1개 이상 선택해 주세요.';
     if (selectedType === 'COMPARISON' && selectedDocs.length < 2) return '비교 분석을 위해 2개 이상의 문서를 선택해 주세요.';
@@ -70,59 +71,57 @@ export default function ReportGenerateModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="modal-backdrop absolute inset-0 bg-slate-900/30 animate-fade-in"
+        className="modal-backdrop absolute inset-0 animate-fade-in"
+        style={{ background: 'rgba(0,0,0,0.3)' }}
         onClick={() => setModalOpen(false)}
       />
 
-      <div className="animate-scale-in relative mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-modal max-h-[85vh] overflow-y-auto">
+      <div
+        className="animate-scale-in relative mx-4 w-full max-w-lg rounded-[12px] p-6 max-h-[85vh] overflow-y-auto"
+        style={{ background: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' }}
+      >
         <button
           onClick={() => setModalOpen(false)}
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          onMouseEnter={() => setCloseHover(true)}
+          onMouseLeave={() => setCloseHover(false)}
+          className="absolute right-3 top-3 rounded-[6px] p-1.5"
+          style={{
+            color: closeHover ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+            background: closeHover ? 'var(--bg-hover)' : 'transparent',
+          }}
         >
           <X className="h-4 w-4" />
         </button>
 
-        <h3 className="text-[15px] font-semibold text-slate-900">
+        <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           리포트 생성
         </h3>
-        <p className="mt-1 text-[13px] text-slate-500">
+        <p className="mt-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           AI가 문서를 분석하여 PDF 리포트를 생성합니다
         </p>
 
         {/* Report Type Selection */}
         <div className="mt-5 space-y-2">
-          <label className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">
+          <label className="text-[12px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
             리포트 유형
           </label>
           <div className="grid grid-cols-3 gap-2">
             {reportTypes.map(({ type, label, desc, icon: Icon }) => (
-              <button
+              <ReportTypeButton
                 key={type}
+                selected={selectedType === type}
                 onClick={() => setSelectedType(type)}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all ${
-                  selectedType === type
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <Icon
-                  className={`h-5 w-5 ${selectedType === type ? 'text-primary-600' : 'text-slate-400'}`}
-                  strokeWidth={2}
-                />
-                <span className={`text-[12px] font-medium ${selectedType === type ? 'text-primary-700' : 'text-slate-700'}`}>
-                  {label}
-                </span>
-                <span className="text-[10px] text-slate-400 leading-tight">
-                  {desc}
-                </span>
-              </button>
+                icon={Icon}
+                label={label}
+                desc={desc}
+              />
             ))}
           </div>
         </div>
 
         {/* Title */}
         <div className="mt-4 space-y-1.5">
-          <label className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">
+          <label className="text-[12px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
             리포트 제목
           </label>
           <input
@@ -131,43 +130,46 @@ export default function ReportGenerateModal() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={200}
             placeholder="예: 2024년 재무 분석 리포트"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
+            className="w-full rounded-[6px] px-3 py-2 text-[13px] focus:outline-none"
+            style={{
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              background: 'var(--bg-primary)',
+            }}
           />
         </div>
 
         {/* Document Selection */}
         <div className="mt-4 space-y-1.5">
-          <label className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">
+          <label className="text-[12px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
             분석 대상 문서
             {selectedType === 'COMPARISON' && (
-              <span className="text-red-400 normal-case ml-1">(2개 이상 필수)</span>
+              <span className="normal-case ml-1" style={{ color: 'var(--error)' }}>(2개 이상 필수)</span>
             )}
           </label>
           {indexedDocs.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto rounded-lg border border-slate-200 p-2 space-y-1">
+            <div
+              className="max-h-32 overflow-y-auto rounded-[6px] p-2 space-y-1"
+              style={{ border: '1px solid var(--border)' }}
+            >
               {indexedDocs.map((doc) => (
-                <label
+                <DocCheckboxLabel
                   key={doc.id}
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedDocs.includes(doc.id)}
-                    onChange={() => toggleDoc(doc.id)}
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-[12px] text-slate-700 truncate">
-                    {doc.originalFilename}
-                  </span>
-                </label>
+                  checked={selectedDocs.includes(doc.id)}
+                  onChange={() => toggleDoc(doc.id)}
+                  label={doc.originalFilename}
+                />
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center">
-              <p className="text-[12px] text-slate-400">
+            <div
+              className="rounded-[6px] px-3 py-4 text-center"
+              style={{ border: '1px dashed var(--border)' }}
+            >
+              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
                 분석 가능한 문서가 없습니다
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                 문서를 업로드하고 파싱이 완료되면 여기에 표시됩니다
               </p>
             </div>
@@ -176,8 +178,8 @@ export default function ReportGenerateModal() {
 
         {/* Custom prompt */}
         <div className="mt-4 space-y-1.5">
-          <label className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">
-            추가 지시사항 <span className="text-slate-400 normal-case">(선택)</span>
+          <label className="text-[12px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+            추가 지시사항 <span className="normal-case" style={{ color: 'var(--text-tertiary)' }}>(선택)</span>
           </label>
           <textarea
             value={prompt}
@@ -185,15 +187,23 @@ export default function ReportGenerateModal() {
             maxLength={1000}
             placeholder="예: 2023년 대비 2024년 변화에 집중해서 분석해 주세요"
             rows={2}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400 resize-none"
+            className="w-full rounded-[6px] px-3 py-2 text-[13px] focus:outline-none resize-none"
+            style={{
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              background: 'var(--bg-primary)',
+            }}
           />
         </div>
 
         {/* Validation Error */}
         {validationError && title.trim() && (
-          <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2">
-            <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-[12px] text-red-600">{validationError}</p>
+          <div
+            className="mt-3 flex items-start gap-2 rounded-[6px] px-3 py-2"
+            style={{ background: 'var(--bg-secondary)' }}
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--error)' }} />
+            <p className="text-[12px]" style={{ color: 'var(--error)' }}>{validationError}</p>
           </div>
         )}
 
@@ -202,19 +212,104 @@ export default function ReportGenerateModal() {
           <button
             ref={cancelRef}
             onClick={() => setModalOpen(false)}
-            className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            onMouseEnter={() => setCancelHover(true)}
+            onMouseLeave={() => setCancelHover(false)}
+            className="flex-1 rounded-[6px] px-4 py-2 text-[13px] font-medium transition-colors"
+            style={{
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              background: cancelHover ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+            }}
           >
             취소
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="flex-1 rounded-lg bg-primary-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 rounded-[6px] px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'var(--accent)',
+              color: '#ffffff',
+            }}
           >
             {submitting ? '생성 중...' : '리포트 생성'}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function ReportTypeButton({
+  selected,
+  onClick,
+  icon: Icon,
+  label,
+  desc,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: typeof FileBarChart;
+  label: string;
+  desc: string;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className="flex flex-col items-center gap-1.5 rounded-[8px] p-3 text-center transition-all"
+      style={{
+        border: `2px solid ${selected ? 'var(--accent)' : hover ? 'var(--border-strong)' : 'var(--border)'}`,
+        background: selected ? 'var(--accent-light)' : hover ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+      }}
+    >
+      <Icon
+        className="h-5 w-5"
+        style={{ color: selected ? 'var(--accent)' : 'var(--text-tertiary)' }}
+        strokeWidth={2}
+      />
+      <span
+        className="text-[12px] font-medium"
+        style={{ color: selected ? 'var(--accent)' : 'var(--text-primary)' }}
+      >
+        {label}
+      </span>
+      <span className="text-[10px] leading-tight" style={{ color: 'var(--text-tertiary)' }}>
+        {desc}
+      </span>
+    </button>
+  );
+}
+
+function DocCheckboxLabel({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <label
+      className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 cursor-pointer"
+      style={{ background: hover ? 'var(--bg-hover)' : 'transparent' }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-3.5 w-3.5 rounded"
+        style={{ accentColor: 'var(--accent)' }}
+      />
+      <span className="text-[12px] truncate" style={{ color: 'var(--text-primary)' }}>
+        {label}
+      </span>
+    </label>
   );
 }

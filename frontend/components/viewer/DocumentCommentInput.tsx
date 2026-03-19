@@ -6,6 +6,8 @@ import { useDocumentCommentStore } from '@/stores/documentCommentStore';
 
 export default function DocumentCommentInput() {
   const [input, setInput] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [clearBtnHover, setClearBtnHover] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const createComment = useDocumentCommentStore((s) => s.createComment);
@@ -41,11 +43,14 @@ export default function DocumentCommentInput() {
   };
 
   return (
-    <div className="border-t border-slate-200 p-3">
+    <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
       {/* Pending location chip */}
       {pendingLocation && (
         <div className="mb-2 flex items-center gap-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+            style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+          >
             <MapPin className="h-3 w-3" />
             {pendingLocation.pageNumber != null && `p.${pendingLocation.pageNumber}`}
             {pendingLocation.pageNumber != null && pendingLocation.chunkIndex != null && ' / '}
@@ -53,7 +58,13 @@ export default function DocumentCommentInput() {
           </span>
           <button
             onClick={clearPendingLocation}
-            className="flex h-4 w-4 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+            className="flex h-4 w-4 items-center justify-center rounded-full"
+            style={{
+              color: clearBtnHover ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+              backgroundColor: clearBtnHover ? 'var(--bg-active)' : 'transparent',
+            }}
+            onMouseEnter={() => setClearBtnHover(true)}
+            onMouseLeave={() => setClearBtnHover(false)}
           >
             <X className="h-3 w-3" />
           </button>
@@ -66,19 +77,29 @@ export default function DocumentCommentInput() {
           value={input}
           onChange={(e) => setInput(e.target.value.slice(0, 2000))}
           onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           placeholder="코멘트 작성..."
           rows={1}
-          className="flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] leading-relaxed text-slate-800 outline-none placeholder:text-slate-400 focus:border-primary-300 focus:bg-white focus:ring-2 focus:ring-primary-100"
+          className="flex-1 resize-none rounded-[6px] px-3 py-2 text-[13px] leading-relaxed outline-none"
+          style={{
+            border: `1px solid ${focused ? 'var(--accent)' : 'var(--border)'}`,
+            backgroundColor: focused ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+          }}
         />
         <button
           onClick={handleSubmit}
           disabled={!input.trim()}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white transition-all hover:bg-primary-700 disabled:opacity-30"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[6px] transition-all disabled:opacity-30"
+          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = 'var(--accent-hover)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent)'; }}
         >
           <Send className="h-3.5 w-3.5" />
         </button>
       </div>
-      <p className="mt-1 px-1 text-[11px] text-slate-400">
+      <p className="mt-1 px-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
         Shift+Enter 줄바꿈 · Enter 전송 · 최대 2000자
       </p>
     </div>

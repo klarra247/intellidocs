@@ -16,6 +16,10 @@ export default function InviteMemberModal({ onClose, onInvited }: InviteMemberMo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [closeBtnHover, setCloseBtnHover] = useState(false);
+  const [cancelBtnHover, setCancelBtnHover] = useState(false);
+  const [submitBtnHover, setSubmitBtnHover] = useState(false);
+  const [confirmBtnHover, setConfirmBtnHover] = useState(false);
 
   const { currentWorkspace, inviteMember } = useWorkspaceStore();
 
@@ -46,44 +50,88 @@ export default function InviteMemberModal({ onClose, onInvited }: InviteMemberMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="modal-backdrop absolute inset-0 bg-slate-900/30 animate-fade-in" onClick={onClose} />
-      <div className="animate-scale-in relative mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-modal">
+      <div
+        className="modal-backdrop absolute inset-0 animate-fade-in"
+        style={{ backgroundColor: 'rgba(55, 53, 47, 0.3)' }}
+        onClick={onClose}
+      />
+      <div
+        className="animate-scale-in relative mx-4 w-full max-w-md rounded-[12px] p-6"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          className="absolute right-3 top-3 rounded-[8px] p-1.5 transition-colors"
+          style={{
+            color: closeBtnHover ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            backgroundColor: closeBtnHover ? 'var(--bg-hover)' : 'transparent',
+          }}
+          onMouseEnter={() => setCloseBtnHover(true)}
+          onMouseLeave={() => setCloseBtnHover(false)}
         >
           <X className="h-4 w-4" />
         </button>
 
         {success ? (
           <div className="flex flex-col items-center py-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-50">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: '#f0fdf4' }}
+            >
+              <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />
             </div>
-            <h3 className="mt-4 text-[15px] font-semibold text-slate-900">초대가 발송되었습니다</h3>
-            <p className="mt-1.5 text-center text-[13px] text-slate-500">
-              <span className="font-medium text-slate-700">{email}</span>에게 초대 링크가 전송됩니다.
+            <h3
+              className="mt-4 text-[15px] font-semibold"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              초대가 발송되었습니다
+            </h3>
+            <p className="mt-1.5 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{email}</span>
+              에게 초대 링크가 전송됩니다.
             </p>
             <button
               onClick={onClose}
-              className="mt-5 rounded-lg bg-primary-600 px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700"
+              className="mt-5 rounded-[8px] px-6 py-2.5 text-[13px] font-semibold transition-colors"
+              style={{
+                backgroundColor: confirmBtnHover ? 'var(--accent-hover)' : 'var(--accent)',
+                color: '#ffffff',
+              }}
+              onMouseEnter={() => setConfirmBtnHover(true)}
+              onMouseLeave={() => setConfirmBtnHover(false)}
             >
               확인
             </button>
           </div>
         ) : (
           <>
-            <h3 className="text-[15px] font-semibold text-slate-900">멤버 초대</h3>
-            <p className="mt-1 text-[13px] text-slate-500">이메일로 팀원을 초대하세요.</p>
+            <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+              멤버 초대
+            </h3>
+            <p className="mt-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+              이메일로 팀원을 초대하세요.
+            </p>
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               {error && (
-                <div className="rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
+                <div
+                  className="rounded-[8px] px-4 py-3 text-[13px]"
+                  style={{ backgroundColor: '#fef2f2', color: 'var(--error)' }}
+                >
+                  {error}
+                </div>
               )}
 
               <div>
-                <label htmlFor="invite-email" className="block text-[13px] font-medium text-slate-700">
-                  이메일 <span className="text-red-500">*</span>
+                <label
+                  htmlFor="invite-email"
+                  className="block text-[13px] font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  이메일 <span style={{ color: 'var(--error)' }}>*</span>
                 </label>
                 <input
                   id="invite-email"
@@ -91,20 +139,34 @@ export default function InviteMemberModal({ onClose, onInvited }: InviteMemberMo
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+                  className="mt-1.5 w-full rounded-[8px] px-3.5 py-2.5 text-[14px] transition-colors focus:outline-none"
+                  style={{
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                  }}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label htmlFor="invite-role" className="block text-[13px] font-medium text-slate-700">
+                <label
+                  htmlFor="invite-role"
+                  className="block text-[13px] font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   역할
                 </label>
                 <select
                   id="invite-role"
                   value={role}
                   onChange={(e) => setRole(e.target.value as WorkspaceMemberRole)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100 transition-colors"
+                  className="mt-1.5 w-full rounded-[8px] px-3.5 py-2.5 text-[14px] transition-colors focus:outline-none"
+                  style={{
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   <option value="MEMBER">멤버</option>
                   <option value="ADMIN">관리자</option>
@@ -115,14 +177,27 @@ export default function InviteMemberModal({ onClose, onInvited }: InviteMemberMo
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  className="flex-1 rounded-[8px] px-4 py-2.5 text-[13px] font-medium transition-colors"
+                  style={{
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    backgroundColor: cancelBtnHover ? 'var(--bg-hover)' : 'transparent',
+                  }}
+                  onMouseEnter={() => setCancelBtnHover(true)}
+                  onMouseLeave={() => setCancelBtnHover(false)}
                 >
                   취소
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-[8px] px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-50"
+                  style={{
+                    backgroundColor: submitBtnHover ? 'var(--accent-hover)' : 'var(--accent)',
+                    color: '#ffffff',
+                  }}
+                  onMouseEnter={() => setSubmitBtnHover(true)}
+                  onMouseLeave={() => setSubmitBtnHover(false)}
                 >
                   {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   초대

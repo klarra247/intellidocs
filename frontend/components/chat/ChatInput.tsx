@@ -38,9 +38,21 @@ export default function ChatInput() {
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-slate-200/80 bg-white p-4 shadow-[0_-1px_3px_rgba(0,0,0,0.03)]">
+    <div
+      className="flex-shrink-0 p-4"
+      style={{ background: 'var(--bg-primary)', borderTop: '1px solid var(--border)' }}
+    >
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors focus-within:border-primary-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-100">
+        <div
+          className="flex items-center gap-2 rounded-[8px] px-3 py-2 transition-colors"
+          style={{ border: '1px solid var(--border)', background: 'var(--bg-primary)' }}
+          onFocusCapture={(e) => {
+            e.currentTarget.style.borderColor = 'var(--accent)';
+          }}
+          onBlurCapture={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+          }}
+        >
           <textarea
             ref={textareaRef}
             value={input}
@@ -49,31 +61,40 @@ export default function ChatInput() {
             onInput={handleInput}
             placeholder="문서에 대해 질문하세요..."
             rows={1}
-            className="flex-1 resize-none bg-transparent text-[13px] leading-relaxed text-slate-800 outline-none placeholder:text-slate-400"
+            className="flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none"
+            style={{
+              color: 'var(--text-primary)',
+            }}
           />
           {streaming ? (
             <button
               onClick={stopStreaming}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-red-500 text-white transition-colors hover:bg-red-600"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[6px] text-white transition-colors"
+              style={{ background: 'var(--error)' }}
             >
-              <Square className="h-3 w-3" fill="currentColor" />
+              <Square className="h-3 w-3" fill="currentColor" strokeWidth={0} />
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={!input.trim()}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white transition-all hover:bg-primary-700 disabled:opacity-30"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[6px] text-white transition-colors disabled:opacity-30"
+              style={{ background: 'var(--accent)' }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) e.currentTarget.style.background = 'var(--accent-hover)';
+              }}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--accent)')}
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
             </button>
           )}
         </div>
         <div className="mt-1.5 flex items-center justify-between px-1">
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             Shift+Enter 줄바꿈 · Enter 전송
           </p>
           {selectedDocIds.length > 0 && (
-            <p className="text-[11px] text-primary-500">
+            <p className="text-[11px]" style={{ color: 'var(--accent)' }}>
               {selectedDocIds.length}개 문서 선택됨
             </p>
           )}

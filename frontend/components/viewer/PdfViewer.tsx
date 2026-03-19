@@ -23,6 +23,8 @@ export default function PdfViewer() {
 
   const [pdfError, setPdfError] = useState(false);
   const [pageWarning, setPageWarning] = useState<string | null>(null);
+  const [commentBtnHover, setCommentBtnHover] = useState(false);
+  const [warningCloseHover, setWarningCloseHover] = useState(false);
 
   const handleAddComment = () => {
     useDocumentCommentStore.getState().setPendingLocation(undefined, currentPage);
@@ -45,20 +47,41 @@ export default function PdfViewer() {
   if (!fileUrl) return null;
 
   return (
-    <div className="flex h-full w-full flex-col items-center overflow-auto bg-slate-50">
+    <div className="flex h-full w-full flex-col items-center overflow-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
       {pageWarning && (
-        <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
+        <div
+          className="mx-4 mt-3 flex items-center gap-2 rounded-[6px] px-3 py-2 text-[12px]"
+          style={{
+            border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)',
+            backgroundColor: 'color-mix(in srgb, var(--warning) 10%, transparent)',
+            color: 'var(--warning)',
+          }}
+        >
           <span>{pageWarning}</span>
-          <button onClick={() => setPageWarning(null)} className="ml-auto font-medium text-amber-600 hover:text-amber-800">✕</button>
+          <button
+            onClick={() => setPageWarning(null)}
+            className="ml-auto font-medium"
+            style={{ color: warningCloseHover ? 'var(--text-primary)' : 'var(--warning)' }}
+            onMouseEnter={() => setWarningCloseHover(true)}
+            onMouseLeave={() => setWarningCloseHover(false)}
+          >
+            &#x2715;
+          </button>
         </div>
       )}
 
       {/* Reference banner */}
       {showBanner && (
-        <div className="w-full shrink-0 border-b border-primary-200 bg-primary-50 px-4 py-2">
+        <div
+          className="w-full shrink-0 px-4 py-2"
+          style={{
+            borderBottom: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+            backgroundColor: 'var(--accent-light)',
+          }}
+        >
           <div className="flex items-center gap-2">
-            <div className="h-4 w-1 rounded-full bg-primary-400" />
-            <span className="text-[12px] font-medium text-primary-700">
+            <div className="h-4 w-1 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
+            <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
               AI가 이 페이지의 내용을 참조했습니다
             </span>
           </div>
@@ -70,7 +93,15 @@ export default function PdfViewer() {
       {!directFileUrl && (
         <button
           onClick={handleAddComment}
-          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-primary-50 hover:text-primary-600"
+          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[11px] font-medium backdrop-blur-sm transition-all"
+          style={{
+            border: '1px solid var(--border)',
+            backgroundColor: commentBtnHover ? 'var(--accent-light)' : 'rgba(255,255,255,0.9)',
+            color: commentBtnHover ? 'var(--accent)' : 'var(--text-secondary)',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+          onMouseEnter={() => setCommentBtnHover(true)}
+          onMouseLeave={() => setCommentBtnHover(false)}
           title={`p.${currentPage}에 코멘트 추가`}
         >
           <MessageSquarePlus className="h-3.5 w-3.5" />
@@ -94,15 +125,24 @@ export default function PdfViewer() {
         loading={
           <div className="flex h-64 items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
-              <p className="text-[12px] text-slate-400">PDF 로딩 중...</p>
+              <div
+                className="h-6 w-6 animate-spin rounded-full"
+                style={{ border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }}
+              />
+              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>PDF 로딩 중...</p>
             </div>
           </div>
         }
         error={
           <div className="flex h-64 items-center justify-center">
-            <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center">
-              <p className="text-[13px] font-medium text-red-700">
+            <div
+              className="rounded-[8px] px-5 py-4 text-center"
+              style={{
+                border: '1px solid color-mix(in srgb, var(--error) 30%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--error) 10%, transparent)',
+              }}
+            >
+              <p className="text-[13px] font-medium" style={{ color: 'var(--error)' }}>
                 PDF를 불러올 수 없습니다
               </p>
             </div>
@@ -115,7 +155,10 @@ export default function PdfViewer() {
             scale={scale}
             loading={
               <div className="flex h-64 items-center justify-center">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
+                <div
+                  className="h-5 w-5 animate-spin rounded-full"
+                  style={{ border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }}
+                />
               </div>
             }
           />

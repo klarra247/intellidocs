@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
 import { ChatSource } from '@/lib/types';
 import { useViewerStore } from '@/stores/viewerStore';
 
@@ -125,16 +124,23 @@ export default function SourceGroup({ documentId, filename, sources }: SourceGro
         onClick={handleBadgeClick}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-          isDocActive
-            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-400 ring-offset-1'
-            : 'bg-primary-50 text-primary-700 hover:bg-primary-100 hover:shadow-sm'
-        } ${hasClickable ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
+        className="inline-flex items-center gap-1 text-[11px] transition-colors"
+        style={{
+          color: 'var(--accent)',
+          fontWeight: isDocActive ? 500 : 400,
+          cursor: hasClickable ? 'pointer' : 'default',
+          opacity: hasClickable ? 1 : 0.6,
+        }}
+        onMouseOver={(e) => {
+          if (hasClickable) (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+        }}
+        onMouseOut={(e) => {
+          (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+        }}
       >
-        <FileText className="h-3 w-3 shrink-0" />
         {truncateFilename(filename)}
         {uniquePages.length > 0 && (
-          <span className="ml-0.5 text-primary-500">
+          <span className="ml-0.5">
             {uniquePages.map((page, i) => {
               const isPageActive = isDocActive && viewerCurrentPage === page;
               return (
@@ -142,7 +148,13 @@ export default function SourceGroup({ documentId, filename, sources }: SourceGro
                   {i > 0 && ', '}
                   <span
                     onClick={(e) => handlePageClick(e, page)}
-                    className={`hover:underline ${isPageActive ? 'font-bold text-primary-800' : ''}`}
+                    style={{
+                      color: 'var(--accent)',
+                      fontWeight: isPageActive ? 700 : 400,
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                    onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
                   >
                     p.{page}
                   </span>
@@ -154,28 +166,42 @@ export default function SourceGroup({ documentId, filename, sources }: SourceGro
       </span>
 
       {showTooltip && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-modal animate-scale-in">
-          <p className="text-[11px] font-semibold text-slate-700">{filename}</p>
+        <div
+          className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-[6px] p-3 animate-scale-in"
+          style={{
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {filename}
+          </p>
           {sources[0]?.sectionTitle && (
-            <p className="mt-1 text-[11px] text-slate-500">§ {sources[0].sectionTitle}</p>
+            <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              § {sources[0].sectionTitle}
+            </p>
           )}
           {uniquePages.length > 0 && (
-            <p className="mt-0.5 text-[11px] text-slate-400">
+            <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
               페이지 {uniquePages.join(', ')}
             </p>
           )}
-          <p className="mt-1 text-[10px] text-slate-400">
+          <p className="mt-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
             {hasClickable ? '클릭하여 원문 보기' : '원문 보기 불가'}
           </p>
           {bestSource && bestSource.relevanceScore > 0 && (
             <div className="mt-2 flex items-center gap-1.5">
-              <div className="h-1 flex-1 rounded-full bg-slate-100">
+              <div className="h-1 flex-1 rounded-full" style={{ background: 'var(--bg-active)' }}>
                 <div
-                  className="h-1 rounded-full bg-primary-400"
-                  style={{ width: `${Math.min(bestSource.relevanceScore * 100, 100)}%` }}
+                  className="h-1 rounded-full"
+                  style={{
+                    width: `${Math.min(bestSource.relevanceScore * 100, 100)}%`,
+                    background: 'var(--accent)',
+                  }}
                 />
               </div>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                 {(bestSource.relevanceScore * 100).toFixed(0)}%
               </span>
             </div>

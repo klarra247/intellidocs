@@ -49,19 +49,43 @@ export default function DiffProgressBar() {
   const displayProgress = Math.max(diffJob.progress, simulatedProgress);
 
   return (
-    <div className={`rounded-xl border px-4 py-3 ${isFailed ? 'border-red-200 bg-red-50' : 'border-primary-200 bg-primary-50'}`}>
+    <div
+      className="rounded-[8px] px-4 py-3"
+      style={{
+        border: `1px solid ${isFailed ? 'var(--error)' : 'var(--accent)'}`,
+        backgroundColor: isFailed
+          ? 'color-mix(in srgb, var(--error) 8%, var(--bg-primary))'
+          : 'var(--accent-light)',
+      }}
+    >
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-[12px] font-medium ${isFailed ? 'text-red-700' : 'text-primary-700'}`}>
+        <span
+          className="text-[12px] font-medium"
+          style={{ color: isFailed ? 'var(--error)' : 'var(--accent)' }}
+        >
           {diffJob.message}
         </span>
-        <span className={`text-[11px] ${isFailed ? 'text-red-500' : 'text-primary-500'}`}>
+        <span
+          className="text-[11px]"
+          style={{ color: isFailed ? 'var(--error)' : 'var(--accent)' }}
+        >
           {Math.round(displayProgress)}%
         </span>
       </div>
-      <div className={`rounded-full h-2 ${isFailed ? 'bg-red-100' : 'bg-primary-100'}`}>
+      <div
+        className="rounded-full h-2"
+        style={{
+          backgroundColor: isFailed
+            ? 'color-mix(in srgb, var(--error) 15%, var(--bg-primary))'
+            : 'color-mix(in srgb, var(--accent) 15%, var(--bg-primary))',
+        }}
+      >
         <div
-          className={`h-2 rounded-full transition-all duration-500 ease-out ${isFailed ? 'bg-red-500' : 'bg-primary-500'}`}
-          style={{ width: `${displayProgress}%` }}
+          className="h-2 rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${displayProgress}%`,
+            backgroundColor: isFailed ? 'var(--error)' : 'var(--accent)',
+          }}
         />
       </div>
     </div>

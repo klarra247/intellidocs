@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import { CheckCircle, XCircle, X } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 
 export default function Toast() {
@@ -14,18 +13,44 @@ export default function Toast() {
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
       <div
-        className={`flex items-center gap-2.5 rounded-xl px-4 py-3 shadow-lg ${
-          isSuccess
-            ? 'bg-emerald-600 text-white'
-            : 'bg-red-600 text-white'
-        }`}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          borderRadius: '8px',
+          padding: '10px 16px',
+          background: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-md)',
+          overflow: 'hidden',
+        }}
       >
+        {/* Left status bar */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '3px',
+            background: isSuccess ? 'var(--success)' : 'var(--error)',
+          }}
+        />
         {isSuccess ? (
-          <CheckCircle className="h-4 w-4 flex-shrink-0" />
+          <CheckCircle
+            className="h-4 w-4 flex-shrink-0"
+            style={{ color: 'var(--success)' }}
+          />
         ) : (
-          <XCircle className="h-4 w-4 flex-shrink-0" />
+          <XCircle
+            className="h-4 w-4 flex-shrink-0"
+            style={{ color: 'var(--error)' }}
+          />
         )}
-        <span className="text-[13px] font-medium">{toast.message}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+          {toast.message}
+        </span>
       </div>
     </div>
   );

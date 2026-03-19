@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Download,
   Eye,
@@ -18,18 +18,18 @@ import { useViewerStore } from '@/stores/viewerStore';
 import { reportsApi } from '@/lib/api';
 import { Report, ReportType, ReportStatus } from '@/lib/types';
 
-const typeConfig: Record<ReportType, { label: string; icon: typeof FileBarChart; color: string }> = {
-  FINANCIAL_ANALYSIS: { label: '재무 분석', icon: FileBarChart, color: 'bg-blue-50 text-blue-700' },
-  COMPARISON: { label: '비교 분석', icon: GitCompare, color: 'bg-violet-50 text-violet-700' },
-  SUMMARY: { label: '종합 요약', icon: FileText, color: 'bg-emerald-50 text-emerald-700' },
+const typeConfig: Record<ReportType, { label: string; icon: typeof FileBarChart; bg: string; color: string }> = {
+  FINANCIAL_ANALYSIS: { label: '재무 분석', icon: FileBarChart, bg: 'var(--accent-light)', color: 'var(--accent)' },
+  COMPARISON: { label: '비교 분석', icon: GitCompare, bg: 'var(--bg-secondary)', color: 'var(--accent)' },
+  SUMMARY: { label: '종합 요약', icon: FileText, bg: 'var(--bg-secondary)', color: 'var(--success)' },
 };
 
-const statusConfig: Record<ReportStatus, { label: string; color: string }> = {
-  PENDING: { label: '대기', color: 'bg-slate-100 text-slate-600' },
-  GENERATING: { label: '분석 중', color: 'bg-amber-50 text-amber-700' },
-  RENDERING: { label: 'PDF 생성 중', color: 'bg-blue-50 text-blue-700' },
-  COMPLETED: { label: '완료', color: 'bg-green-50 text-green-700' },
-  FAILED: { label: '실패', color: 'bg-red-50 text-red-700' },
+const statusConfig: Record<ReportStatus, { label: string; bg: string; color: string }> = {
+  PENDING: { label: '대기', bg: 'var(--bg-active)', color: 'var(--text-secondary)' },
+  GENERATING: { label: '분석 중', bg: 'var(--bg-secondary)', color: 'var(--warning)' },
+  RENDERING: { label: 'PDF 생성 중', bg: 'var(--accent-light)', color: 'var(--accent)' },
+  COMPLETED: { label: '완료', bg: 'var(--bg-secondary)', color: 'var(--success)' },
+  FAILED: { label: '실패', bg: 'var(--bg-secondary)', color: 'var(--error)' },
 };
 
 function formatFileSize(bytes: number | null): string {
@@ -61,7 +61,7 @@ export default function ReportListPanel() {
 
   if (loading && reports.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-slate-400">
+      <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }}>
         <Loader2 className="h-5 w-5 animate-spin" />
       </div>
     );
@@ -69,12 +69,15 @@ export default function ReportListPanel() {
 
   if (reports.length === 0 && generatingEntries.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center">
-        <FileBarChart className="mx-auto h-8 w-8 text-slate-300" strokeWidth={1.5} />
-        <p className="mt-2 text-[13px] text-slate-500">
+      <div
+        className="rounded-[8px] py-12 text-center"
+        style={{ border: '1px dashed var(--border)' }}
+      >
+        <FileBarChart className="mx-auto h-8 w-8" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+        <p className="mt-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           아직 생성된 리포트가 없습니다
         </p>
-        <p className="mt-0.5 text-[12px] text-slate-400">
+        <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
           리포트 생성 버튼을 눌러 AI 분석 리포트를 만들어 보세요
         </p>
       </div>
@@ -83,12 +86,10 @@ export default function ReportListPanel() {
 
   return (
     <div className="space-y-2.5">
-      {/* Generating / Failed (in-progress) reports */}
       {generatingEntries.map(([reportId, gen]) => (
         <GeneratingCard key={reportId} reportId={reportId} gen={gen} />
       ))}
 
-      {/* Persisted reports */}
       {reports.map((report) => (
         <ReportCard key={report.id} report={report} />
       ))}
@@ -105,6 +106,7 @@ function GeneratingCard({
 }) {
   const { generating } = useReportStore();
   const isFailed = gen.status === 'FAILED';
+  const [dismissHover, setDismissHover] = useState(false);
 
   const dismiss = () => {
     const next = new Map(generating);
@@ -114,22 +116,34 @@ function GeneratingCard({
 
   if (isFailed) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50/50 p-4">
+      <div
+        className="rounded-[8px] p-4"
+        style={{ border: '1px solid var(--error)', background: 'var(--bg-secondary)' }}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100">
-            <AlertCircle className="h-4 w-4 text-red-500" strokeWidth={2} />
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-[6px]"
+            style={{ background: 'var(--bg-active)' }}
+          >
+            <AlertCircle className="h-4 w-4" style={{ color: 'var(--error)' }} strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-red-700">
+            <p className="text-[13px] font-medium" style={{ color: 'var(--error)' }}>
               리포트 생성 실패
             </p>
-            <p className="mt-0.5 text-[11px] text-red-500 truncate">
+            <p className="mt-0.5 text-[11px] truncate" style={{ color: 'var(--error)' }}>
               {gen.message}
             </p>
           </div>
           <button
             onClick={dismiss}
-            className="shrink-0 rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-100 hover:text-red-600"
+            onMouseEnter={() => setDismissHover(true)}
+            onMouseLeave={() => setDismissHover(false)}
+            className="shrink-0 rounded-[6px] p-1.5 transition-colors"
+            style={{
+              color: dismissHover ? 'var(--error)' : 'var(--text-tertiary)',
+              background: dismissHover ? 'var(--bg-hover)' : 'transparent',
+            }}
             title="닫기"
           >
             <X className="h-4 w-4" />
@@ -140,23 +154,32 @@ function GeneratingCard({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div
+      className="rounded-[8px] p-4"
+      style={{ border: '1px solid var(--border)', background: 'var(--bg-primary)' }}
+    >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-          <Loader2 className="h-4 w-4 text-amber-600 animate-spin" strokeWidth={2} />
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-[6px]"
+          style={{ background: 'var(--bg-secondary)' }}
+        >
+          <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--warning)' }} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-slate-700">
+          <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
             {gen.message}
           </p>
-          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className="mt-2 h-1.5 w-full rounded-full overflow-hidden"
+            style={{ background: 'var(--bg-active)' }}
+          >
             <div
-              className="h-full rounded-full bg-primary-500 transition-all duration-500"
-              style={{ width: `${gen.progress}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${gen.progress}%`, background: 'var(--accent)' }}
             />
           </div>
         </div>
-        <span className="text-[12px] font-medium text-slate-500">
+        <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           {gen.progress}%
         </span>
       </div>
@@ -171,33 +194,50 @@ function ReportCard({ report }: { report: Report }) {
   const TypeIcon = type.icon;
   const isFailed = report.status === 'FAILED';
 
+  const [cardHover, setCardHover] = useState(false);
+  const [viewHover, setViewHover] = useState(false);
+  const [dlHover, setDlHover] = useState(false);
+  const [retryHover, setRetryHover] = useState(false);
+  const [deleteHover, setDeleteHover] = useState(false);
+
   return (
     <div
-      className={`rounded-xl border p-4 transition-colors ${
-        isFailed
-          ? 'border-red-200 bg-red-50/30'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      }`}
+      className="rounded-[8px] p-4 transition-colors"
+      onMouseEnter={() => setCardHover(true)}
+      onMouseLeave={() => setCardHover(false)}
+      style={{
+        border: `1px solid ${isFailed ? 'var(--error)' : cardHover ? 'var(--border-strong)' : 'var(--border)'}`,
+        background: isFailed ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+      }}
     >
       <div className="flex items-start gap-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${type.color.split(' ')[0]}`}>
-          <TypeIcon className={`h-4 w-4 ${type.color.split(' ')[1]}`} strokeWidth={2} />
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px]"
+          style={{ background: type.bg }}
+        >
+          <TypeIcon className="h-4 w-4" style={{ color: type.color }} strokeWidth={2} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-[13px] font-semibold text-slate-900 truncate">
+            <h3 className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
               {report.title}
             </h3>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${type.color}`}>
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ background: type.bg, color: type.color }}
+            >
               {type.label}
             </span>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${status.color}`}>
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ background: status.bg, color: status.color }}
+            >
               {status.label}
             </span>
           </div>
 
-          <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+          <div className="mt-1 flex items-center gap-3 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             <span>{formatDate(report.createdAt)}</span>
             {report.fileSize != null && (
               <span>{formatFileSize(report.fileSize)}</span>
@@ -205,7 +245,7 @@ function ReportCard({ report }: { report: Report }) {
           </div>
 
           {isFailed && (
-            <div className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
+            <div className="mt-2 flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--error)' }}>
               <AlertCircle className="h-3.5 w-3.5" />
               <span>리포트 생성에 실패했습니다</span>
             </div>
@@ -222,7 +262,13 @@ function ReportCard({ report }: { report: Report }) {
                     reportsApi.downloadUrl(report.id),
                   )
                 }
-                className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                onMouseEnter={() => setViewHover(true)}
+                onMouseLeave={() => setViewHover(false)}
+                className="flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-colors"
+                style={{
+                  background: viewHover ? 'var(--bg-active)' : 'var(--bg-secondary)',
+                  color: viewHover ? 'var(--text-primary)' : 'var(--text-secondary)',
+                }}
                 title="뷰어로 보기"
               >
                 <Eye className="h-3.5 w-3.5" />
@@ -230,7 +276,13 @@ function ReportCard({ report }: { report: Report }) {
               </button>
               <button
                 onClick={() => window.open(reportsApi.downloadUrl(report.id), '_blank')}
-                className="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5 text-[12px] font-medium text-primary-700 transition-colors hover:bg-primary-100"
+                onMouseEnter={() => setDlHover(true)}
+                onMouseLeave={() => setDlHover(false)}
+                className="flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-[12px] font-medium transition-colors"
+                style={{
+                  background: dlHover ? 'var(--accent)' : 'var(--accent-light)',
+                  color: dlHover ? '#ffffff' : 'var(--accent)',
+                }}
               >
                 <Download className="h-3.5 w-3.5" />
                 다운로드
@@ -241,7 +293,13 @@ function ReportCard({ report }: { report: Report }) {
           {isFailed && (
             <button
               onClick={() => retryReport(report)}
-              className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+              onMouseEnter={() => setRetryHover(true)}
+              onMouseLeave={() => setRetryHover(false)}
+              className="flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-colors"
+              style={{
+                background: retryHover ? 'var(--bg-active)' : 'var(--bg-secondary)',
+                color: 'var(--warning)',
+              }}
               title="재시도"
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -251,7 +309,13 @@ function ReportCard({ report }: { report: Report }) {
 
           <button
             onClick={() => deleteReport(report.id)}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            onMouseEnter={() => setDeleteHover(true)}
+            onMouseLeave={() => setDeleteHover(false)}
+            className="rounded-[6px] p-1.5 transition-colors"
+            style={{
+              color: deleteHover ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+              background: deleteHover ? 'var(--bg-hover)' : 'transparent',
+            }}
             title="삭제"
           >
             <Trash2 className="h-3.5 w-3.5" />

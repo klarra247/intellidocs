@@ -7,10 +7,22 @@ interface ReviewStatusBadgeProps {
   size?: 'sm' | 'md';
 }
 
-const config: Record<Exclude<ReviewStatus, 'NONE'>, { label: string; bg: string; text: string }> = {
-  IN_REVIEW: { label: '검토 중', bg: 'bg-amber-50', text: 'text-amber-700' },
-  APPROVED: { label: '승인됨 \u2713', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  REJECTED: { label: '반려됨 \u2717', bg: 'bg-red-50', text: 'text-red-700' },
+const config: Record<Exclude<ReviewStatus, 'NONE'>, { label: string; bg: string; color: string }> = {
+  IN_REVIEW: {
+    label: '검토 중',
+    bg: 'color-mix(in srgb, var(--warning) 10%, transparent)',
+    color: 'var(--warning)',
+  },
+  APPROVED: {
+    label: '승인됨 \u2713',
+    bg: 'color-mix(in srgb, var(--success) 10%, transparent)',
+    color: 'var(--success)',
+  },
+  REJECTED: {
+    label: '반려됨 \u2717',
+    bg: 'color-mix(in srgb, var(--error) 10%, transparent)',
+    color: 'var(--error)',
+  },
 };
 
 export default function ReviewStatusBadge({ status, size = 'md' }: ReviewStatusBadgeProps) {
@@ -22,7 +34,10 @@ export default function ReviewStatusBadge({ status, size = 'md' }: ReviewStatusB
     : 'px-2 py-0.5 text-[11px]';
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${c.bg} ${c.text} ${sizeClass}`}>
+    <span
+      className={`inline-flex items-center rounded-full font-medium ${sizeClass}`}
+      style={{ backgroundColor: c.bg, color: c.color }}
+    >
       {c.label}
     </span>
   );
