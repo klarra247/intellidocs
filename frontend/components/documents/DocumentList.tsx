@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
 import DocumentCard from './DocumentCard';
 import DeleteConfirmModal from './DeleteConfirmModal';
-import { FolderOpen } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export default function DocumentList() {
   const {
@@ -76,26 +76,43 @@ export default function DocumentList() {
   // Empty state
   if (documents.length === 0) {
     return (
-      <div
-        className="animate-fade-in flex flex-col items-center rounded-[6px] py-16"
-        style={{ border: '1px dashed var(--border)' }}
-      >
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-[8px]"
-          style={{ background: 'var(--bg-secondary)' }}
+      <div className="animate-fade-in flex flex-col items-center py-16">
+        <FileText
+          size={48}
+          style={{ color: 'var(--text-tertiary)' }}
+          strokeWidth={1.2}
+        />
+        <p className="mt-4 text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          문서를 업로드하고 AI에게 물어보세요
+        </p>
+        <p
+          className="mt-1 max-w-xs text-center text-[13px]"
+          style={{ color: 'var(--text-secondary)' }}
         >
-          <FolderOpen
-            className="h-5 w-5"
-            style={{ color: 'var(--text-tertiary)' }}
-            strokeWidth={1.5}
-          />
+          PDF, Excel, Word를 업로드하면 AI가 자동으로 분석 준비를 합니다
+        </p>
+        <button
+          className="mt-5 rounded-[6px] px-4 py-2 text-[13px] font-medium text-white"
+          style={{ background: 'var(--accent)' }}
+          onClick={() => {
+            const el = document.querySelector('[data-tour="upload-zone"]') as HTMLElement | null;
+            el?.click();
+          }}
+        >
+          문서 업로드하기
+        </button>
+        <div className="mt-8 w-full" style={{ borderTop: '1px solid var(--border)' }} />
+        <p
+          className="mt-3 text-center text-[12px] font-medium"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          이런 걸 할 수 있어요
+        </p>
+        <div className="mt-3 space-y-2 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          <p>{'\u201C'}연도별 매출을 표로 정리해줘{'\u201D'}</p>
+          <p>{'\u201C'}문서 간 수치 차이 확인해줘{'\u201D'}</p>
+          <p>{'\u201C'}전 분기 대비 뭐가 바뀌었어?{'\u201D'}</p>
         </div>
-        <p className="mt-4 text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-          업로드된 문서가 없습니다
-        </p>
-        <p className="mt-1 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-          위 영역에 파일을 드래그하여 시작하세요
-        </p>
       </div>
     );
   }
