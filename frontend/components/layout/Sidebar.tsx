@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   FileText,
   MessageSquare,
+  FileBarChart,
   Share2,
   Bell,
   Settings,
@@ -15,6 +16,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 const navItems = [
   { href: '/workspace', label: '문서', icon: FileText, tourId: 'nav-documents' },
   { href: '/workspace/chat', label: 'AI 채팅', icon: MessageSquare, tourId: 'nav-chat' },
+  { href: '/workspace/reports', label: '리포트', icon: FileBarChart },
   { href: '/workspace/knowledge-graph', label: 'Knowledge Graph', icon: Share2, tourId: 'nav-knowledge-graph' },
   { href: '/workspace/notifications', label: '알림', icon: Bell },
   { href: '/workspace/settings', label: '설정', icon: Settings, teamOnly: true },

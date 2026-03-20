@@ -164,6 +164,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production-min-256-bits-required-here}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      PARSING_SERVICE_URL: http://parser:8000
       JAVA_OPTS: "-Xms256m -Xmx512m"
     volumes:
       - uploads_data:/data/uploads
