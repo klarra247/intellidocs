@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useOnboardingStore } from '@/stores/onboardingStore';
 
 export default function GeneralTab() {
   const { currentWorkspace, workspaceDetail, updateWorkspace } = useWorkspaceStore();
+  const resetTour = useOnboardingStore((s) => s.resetTour);
+  const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -136,6 +140,32 @@ export default function GeneralTab() {
           저장
         </button>
       )}
+
+      {/* Onboarding Tour */}
+      <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
+        <h3 className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          온보딩 투어
+        </h3>
+        <p className="mt-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          IntelliDocs 사용법을 다시 확인할 수 있습니다
+        </p>
+        <button
+          onClick={() => {
+            resetTour();
+            router.push('/workspace');
+          }}
+          className="mt-3 rounded-[6px] px-4 py-2 text-[13px] font-medium transition-colors"
+          style={{
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            background: 'var(--bg-primary)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-primary)')}
+        >
+          온보딩 투어 다시 보기
+        </button>
+      </div>
     </form>
   );
 }
