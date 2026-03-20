@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send, Square } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 
@@ -9,6 +9,16 @@ export default function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage, stopStreaming, streaming, selectedDocIds } =
     useChatStore();
+  const prefillInput = useChatStore((s) => s.prefillInput);
+  const setPrefillInput = useChatStore((s) => s.setPrefillInput);
+
+  useEffect(() => {
+    if (prefillInput) {
+      setInput(prefillInput);
+      setPrefillInput('');
+      textareaRef.current?.focus();
+    }
+  }, [prefillInput, setPrefillInput]);
 
   const handleSubmit = () => {
     const query = input.trim();

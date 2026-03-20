@@ -38,6 +38,10 @@ interface ChatState {
   // Toast
   toast: ToastState | null;
 
+  // Prefill input (for suggestion cards)
+  prefillInput: string;
+  setPrefillInput: (text: string) => void;
+
   // Existing actions
   loadHistory: (sessionId: string) => Promise<void>;
   sendMessage: (query: string) => Promise<void>;
@@ -110,6 +114,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   commentsLoading: false,
 
   toast: null,
+
+  prefillInput: '',
+  setPrefillInput: (text) => set({ prefillInput: text }),
 
   loadHistory: async (sessionId) => {
     try {

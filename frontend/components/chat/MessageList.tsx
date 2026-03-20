@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { Loader2, BarChart3, AlertTriangle, RefreshCw, FileBarChart } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import MessageBubble from './MessageBubble';
 import ToolIndicator from './ToolIndicator';
@@ -22,6 +22,7 @@ export default function MessageList() {
     unpinMessage,
     openCommentPanel,
   } = useChatStore();
+  const setPrefillInput = useChatStore((s) => s.setPrefillInput);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -54,20 +55,38 @@ export default function MessageList() {
 
   if (messages.length === 0 && !streaming) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <div
-            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[8px]"
-            style={{ background: 'var(--bg-secondary)' }}
-          >
-            <MessageSquare className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+      <div className="flex flex-1 items-center justify-center animate-fade-in">
+        <div className="w-full max-w-md px-6">
+          <p className="text-center text-[15px] font-medium mb-5" style={{ color: 'var(--text-primary)' }}>
+            무엇이든 물어보세요
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { icon: BarChart3, category: '표로 정리', example: '매출 추이를 표로 보여줘' },
+              { icon: AlertTriangle, category: '수치 비교', example: '문서 간 차이 확인해줘' },
+              { icon: RefreshCw, category: '버전 비교', example: '전 분기 대비 변경 사항' },
+              { icon: FileBarChart, category: '리포트 생성', example: '분석 리포트 만들어줘' },
+            ].map((s) => (
+              <button
+                key={s.category}
+                onClick={() => setPrefillInput(s.example)}
+                className="flex flex-col gap-2 rounded-[8px] p-4 text-left transition-colors"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid transparent' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-hover)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }}
+              >
+                <s.icon className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} strokeWidth={1.8} />
+                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{s.category}</p>
+                <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>&ldquo;{s.example}&rdquo;</p>
+              </button>
+            ))}
           </div>
-          <p className="text-[15px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-            문서에 대해 질문하세요
-          </p>
-          <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            업로드된 문서를 기반으로 AI가 답변합니다
-          </p>
         </div>
       </div>
     );
