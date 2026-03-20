@@ -144,22 +144,13 @@ export default function NotificationsPage() {
             />
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '64px 0',
-              color: 'var(--text-tertiary)',
-            }}
-          >
-            <Bell style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text-tertiary)' }} />
-            <p style={{ fontSize: '14px', fontWeight: 500, margin: '0 0 4px 0', color: 'var(--text-tertiary)' }}>
-              새로운 알림이 없습니다
-            </p>
-            <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-tertiary)' }}>
-              활동이 생기면 여기에 표시됩니다
+          <div className="flex flex-col items-center py-16">
+            <Bell className="h-12 w-12" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.2} />
+            <h3 className="mt-5 text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+              아직 알림이 없습니다
+            </h3>
+            <p className="mt-1.5 text-[13px] text-center max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+              팀원이 코멘트를 남기거나 문서 처리가 완료되면 여기에 표시됩니다
             </p>
           </div>
         ) : (

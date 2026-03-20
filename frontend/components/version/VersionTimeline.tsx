@@ -5,7 +5,7 @@ import { useVersionStore } from '@/stores/versionStore';
 import VersionNode from './VersionNode';
 import VersionUploadButton from './VersionUploadButton';
 import DiffProgressBar from './DiffProgressBar';
-import { Loader2 } from 'lucide-react';
+import { GitBranch, Loader2 } from 'lucide-react';
 
 interface VersionTimelineProps {
   documentId: string;
@@ -51,9 +51,12 @@ export default function VersionTimeline({ documentId }: VersionTimelineProps) {
       {diffJob && <DiffProgressBar />}
 
       {sorted.length === 0 ? (
-        <p className="text-[12px] text-center py-4" style={{ color: 'var(--text-tertiary)' }}>
-          버전 정보가 없습니다
-        </p>
+        <div className="flex flex-col items-center py-10">
+          <GitBranch className="h-10 w-10" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.2} />
+          <p className="mt-3 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+            새 버전을 업로드하면 변경 사항을 자동으로 비교합니다
+          </p>
+        </div>
       ) : (
         <div className="relative ml-3">
           {/* Timeline line */}
@@ -77,6 +80,12 @@ export default function VersionTimeline({ documentId }: VersionTimelineProps) {
             })}
           </div>
         </div>
+      )}
+
+      {sorted.length === 1 && (
+        <p className="mt-4 text-center text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          새 버전을 업로드하면 이전 버전과의 차이를 자동으로 비교합니다
+        </p>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Share2, Upload, RefreshCw } from 'lucide-react';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useGraphStore } from '@/stores/graphStore';
@@ -82,40 +83,18 @@ export default function GraphEmptyState({ rebuilding }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 px-8">
-      <div
-        style={{
-          display: 'flex',
-          height: 64,
-          width: 64,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 16,
-          background: '#f7f7f5',
-        }}
-      >
-        <Share2 style={{ height: 32, width: 32, color: '#b4b4b0' }} />
-      </div>
-      <div className="text-center">
-        <p style={{ fontSize: 14, fontWeight: 500, color: '#787774' }}>
-          Knowledge Graph가 비어있습니다
+    <div className="flex h-full flex-col items-center justify-center px-8">
+      <div className="flex flex-col items-center">
+        <Share2 className="h-12 w-12" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.2} />
+        <h3 className="mt-5 text-[16px] font-semibold text-center" style={{ color: 'var(--text-primary)' }}>
+          문서를 업로드하면 자동으로 Knowledge Graph가 생성됩니다
+        </h3>
+        <p className="mt-1.5 text-[13px] text-center max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+          문서에서 핵심 지표를 추출하고, 문서 간 관계를 시각화합니다
         </p>
-        <p style={{ marginTop: 4, fontSize: 12, color: '#b4b4b0' }}>
-          문서를 업로드하면 자동으로 엔티티와 관계가 추출됩니다
-        </p>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          borderRadius: 8,
-          background: '#f7f7f5',
-          padding: '6px 12px',
-        }}
-      >
-        <Upload style={{ height: 14, width: 14, color: '#b4b4b0' }} />
-        <span style={{ fontSize: 12, color: '#787774' }}>문서 관리에서 파일을 업로드하세요</span>
+        <Link href="/workspace" className="mt-4 text-[13px] font-medium" style={{ color: 'var(--accent)' }}>
+          문서 업로드하러 가기
+        </Link>
       </div>
     </div>
   );
