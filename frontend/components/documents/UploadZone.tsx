@@ -38,7 +38,7 @@ export default function UploadZone() {
   const uploadEntries = Array.from(uploadingFiles.values());
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-tour="upload-zone">
       {/* Drop zone */}
       <div
         {...getRootProps()}

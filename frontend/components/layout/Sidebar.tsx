@@ -13,9 +13,9 @@ import WorkspaceSwitcher from '@/components/workspace/WorkspaceSwitcher';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 const navItems = [
-  { href: '/workspace', label: '문서', icon: FileText },
-  { href: '/workspace/chat', label: 'AI 채팅', icon: MessageSquare },
-  { href: '/workspace/knowledge-graph', label: 'Knowledge Graph', icon: Share2 },
+  { href: '/workspace', label: '문서', icon: FileText, tourId: 'nav-documents' },
+  { href: '/workspace/chat', label: 'AI 채팅', icon: MessageSquare, tourId: 'nav-chat' },
+  { href: '/workspace/knowledge-graph', label: 'Knowledge Graph', icon: Share2, tourId: 'nav-knowledge-graph' },
   { href: '/workspace/notifications', label: '알림', icon: Bell },
   { href: '/workspace/settings', label: '설정', icon: Settings, teamOnly: true },
 ];
@@ -38,7 +38,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 pt-2">
         <div className="space-y-0.5">
-          {navItems.filter((item) => !('teamOnly' in item && item.teamOnly) || isTeam).map(({ href, label, icon: Icon }) => {
+          {navItems.filter((item) => !('teamOnly' in item && item.teamOnly) || isTeam).map(({ href, label, icon: Icon, tourId }) => {
             const active =
               href === '/workspace'
                 ? pathname === '/workspace'
@@ -48,6 +48,7 @@ export default function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                data-tour={tourId}
                 className="group flex items-center gap-2.5 rounded-[4px] px-2 py-1.5 text-[13px] transition-colors"
                 style={{
                   background: active ? 'var(--bg-active)' : 'transparent',
