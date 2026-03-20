@@ -45,7 +45,8 @@ export default function CommentItem({ comment, onUpdate, onDelete }: CommentItem
 
   const timeAgo = (dateStr: string) => {
     if (!dateStr) return '방금 전';
-    const time = new Date(dateStr).getTime();
+    const parsed = /[Z+\-]\d{0,2}:?\d{0,2}$/.test(dateStr) ? dateStr : dateStr + 'Z';
+    const time = new Date(parsed).getTime();
     if (isNaN(time)) return '방금 전';
     const diff = Date.now() - time;
     const minutes = Math.floor(diff / 60000);

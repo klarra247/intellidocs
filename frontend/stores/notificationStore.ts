@@ -65,16 +65,27 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markAsRead: async (id: string) => {
+    const target = get().notifications.find((n) => n.id === id);
+    if (!target || target.isRead) return;
+
+    // Optimistic update
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        n.id === id ? { ...n, isRead: true } : n
+      ),
+      unreadCount: Math.max(0, s.unreadCount - 1),
+    }));
+
     try {
       await notificationsApi.markAsRead(id);
+    } catch {
+      // Revert on failure
       set((s) => ({
         notifications: s.notifications.map((n) =>
-          n.id === id ? { ...n, isRead: true } : n
+          n.id === id ? { ...n, isRead: false } : n
         ),
-        unreadCount: Math.max(0, s.unreadCount - 1),
+        unreadCount: s.unreadCount + 1,
       }));
-    } catch {
-      // silent
     }
   },
 

@@ -73,7 +73,7 @@ export default function DiscrepancyDetailPanel() {
               수치 일관성 검사 결과
             </h3>
             <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-              {new Date(detailResult.createdAt).toLocaleString('ko-KR')}
+              {new Date(/[Z+\-]\d{0,2}:?\d{0,2}$/.test(detailResult.createdAt) ? detailResult.createdAt : detailResult.createdAt + 'Z').toLocaleString('ko-KR')}
             </p>
           </div>
           <button

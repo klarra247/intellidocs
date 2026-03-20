@@ -95,8 +95,13 @@ export default function DocumentList() {
           className="mt-5 rounded-[6px] px-4 py-2 text-[13px] font-medium text-white"
           style={{ background: 'var(--accent)' }}
           onClick={() => {
-            const el = document.querySelector('[data-tour="upload-zone"]') as HTMLElement | null;
-            el?.click();
+            const input = document.querySelector('[data-tour="upload-zone"] input[type="file"]') as HTMLElement | null;
+            if (input) {
+              input.click();
+            } else {
+              const dropzone = document.querySelector('[data-tour="upload-zone"] > div') as HTMLElement | null;
+              dropzone?.click();
+            }
           }}
         >
           문서 업로드하기

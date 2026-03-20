@@ -5,11 +5,22 @@ import type { Notification } from '@/lib/types';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useViewerStore } from '@/stores/viewerStore';
 import { useChatStore } from '@/stores/chatStore';
+import { useDiscrepancyStore } from '@/stores/discrepancyStore';
+import { discrepancyApi } from '@/lib/api';
 import NotificationTypeIcon from './NotificationTypeIcon';
+
+function parseUTCDate(dateStr: string): number {
+  // Backend sends LocalDateTime without timezone suffix (e.g. "2026-03-21T10:30:00")
+  // Append 'Z' to treat as UTC if no timezone info present
+  if (!/[Z+\-]\d{0,2}:?\d{0,2}$/.test(dateStr)) {
+    return new Date(dateStr + 'Z').getTime();
+  }
+  return new Date(dateStr).getTime();
+}
 
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
-  const then = new Date(dateStr).getTime();
+  const then = parseUTCDate(dateStr);
   const diffMin = Math.floor((now - then) / 60000);
   if (diffMin < 1) return '방금';
   if (diffMin < 60) return `${diffMin}분 전`;
@@ -17,7 +28,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diffHr < 24) return `${diffHr}시간 전`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay < 7) return `${diffDay}일 전`;
-  return new Date(dateStr).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+  return new Date(parseUTCDate(dateStr)).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
 interface Props {
@@ -52,6 +63,9 @@ export default function NotificationItem({ notification, variant = 'compact', on
           break;
         case 'discrepancy':
           router.push('/workspace');
+          discrepancyApi.getResult(referenceId).then((result) => {
+            useDiscrepancyStore.getState().openDetail(result);
+          }).catch(() => {});
           break;
         case 'workspace':
           router.push('/workspace/settings');
